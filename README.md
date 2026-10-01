@@ -88,6 +88,7 @@ node test/run-tests.js
 | [docs/content-tasks.md](docs/content-tasks.md) | 21 个任务定义、各年级段目标值、每日生成规则、政策依据 |
 | [docs/design.md](docs/design.md) | 信息架构、页面流转、视觉规范（色板/字号/组件）、关键交互与可用性 |
 | [docs/data-model.md](docs/data-model.md) | 本地存储结构、统计算法、云开发演进（collections / 云函数 / 同步策略） |
+| [CHANGELOG.md](CHANGELOG.md) | 版本更新日志（Keep a Changelog 格式） |
 | [design/preview.html](design/preview.html) | 用浏览器打开即可查看 5 个核心页面的静态设计稿 |
 
 ## 路线图
