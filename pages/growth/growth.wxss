@@ -1,0 +1,37 @@
+.gr-rank { padding: 32rpx; }
+.gr-rank-name { font-size: 44rpx; font-weight: 700; margin-top: 4rpx; }
+.gr-star-total { font-size: 44rpx; font-weight: 700; color: #FF8A00; }
+.gr-bar { height: 20rpx; background: #FFF1DC; border-radius: 999rpx; margin: 24rpx 0 12rpx; overflow: hidden; }
+.gr-bar-in { height: 100%; background: linear-gradient(90deg, #FFB25A, #FF8A00); border-radius: 999rpx; }
+
+.gr-kpi { text-align: center; }
+.gr-kpi-num { font-size: 40rpx; font-weight: 700; }
+
+.bar { margin-bottom: 20rpx; }
+.bar:last-child { margin-bottom: 0; }
+.bar-name { width: 88rpx; font-size: 26rpx; }
+.bar-track { height: 24rpx; background: #F7F2E8; border-radius: 999rpx; margin: 0 16rpx; overflow: hidden; }
+.bar-in { height: 100%; border-radius: 999rpx; min-width: 8rpx; }
+.bar-count { width: 96rpx; text-align: right; }
+
+.empty { text-align: center; }
+
+.wall { display: flex; flex-wrap: wrap; padding: 0 12rpx; }
+.badge {
+  width: 33.33%;
+  box-sizing: border-box;
+  padding: 12rpx;
+}
+.badge-emoji {
+  width: 110rpx; height: 110rpx;
+  margin: 0 auto;
+  background: #F1EBDD;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 56rpx;
+  filter: grayscale(1);
+  opacity: 0.5;
+}
+.badge.on .badge-emoji { background: #FFF4D6; filter: none; opacity: 1; }
+.badge-name { text-align: center; font-size: 26rpx; font-weight: 600; margin-top: 12rpx; }
+.badge-desc { text-align: center; font-size: 20rpx; line-height: 1.4; min-height: 56rpx; }

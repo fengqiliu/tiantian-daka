@@ -1,0 +1,55 @@
+<view class="gr safe-bottom">
+  <view class="card gr-rank">
+    <view class="row">
+      <view class="flex1">
+        <view class="muted">我的称号</view>
+        <view class="gr-rank-name">{{rank.emoji}} {{rank.name}}</view>
+      </view>
+      <view class="gr-star-total">⭐ {{totalStars}}</view>
+    </view>
+    <view class="gr-bar">
+      <view class="gr-bar-in" style="width: {{rank.pct}}%;"></view>
+    </view>
+    <view class="muted">{{rank.next ? '距「' + rank.next.name + '」还差 ' + (rank.next.min - totalStars) + ' ⭐' : '已是最高称号，太厉害啦！'}}</view>
+  </view>
+
+  <view class="card row">
+    <view class="gr-kpi flex1">
+      <view class="gr-kpi-num">🔥 {{streak.current}}</view>
+      <view class="muted">连续打卡（天）</view>
+    </view>
+    <view class="gr-kpi flex1">
+      <view class="gr-kpi-num">🏅 {{streak.best}}</view>
+      <view class="muted">最长连击（天）</view>
+    </view>
+    <view class="gr-kpi flex1">
+      <view class="gr-kpi-num">✅ {{week.achieved}}/{{week.days}}</view>
+      <view class="muted">本周达成</view>
+    </view>
+  </view>
+
+  <view class="sec-header row" style="padding: 8rpx 32rpx 16rpx;">
+    <text class="h2">本周都在忙什么</text>
+  </view>
+  <view class="card" wx:if="{{bars.length}}">
+    <view wx:for="{{bars}}" wx:key="key" class="bar row">
+      <view class="bar-name">{{item.name}}</view>
+      <view class="bar-track flex1">
+        <view class="bar-in" style="width: {{item.pct}}%; background: {{item.color}};"></view>
+      </view>
+      <view class="bar-count muted">{{item.count}} 次</view>
+    </view>
+  </view>
+  <view wx:else class="card empty muted">本周还没有打卡记录，快去开始吧！</view>
+
+  <view class="sec-header row" style="padding: 8rpx 32rpx 16rpx;">
+    <text class="h2">勋章墙</text>
+  </view>
+  <view class="wall">
+    <view wx:for="{{wall}}" wx:key="id" class="badge {{item.earned ? 'on' : ''}}">
+      <view class="badge-emoji">{{item.earned ? item.emoji : '❓'}}</view>
+      <view class="badge-name">{{item.name}}</view>
+      <view class="badge-desc muted">{{item.earned ? '已获得 🎉' : item.desc}}</view>
+    </view>
+  </view>
+</view>

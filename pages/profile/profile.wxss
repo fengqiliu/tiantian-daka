@@ -1,0 +1,73 @@
+.pf { padding-top: 24rpx; }
+.pf-head { padding: 32rpx; }
+.pf-avatar {
+  width: 108rpx; height: 108rpx;
+  background: #FFF4D6;
+  border-radius: 50%;
+  font-size: 60rpx;
+  display: flex; align-items: center; justify-content: center;
+  margin-right: 24rpx;
+}
+.pf-stats { font-size: 22rpx; }
+
+.field { margin-top: 28rpx; }
+.input { background: #F7F2E8; border-radius: 16rpx; padding: 20rpx 24rpx; margin-top: 10rpx; font-size: 28rpx; }
+
+.avatar-row { display: flex; justify-content: space-between; margin-top: 16rpx; }
+.avatar {
+  width: 84rpx; height: 84rpx;
+  background: #F7F2E8;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 44rpx;
+  border: 3rpx solid transparent;
+}
+.avatar.on { border-color: #FFB25A; background: #FFF1DC; }
+
+.grade-row { display: flex; justify-content: space-between; margin-top: 16rpx; }
+.grade-btn {
+  flex: 1;
+  background: #F7F2E8;
+  border-radius: 16rpx;
+  padding: 16rpx 0;
+  text-align: center;
+  font-size: 26rpx;
+  color: #6B655B;
+  margin-right: 12rpx;
+  border: 3rpx solid transparent;
+}
+.grade-btn:last-child { margin-right: 0; }
+.grade-btn.on { background: #FFF1DC; color: #FF8A00; border-color: #FFB25A; font-weight: 600; }
+
+.pf-foot { text-align: center; padding: 16rpx 48rpx 40rpx; font-size: 22rpx; }
+
+.role-tag {
+  font-size: 20rpx;
+  color: #B4884F;
+  background: #FFF4D6;
+  border-radius: 8rpx;
+  padding: 4rpx 12rpx;
+  margin-left: 10rpx;
+  vertical-align: middle;
+}
+.pf-switch {
+  color: #FF8A00;
+  font-size: 26rpx;
+  font-weight: 600;
+  padding: 8rpx 0 8rpx 24rpx;
+}
+.code-box {
+  background: #FFF6E3;
+  border: 3rpx dashed #FFC069;
+  border-radius: 20rpx;
+  padding: 28rpx;
+  text-align: center;
+}
+.code-num {
+  display: block;
+  font-size: 56rpx;
+  font-weight: 700;
+  letter-spacing: 16rpx;
+  color: #FF8A00;
+  margin-bottom: 8rpx;
+}

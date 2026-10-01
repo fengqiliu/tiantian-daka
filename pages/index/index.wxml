@@ -1,0 +1,126 @@
+<view class="page safe-bottom">
+  <!-- ══ 家长模式 ══ -->
+  <block wx:if="{{isParent}}">
+    <view class="header row">
+      <view class="flex1">
+        <view class="h1">孩子的今日</view>
+        <view class="muted" wx:if="{{cloudOff}}">家长模式需先开通云开发（见 README）</view>
+      </view>
+    </view>
+
+    <view wx:if="{{!bound && !cloudOff}}" class="card bind-card">
+      <view class="h2">绑定孩子</view>
+      <view class="muted" style="margin: 8rpx 0 20rpx;">请孩子在「我的 → 家人绑定」中查看 6 位邀请码</view>
+      <input class="input" placeholder="输入邀请码，如 A3F8K2" value="{{bindCode}}" bindinput="onBindInput" maxlength="6" />
+      <view class="btn-primary" style="margin-top: 24rpx;" bindtap="onBind">绑定</view>
+    </view>
+    <view wx:if="{{!bound && cloudOff}}" class="card">
+      <view class="h2">绑定孩子</view>
+      <view class="muted" style="margin-top: 8rpx;">家长模式需先开通微信云开发，步骤见项目 README；开通后这里输入孩子的邀请码即可绑定。</view>
+    </view>
+
+    <block wx:if="{{bound}}">
+      <view class="greet">{{childName}} · {{childGradeLabel}}</view>
+
+      <view class="card ring-card row">
+        <view class="ring" style="background: conic-gradient(#FF8A00 {{childPct}}%, #FFE7C7 0)">
+          <view class="ring-inner">
+            <view class="ring-num">{{childDone}}/{{childTotal}}</view>
+            <view class="ring-label">今日任务</view>
+          </view>
+        </view>
+        <view class="flex1 ring-text">
+          <view class="h2">{{childDone === childTotal && childTotal > 0 ? '今天全部完成！🎉' : '今天还在努力中'}}</view>
+          <view class="muted">累计 ⭐ {{childStars}} · 连续打卡 {{childStreak}} 天 🔥</view>
+        </view>
+      </view>
+
+      <view class="card row">
+        <view class="strip-day" wx:for="{{weekStrip}}" wx:key="index" wx:for-item="d">
+          <view class="strip-dot {{d.state}}"></view>
+          <view class="muted">{{d.label}}</view>
+        </view>
+      </view>
+
+      <block wx:for="{{childSections}}" wx:key="key" wx:for-item="sec">
+        <view class="sec-header row">
+          <view class="sec-dot" style="background: {{sec.color}};"></view>
+          <text class="sec-name">{{sec.name}}</text>
+          <text class="muted">{{sec.done}}/{{sec.total}}</text>
+        </view>
+        <view
+          wx:for="{{sec.tasks}}"
+          wx:key="id"
+          wx:for-item="task"
+          class="card task-card row {{task.done ? 'task-done' : ''}}"
+          data-id="{{task.id}}"
+          bindtap="onParentTaskTap"
+        >
+          <view class="task-emoji" style="background: {{sec.bg}};">{{task.emoji}}</view>
+          <view class="flex1 task-info">
+            <view class="task-name">{{task.name}}<text wx:if="{{task.must}}" class="tag-must">必做</text></view>
+            <view class="muted">{{task.targetLabel}}</view>
+          </view>
+          <view class="task-right">
+            <text wx:if="{{task.done}}" class="task-stars">⭐{{task.stars}}</text>
+            <view wx:else class="task-circle"></view>
+          </view>
+        </view>
+      </block>
+    </block>
+  </block>
+
+  <!-- ══ 孩子模式 ══ -->
+  <block wx:else>
+    <view class="header row">
+      <view class="flex1">
+        <view class="h1">{{dateLabel}} <text class="daytag">{{dayTag}}</text></view>
+        <view class="muted">{{gradeLabel}}</view>
+      </view>
+      <view class="star-chip" bindtap="goGrowth">⭐ {{totalStars}}</view>
+    </view>
+
+    <view class="greet">{{greeting}}，{{nickname}}！</view>
+
+    <view class="card ring-card row">
+      <view class="ring" style="background: conic-gradient(#FF8A00 {{pct}}%, #FFE7C7 0)">
+        <view class="ring-inner">
+          <view class="ring-num">{{done}}/{{total}}</view>
+          <view class="ring-label">今日任务</view>
+        </view>
+      </view>
+      <view class="flex1 ring-text">
+        <view class="h2">{{done === total && total > 0 ? '全部完成，太棒啦！🎉' : '完成必做任务，达成今日目标'}}</view>
+        <view class="muted">今日已获得 {{starsToday}} ⭐ · 连续打卡 {{streak}} 天 🔥</view>
+      </view>
+    </view>
+
+    <block wx:for="{{sections}}" wx:key="key" wx:for-item="sec">
+      <view class="sec-header row">
+        <view class="sec-dot" style="background: {{sec.color}};"></view>
+        <text class="sec-name">{{sec.name}}</text>
+        <text class="muted">{{sec.done}}/{{sec.total}}</text>
+      </view>
+      <view
+        wx:for="{{sec.tasks}}"
+        wx:key="id"
+        wx:for-item="task"
+        class="card task-card row {{task.done ? 'task-done' : ''}}"
+        data-id="{{task.id}}"
+        bindtap="onTaskTap"
+      >
+        <view class="task-emoji" style="background: {{sec.bg}};">{{task.emoji}}</view>
+        <view class="flex1 task-info">
+          <view class="task-name">{{task.name}}<text wx:if="{{task.must}}" class="tag-must">必做</text></view>
+          <view class="muted">{{task.targetLabel}}</view>
+        </view>
+        <view class="task-right">
+          <text wx:if="{{task.done}}" class="task-stars">⭐{{task.stars}}</text>
+          <view wx:else class="task-circle"></view>
+        </view>
+      </view>
+    </block>
+
+    <view class="foot-tip muted">完成全部必做任务，当日目标达成再得 1 ⭐</view>
+  </block>
+</view>

@@ -1,0 +1,13 @@
+{
+  "compileType": "miniprogram",
+  "appid": "touristappid",
+  "projectname": "tiantian-daka",
+  "cloudfunctionRoot": "cloudfunctions/",
+  "setting": {
+    "es6": true,
+    "postcss": true,
+    "minified": true,
+    "urlCheck": false,
+    "ignoreUploadUnusedFiles": true
+  }
+}

@@ -1,0 +1,54 @@
+<view class="cal safe-bottom">
+  <view class="card">
+    <view class="cal-head row">
+      <view class="cal-nav" bindtap="onPrev">‹</view>
+      <view class="flex1 cal-title h2">{{monthLabel}}</view>
+      <view class="cal-nav {{canNext ? '' : 'off'}}" bindtap="onNext">›</view>
+    </view>
+
+    <view class="week row">
+      <view wx:for="{{weekHeader}}" wx:key="*this" class="week-cell">{{item}}</view>
+    </view>
+
+    <view class="grid">
+      <block wx:for="{{grid}}" wx:key="index" wx:for-item="cell" wx:for-index="index">
+        <view wx:if="{{cell.blank}}" class="cell blank"></view>
+        <view
+          wx:else
+          class="cell {{cell.achieved ? 'ok' : cell.has ? 'part' : ''}} {{cell.isToday ? 'today' : ''}} {{cell.date === selectedDate ? 'sel' : ''}}"
+          data-date="{{cell.date}}"
+          bindtap="onPickDay"
+        >
+          <text>{{cell.day}}</text>
+        </view>
+      </block>
+    </view>
+
+    <view class="legend row">
+      <view class="lg-dot ok"></view><text class="muted">目标达成</text>
+      <view class="lg-dot part"></view><text class="muted">有打卡</text>
+      <view class="lg-dot"></view><text class="muted">未打卡</text>
+    </view>
+
+    <view class="cal-stats row" wx:if="{{stats}}">
+      <view class="cs"><view class="cs-num">{{stats.checkinDays}}</view><view class="muted">打卡天数</view></view>
+      <view class="cs"><view class="cs-num">{{stats.achievedDays}}</view><view class="muted">达成天数</view></view>
+      <view class="cs"><view class="cs-num">{{stats.stars}}</view><view class="muted">获得星星</view></view>
+    </view>
+  </view>
+
+  <view class="sec-header row" style="padding: 8rpx 32rpx 16rpx;">
+    <text class="h2">{{selectedLabel || '选择日期'}}</text>
+  </view>
+
+  <view wx:if="{{!dayRecords.length}}" class="card empty muted">这一天还没有打卡记录</view>
+  <view wx:for="{{dayRecords}}" wx:key="id" class="card dr row">
+    <view class="dr-emoji">{{item.emoji}}</view>
+    <view class="flex1">
+      <view class="dr-name">{{item.name}}</view>
+      <view class="muted" wx:if="{{item.type !== 'done'}}">完成 {{item.valueN}} {{item.unit}}</view>
+      <view class="muted" wx:if="{{item.note}}">“{{item.note}}”</view>
+    </view>
+    <view class="dr-stars">⭐{{item.stars}}</view>
+  </view>
+</view>

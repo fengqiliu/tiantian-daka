@@ -1,0 +1,80 @@
+.header { padding: 24rpx 24rpx 8rpx; }
+.daytag {
+  font-size: 22rpx;
+  color: #FF8A00;
+  background: #FFEFD8;
+  border-radius: 8rpx;
+  padding: 4rpx 12rpx;
+  margin-left: 12rpx;
+  vertical-align: middle;
+}
+.star-chip {
+  background: #FFF4D6;
+  color: #B4884F;
+  font-weight: 600;
+  font-size: 28rpx;
+  border-radius: 999rpx;
+  padding: 10rpx 24rpx;
+}
+.greet { padding: 8rpx 24rpx 24rpx; font-size: 30rpx; }
+
+.ring-card { padding: 32rpx; }
+.ring {
+  width: 180rpx; height: 180rpx;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  margin-right: 32rpx;
+}
+.ring-inner {
+  width: 132rpx; height: 132rpx;
+  background: #fff;
+  border-radius: 50%;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+}
+.ring-num { font-size: 36rpx; font-weight: 700; color: #FF8A00; }
+.ring-label { font-size: 20rpx; color: #9A948B; }
+.ring-text .h2 { margin-bottom: 8rpx; }
+
+.sec-header { padding: 12rpx 32rpx 12rpx; }
+.sec-dot { width: 20rpx; height: 20rpx; border-radius: 6rpx; margin-right: 12rpx; }
+.sec-name { font-weight: 600; font-size: 30rpx; margin-right: 12rpx; }
+
+.task-card { padding: 24rpx; border-radius: 24rpx; }
+.task-emoji {
+  width: 84rpx; height: 84rpx;
+  border-radius: 24rpx;
+  font-size: 44rpx;
+  display: flex; align-items: center; justify-content: center;
+  margin-right: 24rpx;
+}
+.task-name { font-size: 30rpx; font-weight: 600; }
+.task-done { opacity: 0.62; }
+.task-right { min-width: 80rpx; text-align: right; }
+.task-stars { font-size: 30rpx; font-weight: 600; }
+.task-circle {
+  width: 40rpx; height: 40rpx;
+  border: 4rpx solid #EADFCB;
+  border-radius: 50%;
+  margin-left: auto;
+}
+.foot-tip { text-align: center; padding: 8rpx 0 24rpx; }
+
+/* 家长模式 */
+.bind-card .input {
+  background: #F7F2E8;
+  border-radius: 16rpx;
+  padding: 20rpx 24rpx;
+  font-size: 34rpx;
+  letter-spacing: 8rpx;
+  text-align: center;
+  font-weight: 700;
+}
+.strip-day { flex: 1; text-align: center; }
+.strip-dot {
+  width: 28rpx; height: 28rpx;
+  border-radius: 50%;
+  background: #F1EBDD;
+  margin: 0 auto 8rpx;
+}
+.strip-dot.part { background: #FFE7C7; }
+.strip-dot.ok { background: #37B24D; }

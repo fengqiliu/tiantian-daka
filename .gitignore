@@ -1,0 +1,13 @@
+# macOS
+.DS_Store
+
+# 微信开发者工具个人配置（每台机器不同，不入库）
+project.private.config.json
+
+# 依赖（云函数本地调试安装的 node_modules）
+node_modules/
+**/node_modules/
+
+# 日志与临时文件
+*.log
+*.tmp

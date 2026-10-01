@@ -1,0 +1,52 @@
+.cal-head { margin-bottom: 16rpx; }
+.cal-title { text-align: center; }
+.cal-nav {
+  width: 64rpx; height: 64rpx;
+  background: #FFF1DC;
+  color: #FF8A00;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 40rpx; font-weight: 700;
+}
+.cal-nav.off { opacity: 0.3; }
+
+.week { margin-bottom: 8rpx; }
+.week-cell { flex: 1; text-align: center; color: #9A948B; font-size: 24rpx; }
+
+.grid { display: flex; flex-wrap: wrap; }
+.cell {
+  width: 14.28%;
+  height: 88rpx;
+  display: flex; align-items: center; justify-content: center;
+  box-sizing: border-box;
+}
+.cell text { font-size: 28rpx; color: #6B655B; }
+.cell.ok text { color: #fff; }
+.cell.ok { }
+.cell.ok text { background: #37B24D; border-radius: 50%; width: 60rpx; height: 60rpx; line-height: 60rpx; text-align: center; }
+.cell.part text { background: #FFE7C7; border-radius: 50%; width: 60rpx; height: 60rpx; line-height: 60rpx; text-align: center; color: #B4884F; }
+.cell.today text { box-shadow: 0 0 0 4rpx #FFD9A8 inset; }
+.cell.sel text { box-shadow: 0 0 0 4rpx #FF8A00; }
+
+.legend { justify-content: center; margin-top: 16rpx; gap: 8rpx; }
+.lg-dot { width: 20rpx; height: 20rpx; border-radius: 50%; background: #F1EBDD; margin: 0 8rpx 0 20rpx; }
+.lg-dot:first-child { margin-left: 0; }
+.lg-dot.ok { background: #37B24D; }
+.lg-dot.part { background: #FFE7C7; }
+
+.cal-stats { border-top: 2rpx solid #FFF3E0; margin-top: 24rpx; padding-top: 24rpx; }
+.cs { flex: 1; text-align: center; }
+.cs-num { font-size: 40rpx; font-weight: 700; color: #FF8A00; }
+
+.empty { text-align: center; }
+.dr { padding: 24rpx; }
+.dr-emoji {
+  width: 72rpx; height: 72rpx;
+  background: #FFF4D6;
+  border-radius: 20rpx;
+  font-size: 40rpx;
+  display: flex; align-items: center; justify-content: center;
+  margin-right: 20rpx;
+}
+.dr-name { font-weight: 600; }
+.dr-stars { font-weight: 600; }

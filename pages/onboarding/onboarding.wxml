@@ -1,0 +1,84 @@
+<view class="ob">
+  <block wx:if="{{step === 0}}">
+    <view class="ob-body">
+      <view class="ob-logo">🌟</view>
+      <view class="h1 ob-title">天天小达人</view>
+      <view class="ob-slogan muted">每天进步一点点\n争当沪上小达人</view>
+      <view class="role-cards">
+        <view class="role-card" data-role="child" bindtap="pickRole">
+          <view class="role-emoji">🎒</view>
+          <view class="role-name">我是孩子</view>
+          <view class="muted">每天打卡学习、运动和娱乐</view>
+        </view>
+        <view class="role-card" data-role="parent" bindtap="pickRole">
+          <view class="role-emoji">👀</view>
+          <view class="role-name">我是家长</view>
+          <view class="muted">凭邀请码绑定，看娃打卡进度</view>
+        </view>
+      </view>
+    </view>
+  </block>
+
+  <block wx:if="{{step === 1}}">
+    <view class="ob-body">
+      <view class="h1">你在读几年级？</view>
+      <view class="muted ob-sub">任务会按年级自动调整难度</view>
+      <view class="grade-grid">
+        <view
+          wx:for="{{grades}}"
+          wx:key="*this"
+          class="grade-btn {{grade === item ? 'on' : ''}}"
+          data-grade="{{item}}"
+          bindtap="pickGrade"
+        >{{item}}</view>
+      </view>
+      <view class="grade-hint muted">{{gradeHint}}</view>
+    </view>
+    <view class="btn-primary ob-btn {{grade ? '' : 'disabled'}}" data-step="2" bindtap="goStep">下一步</view>
+  </block>
+
+  <block wx:if="{{step === 2}}">
+    <view class="ob-body">
+      <view class="h1">你是谁呀？</view>
+      <view class="avatar-row">
+        <view
+          wx:for="{{avatars}}"
+          wx:key="*this"
+          class="avatar {{avatar === item ? 'on' : ''}}"
+          data-emoji="{{item}}"
+          bindtap="pickAvatar"
+        >{{item}}</view>
+      </view>
+      <view class="field">
+        <view class="muted">昵称</view>
+        <input class="input" placeholder="比如：小豆" value="{{nickname}}" bindinput="onNickname" maxlength="12" />
+      </view>
+      <view class="field">
+        <view class="muted">学校（选填）</view>
+        <input class="input" placeholder="如：上海市××小学" value="{{school}}" bindinput="onSchool" maxlength="30" />
+      </view>
+    </view>
+    <view class="btn-primary ob-btn" bindtap="finish">开始打卡之旅 🚀</view>
+  </block>
+
+  <block wx:if="{{step === 3}}">
+    <view class="ob-body">
+      <view class="h1">设置你的头像和称呼</view>
+      <view class="muted ob-sub">孩子在小程序里生成邀请码后，在这里输入即可绑定</view>
+      <view class="avatar-row">
+        <view
+          wx:for="{{avatars}}"
+          wx:key="*this"
+          class="avatar {{avatar === item ? 'on' : ''}}"
+          data-emoji="{{item}}"
+          bindtap="pickAvatar"
+        >{{item}}</view>
+      </view>
+      <view class="field">
+        <view class="muted">称呼</view>
+        <input class="input" placeholder="比如：豆豆妈妈" value="{{nickname}}" bindinput="onNickname" maxlength="12" />
+      </view>
+    </view>
+    <view class="btn-primary ob-btn" bindtap="finish">进入家长模式 👀</view>
+  </block>
+</view>

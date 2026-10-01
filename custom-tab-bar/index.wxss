@@ -1,0 +1,15 @@
+.tabbar {
+  display: flex;
+  background: #fff;
+  border-top: 1rpx solid #F5EADA;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.tab {
+  flex: 1;
+  text-align: center;
+  padding: 14rpx 0 10rpx;
+  color: #9A948B;
+}
+.tab-icon { font-size: 40rpx; line-height: 1.2; }
+.tab-text { font-size: 22rpx; }
+.tab.on { color: #FF8A00; font-weight: 600; }

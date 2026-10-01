@@ -1,0 +1,64 @@
+<view class="td" wx:if="{{task}}">
+  <view class="card td-head">
+    <view class="row">
+      <view class="td-emoji" style="background: {{secBg}};">{{task.emoji}}</view>
+      <view class="flex1">
+        <view class="h1">{{task.name}}<text wx:if="{{task.must}}" class="tag-must">必做</text></view>
+        <view class="muted">{{secName}} · {{dateLabel}}</view>
+      </view>
+    </view>
+    <view class="td-desc">{{task.desc}}</view>
+  </view>
+
+  <view class="card">
+    <view class="h2 td-sec-title">今天完成了多少？</view>
+
+    <block wx:if="{{task.type !== 'done'}}">
+      <view class="stepper row">
+        <view class="step-btn" bindtap="onMinus">−</view>
+        <view class="step-num">{{value}} <text class="muted">{{task.unit}}</text></view>
+        <view class="step-btn" bindtap="onPlus">＋</view>
+      </view>
+      <view class="chips" wx:if="{{steps.length}}">
+        <view
+          wx:for="{{steps}}"
+          wx:key="*this"
+          class="chip {{value === item ? 'on' : ''}}"
+          data-n="{{item}}"
+          bindtap="onStep"
+        >{{item}}</view>
+      </view>
+      <view class="muted td-hint">目标 {{task.target}} {{task.unit}}{{task.type === 'count' ? '，可以分几次完成' : ''}}</view>
+    </block>
+
+    <block wx:else>
+      <view class="done-box {{value > 0 ? 'on' : ''}}" bindtap="onStep">✅ 完成啦</view>
+    </block>
+  </view>
+
+  <view class="card">
+    <view class="h2 td-sec-title">给自己评个星</view>
+    <view class="mood-row row">
+      <view
+        wx:for="{{moods}}"
+        wx:key="stars"
+        class="mood {{stars === item.stars ? 'on' : ''}}"
+        data-stars="{{item.stars}}"
+        bindtap="onStar"
+      >
+        <view class="mood-emoji">{{item.emoji}}</view>
+        <view class="mood-label">{{item.label}}</view>
+        <view class="mood-stars">{{item.stars}} ⭐</view>
+      </view>
+    </view>
+    <view class="field">
+      <view class="muted">一句话记录（选填）</view>
+      <input class="input" placeholder="比如：今天跳绳比昨天快！" value="{{note}}" bindinput="onNote" maxlength="50" />
+    </view>
+  </view>
+
+  <view class="td-actions">
+    <view class="btn-primary" bindtap="onSave">{{exists ? '更新打卡' : '保存打卡'}} ⭐{{stars}}</view>
+    <view wx:if="{{exists}}" class="btn-danger td-remove" bindtap="onRemove">取消本次打卡</view>
+  </view>
+</view>

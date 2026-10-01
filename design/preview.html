@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>天天小达人 · 设计预览（5 屏）</title>
+<style>
+  :root{
+    --bg:#FFF6E9; --card:#fff; --ink:#33302B; --muted:#9A948B;
+    --primary:#FF8A00; --primary-light:#FFF1DC; --primary-pale:#FFE7C7;
+    --chinese:#FF6B6B; --chinese-bg:#FFEBEB;
+    --math:#4D96FF; --math-bg:#E8F1FF;
+    --english:#9B5DE5; --english-bg:#F3EAFE;
+    --pe:#37B24D; --pe-bg:#E8F8EC;
+    --fun:#F59F00; --fun-bg:#FFF4D6;
+    --habit:#12B5B0; --habit-bg:#E0F7F6;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:#F3E9D7;font-family:-apple-system,'PingFang SC','Helvetica Neue',sans-serif;color:var(--ink);padding:40px 24px 80px;}
+  .head{max-width:1280px;margin:0 auto 32px;}
+  .head h1{font-size:26px;}
+  .head p{color:#8A7F6D;margin-top:6px;font-size:14px;}
+  .row{display:flex;flex-wrap:wrap;gap:36px;justify-content:center;max-width:1280px;margin:0 auto;}
+  .col{text-align:center;}
+  .col>h3{margin-bottom:12px;font-size:15px;color:#6B655B;font-weight:600;}
+  .phone{width:375px;height:760px;background:var(--bg);border-radius:40px;border:10px solid #2B2721;overflow:hidden;position:relative;text-align:left;box-shadow:0 24px 60px rgba(60,40,10,.25);}
+  .screen{height:100%;overflow:hidden;padding:20px 14px 0;font-size:14px;}
+  .scroll{height:100%;overflow:hidden;}
+  .card{background:var(--card);border-radius:16px;padding:14px;margin-bottom:10px;box-shadow:0 4px 14px rgba(255,143,31,.08);}
+  .muted{color:var(--muted);font-size:12px;}
+  .h1{font-size:19px;font-weight:700;}
+  .h2{font-size:15px;font-weight:600;}
+  .rowline{display:flex;align-items:center;}
+  .flex1{flex:1;}
+  /* 首页 */
+  .daytag{font-size:11px;color:var(--primary);background:#FFEFD8;border-radius:5px;padding:2px 7px;margin-left:8px;}
+  .starchip{background:var(--fun-bg);color:#B4884F;font-weight:600;border-radius:999px;padding:5px 13px;font-size:13px;}
+  .greet{padding:6px 4px 14px;font-size:14px;}
+  .ring{width:96px;height:96px;border-radius:50%;background:conic-gradient(var(--primary) 64%, var(--primary-pale) 0);display:flex;align-items:center;justify-content:center;margin-right:16px;}
+  .ring-in{width:70px;height:70px;background:#fff;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+  .ring-num{font-weight:700;color:var(--primary);font-size:17px;}
+  .ring-label{font-size:10px;color:var(--muted);}
+  .sec{display:flex;align-items:center;padding:10px 6px 6px;font-weight:600;}
+  .dot{width:10px;height:10px;border-radius:3px;margin-right:8px;}
+  .task{display:flex;align-items:center;background:#fff;border-radius:14px;padding:11px 12px;margin-bottom:8px;box-shadow:0 3px 10px rgba(255,143,31,.07);}
+  .task .em{width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;margin-right:12px;}
+  .task .nm{font-weight:600;font-size:14px;}
+  .must{display:inline-block;background:#FFECE8;color:#FF5A3C;font-size:10px;border-radius:4px;padding:2px 6px;margin-left:6px;}
+  .task.done{opacity:.6;}
+  .circle{width:20px;height:20px;border:3px solid #EADFCB;border-radius:50%;}
+  .stars{font-weight:700;}
+  /* 详情 */
+  .td-em{width:56px;height:56px;border-radius:16px;background:var(--math-bg);display:flex;align-items:center;justify-content:center;font-size:28px;margin-right:14px;}
+  .desc{background:#FFF9EF;border-radius:10px;padding:10px;color:#6B655B;font-size:12px;margin-top:12px;}
+  .stepper{display:flex;align-items:center;justify-content:center;margin:8px 0 4px;}
+  .sbtn{width:44px;height:44px;border-radius:50%;background:var(--primary-light);color:var(--primary);display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;}
+  .snum{width:120px;text-align:center;font-size:26px;font-weight:700;}
+  .chips{display:flex;gap:8px;justify-content:center;margin:10px 0;}
+  .chip{background:#F7F2E8;border-radius:999px;padding:6px 15px;font-size:13px;color:#6B655B;}
+  .chip.on{background:var(--primary);color:#fff;font-weight:600;}
+  .moods{display:flex;gap:8px;margin-top:8px;}
+  .mood{flex:1;background:#F7F2E8;border-radius:12px;padding:10px 0;text-align:center;border:2px solid transparent;}
+  .mood.on{background:var(--primary-light);border-color:#FFB25A;}
+  .mood .me{font-size:26px;}
+  .btnp{background:linear-gradient(135deg,#FFB25A,var(--primary));color:#fff;border-radius:999px;text-align:center;padding:12px 0;font-weight:600;font-size:15px;box-shadow:0 6px 14px rgba(255,138,0,.3);margin-top:12px;}
+  /* 日历 */
+  .calnav{width:30px;height:30px;border-radius:50%;background:var(--primary-light);color:var(--primary);display:flex;align-items:center;justify-content:center;font-weight:700;}
+  .week7{display:flex;margin:10px 0 4px;color:var(--muted);font-size:12px;text-align:center;}
+  .week7 div{flex:1;}
+  .grid7{display:flex;flex-wrap:wrap;}
+  .cell{width:14.28%;height:42px;display:flex;align-items:center;justify-content:center;}
+  .cell span{width:29px;height:29px;line-height:29px;border-radius:50%;text-align:center;font-size:13px;color:#6B655B;}
+  .cell.ok span{background:var(--pe);color:#fff;}
+  .cell.part span{background:var(--primary-pale);color:#B4884F;}
+  .cell.today span{box-shadow:inset 0 0 0 2px #FFD9A8;}
+  .cell.sel span{box-shadow:0 0 0 2px var(--primary);}
+  .cstats{display:flex;border-top:1px solid #FFF3E0;padding-top:12px;margin-top:8px;}
+  .cstats div{flex:1;text-align:center;}
+  .cstats b{font-size:19px;color:var(--primary);}
+  /* 成长 */
+  .rankname{font-size:21px;font-weight:700;margin-top:2px;}
+  .rankstar{font-size:21px;font-weight:700;color:var(--primary);}
+  .bar-out{height:10px;background:var(--primary-light);border-radius:999px;margin:12px 0 8px;overflow:hidden;}
+  .bar-in{height:100%;width:46%;background:linear-gradient(90deg,#FFB25A,var(--primary));border-radius:999px;}
+  .kpi{flex:1;text-align:center;}
+  .kpi b{font-size:18px;}
+  .kpi div{margin-top:2px;}
+  .wbar{display:flex;align-items:center;margin-bottom:9px;}
+  .wname{width:42px;font-size:12px;}
+  .wtrack{flex:1;height:12px;background:#F7F2E8;border-radius:999px;margin:0 10px;overflow:hidden;}
+  .win{height:100%;border-radius:999px;}
+  .wall{display:flex;flex-wrap:wrap;margin:0 -5px;}
+  .badge{width:33.33%;padding:5px;text-align:center;}
+  .badge .be{width:52px;height:52px;border-radius:50%;background:var(--fun-bg);display:flex;align-items:center;justify-content:center;font-size:26px;margin:0 auto;}
+  .badge.off .be{background:#F1EBDD;filter:grayscale(1);opacity:.5;}
+  .badge .bn{font-size:11px;font-weight:600;margin-top:5px;}
+  /* 我的 */
+  .pfav{width:52px;height:52px;border-radius:50%;background:var(--fun-bg);display:flex;align-items:center;justify-content:center;font-size:28px;margin-right:12px;}
+  .grades{display:flex;gap:6px;margin-top:8px;}
+  .gb{flex:1;background:#F7F2E8;border-radius:8px;text-align:center;padding:7px 0;font-size:12px;color:#6B655B;}
+  .gb.on{background:var(--primary-light);color:var(--primary);font-weight:600;border:1px solid #FFB25A;}
+  .inp{background:#F7F2E8;border-radius:8px;padding:9px 12px;margin-top:6px;font-size:13px;color:#6B655B;}
+  .btng{background:#fff;border:1px solid #F2D9B3;color:#B4884F;border-radius:999px;text-align:center;padding:9px 0;font-size:13px;}
+  .btnd{background:#FFF1F0;color:#FF5A3C;border-radius:999px;text-align:center;padding:9px 0;font-size:13px;margin-top:8px;}
+  .tabbar{position:absolute;left:0;right:0;bottom:0;background:#fff;border-top:1px solid #F5EADA;display:flex;padding:8px 0 14px;}
+  .tab{flex:1;text-align:center;color:var(--muted);font-size:11px;}
+  .tab .ti{font-size:20px;}
+  .tab.on{color:var(--primary);font-weight:600;}
+  .foot{max-width:1280px;margin:36px auto 0;color:#8A7F6D;font-size:13px;text-align:center;}
+</style>
+</head>
+<body>
+  <div class="head">
+    <h1>天天小达人 · 设计预览</h1>
+    <p>小学生每日学习 / 运动 / 娱乐打卡小程序（上海小学版）— 以下为 5 个核心界面的静态设计稿，与小程序代码同一套视觉规范。实际运行请用微信开发者工具导入项目根目录。</p>
+  </div>
+
+  <div class="row">
+    <!-- 1 今日打卡 -->
+    <div class="col">
+      <h3>① 今日打卡（首页）</h3>
+      <div class="phone"><div class="screen scroll">
+        <div class="rowline">
+          <div class="flex1"><div class="h1">10月1日 · 周四<span class="daytag">上学日 🏫</span></div><div class="muted">上海 · 3 年级</div></div>
+          <div class="starchip">⭐ 128</div>
+        </div>
+        <div class="greet">上午好，小豆！</div>
+        <div class="card rowline">
+          <div class="ring"><div class="ring-in"><div class="ring-num">7/11</div><div class="ring-label">今日任务</div></div></div>
+          <div class="flex1"><div class="h2">完成必做任务，达成今日目标</div><div class="muted">今日已获得 12 ⭐ · 连续打卡 23 天 🔥</div></div>
+        </div>
+        <div class="sec"><div class="dot" style="background:var(--chinese)"></div>语文<span class="muted" style="margin-left:8px;font-weight:400">2/3</span></div>
+        <div class="task done"><div class="em" style="background:var(--chinese-bg)">📖</div><div class="flex1"><div class="nm">课文朗读<span class="must">必做</span></div><div class="muted">目标 20 分钟</div></div><span class="stars">⭐3</span></div>
+        <div class="task done"><div class="em" style="background:var(--chinese-bg)">📜</div><div class="flex1"><div class="nm">古诗古文背诵</div><div class="muted">目标 2 首</div></div><span class="stars">⭐2</span></div>
+        <div class="task"><div class="em" style="background:var(--chinese-bg)">📚</div><div class="flex1"><div class="nm">课外阅读</div><div class="muted">目标 25 分钟</div></div><div class="circle"></div></div>
+        <div class="sec"><div class="dot" style="background:var(--math)"></div>数学<span class="muted" style="margin-left:8px;font-weight:400">1/1</span></div>
+        <div class="task done"><div class="em" style="background:var(--math-bg)">🧮</div><div class="flex1"><div class="nm">口算天天练<span class="must">必做</span></div><div class="muted">目标 30 题</div></div><span class="stars">⭐3</span></div>
+        <div class="sec"><div class="dot" style="background:var(--english)"></div>英语<span class="muted" style="margin-left:8px;font-weight:400">1/1</span></div>
+        <div class="task done"><div class="em" style="background:var(--english-bg)">🎧</div><div class="flex1"><div class="nm">英语跟读听读<span class="must">必做</span></div><div class="muted">目标 15 分钟</div></div><span class="stars">⭐2</span></div>
+        <div class="sec"><div class="dot" style="background:var(--pe)"></div>运动<span class="muted" style="margin-left:8px;font-weight:400">2/2</span></div>
+        <div class="task done"><div class="em" style="background:var(--pe-bg)">🪢</div><div class="flex1"><div class="nm">跳绳<span class="must">必做</span></div><div class="muted">目标 300 个</div></div><span class="stars">⭐3</span></div>
+        <div class="task done"><div class="em" style="background:var(--pe-bg)">🌳</div><div class="flex1"><div class="nm">户外活动</div><div class="muted">目标 40 分钟</div></div><span class="stars">⭐2</span></div>
+      </div></div>
+    </div>
+
+    <!-- 2 任务打卡 -->
+    <div class="col">
+      <h3>② 任务打卡详情</h3>
+      <div class="phone"><div class="screen">
+        <div class="card">
+          <div class="rowline"><div class="td-em">🧮</div>
+            <div class="flex1"><div class="h1">口算天天练<span class="must">必做</span></div><div class="muted">数学 · 10月1日 · 周四</div></div></div>
+          <div class="desc">每天一组口算，限时完成。口算是数学的基本功，正确率和速度都要练。</div>
+        </div>
+        <div class="card">
+          <div class="h2" style="margin-bottom:6px">今天完成了多少？</div>
+          <div class="stepper"><div class="sbtn">−</div><div class="snum">30 <span class="muted" style="font-size:12px">题</span></div><div class="sbtn">＋</div></div>
+          <div class="chips"><div class="chip on">30</div><div class="chip">60</div><div class="chip">90</div></div>
+          <div class="muted" style="text-align:center">目标 30 题，可以分几次完成</div>
+        </div>
+        <div class="card">
+          <div class="h2" style="margin-bottom:4px">给自己评个星</div>
+          <div class="moods">
+            <div class="mood"><div class="me">😅</div><div style="font-size:12px;font-weight:600">加油</div><div class="muted">1 ⭐</div></div>
+            <div class="mood"><div class="me">😊</div><div style="font-size:12px;font-weight:600">不错</div><div class="muted">2 ⭐</div></div>
+            <div class="mood on"><div class="me">🤩</div><div style="font-size:12px;font-weight:600">超棒</div><div class="muted">3 ⭐</div></div>
+          </div>
+          <div class="muted" style="margin-top:10px">一句话记录（选填）</div>
+          <div class="inp">今天全对，比昨天快了 1 分钟！</div>
+        </div>
+        <div class="btnp">保存打卡 ⭐3</div>
+        <div class="muted" style="text-align:center;margin-top:12px">保存后自动评估新勋章 🏅</div>
+      </div></div>
+    </div>
+
+    <!-- 3 日历 -->
+    <div class="col">
+      <h3>③ 打卡日历</h3>
+      <div class="phone"><div class="screen">
+        <div class="card">
+          <div class="rowline"><div class="calnav">‹</div><div class="flex1 h2" style="text-align:center">2026 年 10 月</div><div class="calnav" style="opacity:.3">›</div></div>
+          <div class="week7"><div>一</div><div>二</div><div>三</div><div>四</div><div>五</div><div>六</div><div>日</div></div>
+          <div class="grid7">
+            <div class="cell"></div><div class="cell"></div><div class="cell"></div>
+            <div class="cell ok sel"><span>1</span></div><div class="cell ok"><span>2</span></div><div class="cell ok"><span>3</span></div><div class="cell part"><span>4</span></div>
+            <div class="cell ok"><span>5</span></div><div class="cell ok"><span>6</span></div><div class="cell ok"><span>7</span></div><div class="cell ok"><span>8</span></div><div class="cell ok"><span>9</span></div><div class="cell ok"><span>10</span></div><div class="cell ok"><span>11</span></div>
+            <div class="cell ok"><span>12</span></div><div class="cell ok"><span>13</span></div><div class="cell ok"><span>14</span></div><div class="cell part"><span>15</span></div><div class="cell ok"><span>16</span></div><div class="cell ok"><span>17</span></div><div class="cell ok"><span>18</span></div>
+            <div class="cell ok"><span>19</span></div><div class="cell ok"><span>20</span></div><div class="cell ok"><span>21</span></div><div class="cell ok"><span>22</span></div><div class="cell part"><span>23</span></div><div class="cell ok"><span>24</span></div><div class="cell ok"><span>25</span></div>
+            <div class="cell ok"><span>26</span></div><div class="cell ok"><span>27</span></div><div class="cell ok"><span>28</span></div><div class="cell ok"><span>29</span></div><div class="cell ok"><span>30</span></div><div class="cell today"><span>31</span></div>
+          </div>
+          <div class="muted" style="text-align:center;margin-top:6px">🟢 目标达成 · 🟡 有打卡 · ⚪ 未打卡</div>
+          <div class="cstats"><div><b>22</b><div class="muted">打卡天数</div></div><div><b>19</b><div class="muted">达成天数</div></div><div><b>154</b><div class="muted">获得星星</div></div></div>
+        </div>
+        <div class="card"><div class="h2">10月1日 · 周四</div>
+          <div class="rowline" style="margin-top:10px"><span style="font-size:20px">🧮</span><div class="flex1" style="margin-left:10px"><div class="nm" style="font-weight:600;font-size:13px">口算天天练</div><div class="muted">完成 30 题</div></div><b>⭐3</b></div>
+          <div class="rowline" style="margin-top:8px"><span style="font-size:20px">🪢</span><div class="flex1" style="margin-left:10px"><div style="font-weight:600;font-size:13px">跳绳</div><div class="muted">“今天比昨天快！”</div></div><b>⭐3</b></div>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- 4 成长 -->
+    <div class="col">
+      <h3>④ 成长（称号 / 勋章）</h3>
+      <div class="phone"><div class="screen scroll">
+        <div class="card">
+          <div class="rowline"><div class="flex1"><div class="muted">我的称号</div><div class="rankname">🥉 铜星小达人</div></div><div class="rankstar">⭐ 128</div></div>
+          <div class="bar-out"><div class="bar-in"></div></div>
+          <div class="muted">距「银星小达人」还差 22 ⭐</div>
+        </div>
+        <div class="card rowline">
+          <div class="kpi"><b>🔥 23</b><div class="muted">连续打卡（天）</div></div>
+          <div class="kpi"><b>🏅 31</b><div class="muted">最长连击（天）</div></div>
+          <div class="kpi"><b>✅ 4/5</b><div class="muted">本周达成</div></div>
+        </div>
+        <div class="card">
+          <div class="h2" style="margin-bottom:10px">本周都在忙什么</div>
+          <div class="wbar"><div class="wname">语文</div><div class="wtrack"><div class="win" style="width:100%;background:var(--chinese)"></div></div><div class="muted">12 次</div></div>
+          <div class="wbar"><div class="wname">数学</div><div class="wtrack"><div class="win" style="width:100%;background:var(--math)"></div></div><div class="muted">12 次</div></div>
+          <div class="wbar"><div class="wname">英语</div><div class="wtrack"><div class="win" style="width:92%;background:var(--english)"></div></div><div class="muted">11 次</div></div>
+          <div class="wbar"><div class="wname">运动</div><div class="wtrack"><div class="win" style="width:100%;background:var(--pe)"></div></div><div class="muted">12 次</div></div>
+          <div class="wbar"><div class="wname">娱乐</div><div class="wtrack"><div class="win" style="width:58%;background:var(--fun)"></div></div><div class="muted">7 次</div></div>
+        </div>
+        <div class="card">
+          <div class="h2" style="margin-bottom:10px">勋章墙</div>
+          <div class="wall">
+            <div class="badge"><div class="be">🎉</div><div class="bn">第一次的勇气</div><div class="muted">已获得 🎉</div></div>
+            <div class="badge"><div class="be">💯</div><div class="bn">完美一天</div><div class="muted">已获得 🎉</div></div>
+            <div class="badge"><div class="be">🔥</div><div class="bn">一周坚持王</div><div class="muted">已获得 🎉</div></div>
+            <div class="badge"><div class="be">🧮</div><div class="bn">口算小能手</div><div class="muted">已获得 🎉</div></div>
+            <div class="badge"><div class="be">🪢</div><div class="bn">跳绳小飞人</div><div class="muted">已获得 🎉</div></div>
+            <div class="badge off"><div class="be">❓</div><div class="bn">小书虫</div><div class="muted">累计课外阅读 30 小时</div></div>
+            <div class="badge off"><div class="be">❓</div><div class="bn">全勤小明星</div><div class="muted">一整周每天都达成目标</div></div>
+            <div class="badge off"><div class="be">❓</div><div class="bn">阳光少年</div><div class="muted">累计户外活动 50 小时</div></div>
+            <div class="badge off"><div class="be">❓</div><div class="bn">百日挑战王</div><div class="muted">连续打卡 100 天</div></div>
+          </div>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- 5 我的 -->
+    <div class="col">
+      <h3>⑤ 我的（资料 / 数据）</h3>
+      <div class="phone"><div class="screen">
+        <div class="card rowline">
+          <div class="pfav">🦊</div>
+          <div class="flex1"><div class="h2">小豆</div><div class="muted">上海 · 3 年级 · 上海市××小学</div></div>
+          <div class="muted">⭐128 · 🔥23 天 · 📅64 天</div>
+        </div>
+        <div class="card">
+          <div class="h2" style="margin-bottom:6px">孩子资料</div>
+          <div class="muted" style="margin-top:10px">昵称</div>
+          <div class="inp">小豆</div>
+          <div class="muted" style="margin-top:12px">年级（切换后每日任务会自动调整）</div>
+          <div class="grades"><div class="gb">1年级</div><div class="gb">2年级</div><div class="gb on">3年级</div><div class="gb">4年级</div><div class="gb">5年级</div></div>
+          <div class="muted" style="margin-top:12px">学校（选填）</div>
+          <div class="inp">上海市××小学</div>
+          <div class="btnp" style="margin-top:16px">保存资料</div>
+        </div>
+        <div class="card">
+          <div class="h2" style="margin-bottom:10px">数据</div>
+          <div class="btng">导出数据（复制 JSON 备份）</div>
+          <div class="btnd">清空所有数据</div>
+          <div class="muted" style="margin-top:10px">所有数据仅保存在本机，不收集任何个人信息。</div>
+        </div>
+      </div><div class="tabbar">
+        <div class="tab"><div class="ti">☀️</div>今日</div>
+        <div class="tab"><div class="ti">📅</div>日历</div>
+        <div class="tab"><div class="ti">🌱</div>成长</div>
+        <div class="tab on"><div class="ti">🙂</div>我的</div>
+      </div></div>
+    </div>
+  </div>
+
+  <div class="foot">天天小达人 v0.1.0 · 设计稿与代码同源：色板 / 圆角 / 字号见 docs/design.md</div>
+</body>
+</html>
