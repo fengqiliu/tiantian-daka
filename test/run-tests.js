@@ -346,6 +346,53 @@ t('假期打卡统计照常：全必做 → 加成星', () => {
   assert.strictEqual(C.totalStars(store.getRecords(), 3), 9);
 });
 
+console.log('— 跟读教室 —');
+const RA = require('../utils/readaloud');
+const EC = require('../utils/english-content');
+
+t('内容库完整：Unit 1 句子/情境 id 唯一且非空', () => {
+  const u = EC.units[0];
+  assert.strictEqual(u.id, 'english-g1s1-u1');
+  const ids = [...u.sentences, ...u.scenes].map(x => x.id);
+  assert.strictEqual(new Set(ids).size, ids.length, 'id 不应重复');
+  assert(u.sentences.length + u.scenes.length >= 10, '内容量应足够');
+  u.sentences.forEach(s => assert(s.text && s.tip));
+  u.scenes.forEach(s => assert(s.when && s.say));
+});
+t('录音状态机：只允许合法转移', () => {
+  assert(RA.canRecord('idle') && RA.canRecord('recorded'), '空闲/已录可开始录音');
+  assert(!RA.canRecord('recording'), '录音中不能重复开始');
+  assert(RA.canStop('recording') && !RA.canStop('idle'));
+  assert(RA.canPlay('recorded') && !RA.canPlay('recording') && !RA.canPlay('idle'));
+});
+t('时长钳制到 1-60 秒', () => {
+  assert.strictEqual(RA.clampDuration(0), 1);
+  assert.strictEqual(RA.clampDuration(600), 60);
+  assert.strictEqual(RA.clampDuration(8), 8);
+  assert.strictEqual(RA.clampDuration(undefined), 1);
+});
+t('跟读记录：同日同句覆盖为一条 + 完成度计算', () => {
+  reset();
+  RA.saveReading('2026-10-01', 'u1-s1', '/a1.mp3', 3);
+  const r2 = RA.saveReading('2026-10-01', 'u1-s1', '/a2.mp3', 5);
+  assert(r2.previous && r2.previous.filePath === '/a1.mp3', '应返回被覆盖的旧记录');
+  RA.saveReading('2026-10-01', 'u1-s2', '/b.mp3', 4);
+  const rs = RA.getDayReadings('2026-10-01');
+  assert.strictEqual(rs.length, 2);
+  assert.strictEqual(rs.find(r => r.sentenceId === 'u1-s1').filePath, '/a2.mp3');
+  const u = EC.units[0];
+  const cards = [...u.sentences, ...u.scenes];
+  const comp = RA.completion(cards, rs);
+  assert.strictEqual(comp.total, cards.length);
+  assert.strictEqual(comp.recorded, 2);
+  assert.strictEqual(comp.allDone, false);
+});
+t('跨日记录互不影响', () => {
+  RA.saveReading('2026-10-02', 'u1-s1', '/c.mp3', 2);
+  assert.strictEqual(RA.getDayReadings('2026-10-01').length, 2);
+  assert.strictEqual(RA.getDayReadings('2026-10-02').length, 1);
+});
+
 chain.then(() => {
   console.log('\n全部通过：' + passed + ' 项 ✓');
 }).catch(e => {

@@ -59,6 +59,7 @@
 
   <view class="td-actions">
     <view class="btn-primary" bindtap="onSave">{{exists ? '更新打卡' : '保存打卡'}} ⭐{{stars}}</view>
+    <view wx:if="{{task.id === 'english_listen'}}" class="btn-ghost td-remove" bindtap="goReadAloud">🎧 进入跟读教室</view>
     <view wx:if="{{exists}}" class="btn-danger td-remove" bindtap="onRemove">取消本次打卡</view>
   </view>
 </view>

@@ -7,6 +7,7 @@ const KEYS = {
   BADGES: 'badges',
   SETTINGS: 'settings',
   SYNC: 'sync',                      // 同步游标
+  READINGS: 'readings',              // 跟读教室录音记录（音频文件仅存本机）
   CHILD_PROFILE: 'child_profile',    // 家长端缓存：孩子资料
   CHILD_RECORDS: 'child_records',    // 家长端缓存：孩子打卡记录
   CHILD_BADGES: 'child_badges',      // 家长端缓存：孩子勋章
@@ -62,6 +63,10 @@ function saveBadges(list) { backend.set(KEYS.BADGES, list); }
 function getSettings() { return _get(KEYS.SETTINGS, {}); }
 function saveSettings(s) { backend.set(KEYS.SETTINGS, s); }
 
+// ── 跟读教室（本地记录，音频不参与云同步）──
+function getReadings() { return _get(KEYS.READINGS, []); }
+function saveReadings(list) { backend.set(KEYS.READINGS, list); }
+
 // ── 同步游标 ──
 function getSyncState() {
   return _get(KEYS.SYNC, { lastPullAt: 0, lastPushAt: 0 });
@@ -92,6 +97,7 @@ module.exports = {
   getRecords, getRecordsRaw, saveRecords,
   getBadges, saveBadges,
   getSettings, saveSettings,
+  getReadings, saveReadings,
   getSyncState, saveSyncState,
   getChildProfile, getChildRecords, getChildBadges, saveChildData, clearChildData,
   clearAll,

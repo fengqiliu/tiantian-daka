@@ -1,0 +1,22 @@
+.ra { padding-top: 24rpx; }
+.ra-head { padding: 0 32rpx 20rpx; }
+.ra-card { padding: 26rpx; }
+.ra-text { font-size: 36rpx; font-weight: 700; letter-spacing: 1rpx; }
+.ra-actions { margin-top: 20rpx; gap: 16rpx; }
+.ra-btn {
+  background: #FFF1DC;
+  color: #FF8A00;
+  font-weight: 600;
+  border-radius: 999rpx;
+  padding: 14rpx 32rpx;
+  font-size: 27rpx;
+}
+.ra-btn.rec { background: #FFE3E0; color: #E5484D; animation: pulse 1s infinite; }
+.ra-btn.ghost { background: #fff; color: #B4884F; border: 2rpx solid #F2D9B3; }
+.ra-done { margin-left: auto; color: #2F9E44; font-size: 26rpx; font-weight: 600; }
+.ra-foot { text-align: center; padding: 8rpx 0 24rpx; }
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
+}

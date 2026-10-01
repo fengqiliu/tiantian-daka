@@ -128,6 +128,10 @@ Page({
     doSave();
   },
 
+  goReadAloud() {
+    wx.navigateTo({ url: '/pages/read-aloud/read-aloud' });
+  },
+
   onRemove() {
     const { task } = this.data;
     wx.showModal({

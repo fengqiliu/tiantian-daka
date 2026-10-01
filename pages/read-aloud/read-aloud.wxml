@@ -1,0 +1,28 @@
+<view class="ra safe-bottom">
+  <view class="ra-head">
+    <view class="h1">🎧 跟读教室</view>
+    <view class="muted">{{title}} · 已录 {{recordedCount}}/{{total}} 句 · 录音仅保存在本机</view>
+  </view>
+
+  <view class="card ra-card" wx:for="{{cards}}" wx:key="id" wx:for-item="card">
+    <view class="ra-text">{{card.text}}</view>
+    <view class="muted">{{card.tip}}</view>
+    <view class="row ra-actions">
+      <block wx:if="{{recordingId === card.id}}">
+        <view class="ra-btn rec" bindtap="onStop">⏹ 停止（{{seconds}}s）</view>
+        <view class="muted">最长 {{60}} 秒</view>
+      </block>
+      <block wx:elif="{{card.status === 'recorded'}}">
+        <view class="ra-btn" data-id="{{card.id}}" bindtap="onPlay">▶️ 播放</view>
+        <view class="ra-btn ghost" data-id="{{card.id}}" bindtap="onRecord">🔁 重录</view>
+        <view class="ra-done">✅ {{card.durationSec}}s</view>
+      </block>
+      <block wx:else>
+        <view class="ra-btn" data-id="{{card.id}}" bindtap="onRecord">🎙️ 录音</view>
+      </block>
+    </view>
+  </view>
+
+  <view class="btn-primary {{canFinish ? '' : 'disabled'}}" bindtap="onFinish">✅ 完成跟读打卡（{{recordedCount}}/{{total}} 句）</view>
+  <view class="ra-foot muted">完成全部句子得 3 ⭐，过半得 2 ⭐，其余 1 ⭐</view>
+</view>

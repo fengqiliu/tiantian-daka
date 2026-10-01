@@ -5,6 +5,7 @@
     "pages/growth/growth",
     "pages/profile/profile",
     "pages/task-detail/task-detail",
+    "pages/read-aloud/read-aloud",
     "pages/onboarding/onboarding"
   ],
   "window": {
