@@ -4,7 +4,7 @@ const CTX = require('../../utils/context');
 const cloud = require('../../utils/cloud');
 
 const AVATARS = ['🐱', '🦊', '🐰', '🐻', '🐸', '🦁', '🐼', '🐷'];
-const APP_VERSION = '0.4.0';
+const APP_VERSION = '0.5.0';
 
 Page({
   data: {

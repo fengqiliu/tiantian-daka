@@ -1,0 +1,59 @@
+.md { padding-top: 24rpx; }
+.md-head { padding: 0 32rpx 16rpx; }
+
+.md-levels { white-space: nowrap; padding: 0 24rpx 20rpx; }
+.md-chip {
+  display: inline-block;
+  background: #F7F2E8;
+  color: #6B655B;
+  border-radius: 999rpx;
+  padding: 12rpx 28rpx;
+  font-size: 26rpx;
+  margin-right: 14rpx;
+}
+.md-chip.on { background: #FF8A00; color: #fff; font-weight: 600; }
+
+.md-prob { text-align: center; padding: 36rpx 28rpx; }
+.md-progress { margin-bottom: 16rpx; }
+.md-q {
+  font-size: 76rpx;
+  font-weight: 700;
+  min-height: 110rpx;
+  letter-spacing: 4rpx;
+}
+.md-q.right { color: #2F9E44; }
+.md-q.wrong { color: #E5484D; font-size: 44rpx; line-height: 1.4; }
+.md-input {
+  font-size: 60rpx;
+  font-weight: 700;
+  color: #FF8A00;
+  min-height: 80rpx;
+}
+
+.md-pad { margin: 24rpx 40rpx 0; }
+.md-row { display: flex; gap: 20rpx; margin-bottom: 20rpx; }
+.md-key {
+  flex: 1;
+  background: #fff;
+  border-radius: 24rpx;
+  text-align: center;
+  padding: 30rpx 0;
+  font-size: 44rpx;
+  font-weight: 700;
+  color: #33302B;
+  box-shadow: 0 6rpx 16rpx rgba(255, 143, 31, 0.08);
+}
+.md-key:active { background: #FFF1DC; }
+.md-key.fn { background: #F7F2E8; color: #6B655B; }
+.md-key.ok { background: linear-gradient(135deg, #FFB25A, #FF8A00); color: #fff; }
+
+.md-quit {
+  text-align: center;
+  color: #B4884F;
+  font-size: 27rpx;
+  padding: 20rpx 0 24rpx;
+}
+.md-quit.off { opacity: 0.35; }
+
+.md-done { text-align: center; padding: 48rpx 32rpx; }
+.md-done-emoji { font-size: 96rpx; margin-bottom: 12rpx; }

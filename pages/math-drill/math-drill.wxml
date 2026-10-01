@@ -1,0 +1,61 @@
+<view class="md safe-bottom">
+  <view class="md-head">
+    <view class="h1">🧮 口算挑战</view>
+    <view class="muted">{{levelName}} · 答错的题会自动混入后面练习</view>
+  </view>
+
+  <scroll-view scroll-x class="md-levels" enhanced show-scrollbar="{{false}}">
+    <view
+      wx:for="{{levels}}"
+      wx:key="key"
+      class="md-chip {{level === item.key ? 'on' : ''}}"
+      data-key="{{item.key}}"
+      bindtap="onLevel"
+    >{{item.name}}</view>
+  </scroll-view>
+
+  <block wx:if="{{phase === 'drill'}}">
+    <view class="card md-prob">
+      <view class="muted md-progress">第 {{idx + 1}}/{{total}} 题 · 正确 {{correctCount}}</view>
+      <view class="md-q {{feedback === 'wrong' ? 'wrong' : feedback === 'right' ? 'right' : ''}}">
+        {{feedback === 'wrong' ? wrongText : problems[idx].text}}
+      </view>
+      <view class="md-input">{{input || '_'}}</view>
+    </view>
+
+    <view class="md-pad">
+      <view class="md-row">
+        <view class="md-key" data-d="1" bindtap="onKey">1</view>
+        <view class="md-key" data-d="2" bindtap="onKey">2</view>
+        <view class="md-key" data-d="3" bindtap="onKey">3</view>
+      </view>
+      <view class="md-row">
+        <view class="md-key" data-d="4" bindtap="onKey">4</view>
+        <view class="md-key" data-d="5" bindtap="onKey">5</view>
+        <view class="md-key" data-d="6" bindtap="onKey">6</view>
+      </view>
+      <view class="md-row">
+        <view class="md-key" data-d="7" bindtap="onKey">7</view>
+        <view class="md-key" data-d="8" bindtap="onKey">8</view>
+        <view class="md-key" data-d="9" bindtap="onKey">9</view>
+      </view>
+      <view class="md-row">
+        <view class="md-key fn" bindtap="onDel">⌫</view>
+        <view class="md-key" data-d="0" bindtap="onKey">0</view>
+        <view class="md-key ok" bindtap="onConfirm">✓</view>
+      </view>
+    </view>
+
+    <view class="md-quit {{answered >= 5 ? '' : 'off'}}" bindtap="onEarlyFinish">先到这里，结束并打卡</view>
+  </block>
+
+  <block wx:if="{{phase === 'done'}}">
+    <view class="card md-done">
+      <view class="md-done-emoji">{{stars === 3 ? '🎉' : stars === 2 ? '👍' : '💪'}}</view>
+      <view class="h2">正确 {{correctCount}}/{{total}}</view>
+      <view class="muted">可得 {{stars}} ⭐ · 错题已记入错题本，之后会自动重练</view>
+      <view class="btn-primary" style="margin-top: 28rpx;" bindtap="onFinish">✅ 完成口算打卡</view>
+      <view class="btn-ghost" style="margin-top: 20rpx;" bindtap="onRestart">再练一组</view>
+    </view>
+  </block>
+</view>

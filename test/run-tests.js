@@ -393,6 +393,116 @@ t('跨日记录互不影响', () => {
   assert.strictEqual(RA.getDayReadings('2026-10-02').length, 1);
 });
 
+console.log('— 口算挑战 —');
+const AR = require('../utils/arithmetic');
+
+// 可复现的伪随机源
+function seededRng(seed) {
+  let s = seed;
+  return () => {
+    s = (s * 1103515245 + 12345) % 2147483648;
+    return s / 2147483648;
+  };
+}
+
+t('级别表完整，按年级推荐合理', () => {
+  AR.LEVEL_ORDER.forEach(k => assert(AR.LEVELS[k] && AR.LEVELS[k].name));
+  assert.strictEqual(AR.recommendByGrade(1), 'addsub10');
+  assert.strictEqual(AR.recommendByGrade(2), 'addsub20');
+  assert.strictEqual(AR.recommendByGrade(5), 'addsub100');
+});
+t('10以内加减：范围合法、答案正确、判定无误', () => {
+  const rng = seededRng(42);
+  const ps = AR.generate('addsub10', 50, rng);
+  assert.strictEqual(ps.length, 50);
+  ps.forEach(p => {
+    assert(p.kind === 'result');
+    if (p.op === '+') { assert(p.a + p.b <= 10 && p.a + p.b > 0); assert.strictEqual(p.answer, p.a + p.b); }
+    else { assert(p.a >= 1 && p.b >= 0 && p.b <= p.a); assert.strictEqual(p.answer, p.a - p.b); }
+    assert(AR.check(p, p.answer));
+    assert(!AR.check(p, p.answer === 10 ? 9 : p.answer + 1));
+  });
+});
+t('10以内填空：四种未知位变体、答案均在 0-10 且语义自洽', () => {
+  const rng = seededRng(7);
+  const ps = AR.generate('missing10', 60, rng);
+  const shapes = new Set();
+  ps.forEach(p => {
+    assert.strictEqual(p.kind, 'missing');
+    assert(p.answer >= 0 && p.answer <= 10);
+    assert(AR.check(p, p.answer));
+    if (p.op === '+' && p.a === null) { shapes.add('□+b=c'); assert.strictEqual(p.answer + p.b, p.c); }
+    else if (p.op === '+') { shapes.add('a+□=c'); assert.strictEqual(p.a + p.answer, p.c); }
+    else if (p.op === '-' && p.a === null) { shapes.add('□-b=c'); assert.strictEqual(p.answer - p.b, p.c); }
+    else { shapes.add('a-□=c'); assert.strictEqual(p.a - p.answer, p.c); }
+  });
+  assert.strictEqual(shapes.size, 4, '应覆盖全部四种变体，实际: ' + [...shapes].join(','));
+});
+t('确定性：同一随机源两次生成完全一致', () => {
+  const a = AR.generate('addsub10', 20, seededRng(99)).map(p => p.id);
+  const b = AR.generate('addsub10', 20, seededRng(99)).map(p => p.id);
+  assert.deepStrictEqual(a, b);
+});
+t('会话内按 id 去重，数量足够（窄级别不超过其容量）', () => {
+  const rng = seededRng(3);
+  // add5 全量仅 20 种（a+b≤5 且 >0），请求数须 ≤ 容量
+  const ps5 = AR.buildSession('add5', 15, rng);
+  assert.strictEqual(ps5.length, 15);
+  assert.strictEqual(new Set(ps5.map(p => p.id)).size, 15);
+  const psM = AR.buildSession('mul99', 30, rng);
+  assert.strictEqual(psM.length, 30);
+  assert.strictEqual(new Set(psM.map(p => p.id)).size, 30);
+  const ps100 = AR.buildSession('addsub100', 30, rng);
+  assert.strictEqual(ps100.length, 30);
+  assert.strictEqual(new Set(ps100.map(p => p.id)).size, 30);
+});
+t('表内乘除法：乘积与除法商均正确', () => {
+  const rng = seededRng(11);
+  AR.generate('mul99', 40, rng).forEach(p => {
+    if (p.op === '×') assert.strictEqual(p.answer, p.a * p.b);
+    else { assert(p.b >= 1); assert.strictEqual(p.answer, p.a / p.b); assert(Number.isInteger(p.answer)); }
+    assert(AR.check(p, p.answer));
+  });
+});
+t('错题本：答错入本累计、答对销账', () => {
+  reset();
+  const rng = seededRng(5);
+  const p = AR.generate('addsub10', 1, rng)[0];
+  assert.strictEqual(AR.markResult(p, false, 'addsub10'), 'recorded');
+  assert.strictEqual(AR.markResult(p, false, 'addsub10'), 'recorded');
+  let wrong = store.getMathWrong();
+  assert.strictEqual(wrong.length, 1);
+  assert.strictEqual(wrong[0].wrongCount, 2, '同一题应累计次数');
+  assert.strictEqual(wrong[0].level, 'addsub10');
+  assert.strictEqual(AR.markResult(p, true, 'addsub10'), 'mastered');
+  assert.strictEqual(store.getMathWrong().length, 0);
+});
+t('会话自动混入错题（≤40%），答对后错题本清空', () => {
+  reset();
+  const rng = seededRng(21);
+  const seeds = AR.generate('addsub10', 3, rng);
+  seeds.forEach(p => AR.markResult(p, false, 'addsub10'));
+  const session = AR.buildSession('addsub10', 10, rng);
+  const mixed = session.filter(p => seeds.find(s => s.id === p.id));
+  assert.strictEqual(mixed.length, 3, '3 道错题应全部混入（3 ≤ ceil(10×0.4)）');
+  // 答对全部错题 → 销账；此后同一 id 仍可能作为"新题"随机出现，属正常
+  seeds.forEach(p => AR.markResult(p, true, 'addsub10'));
+  assert.strictEqual(store.getMathWrong().length, 0);
+  const next = AR.buildSession('addsub10', 10, seededRng(22));
+  assert.strictEqual(next.length, 10);
+});
+t('不同级别的错题互不混入', () => {
+  reset();
+  // 选一道必然超出 10 以内范围的题（a>10），其 id 不可能被 addsub10 生成器撞出
+  const p20 = AR.generate('addsub20', 10, seededRng(31)).find(p => p.a > 10);
+  assert(p20, '应能取到超出 10 范围的题');
+  AR.markResult(p20, false, 'addsub20');
+  const s10 = AR.buildSession('addsub10', 10, seededRng(32));
+  assert(!s10.find(p => p.id === p20.id), 'addsub10 会话不应混入 addsub20 错题');
+  assert.strictEqual(store.getMathWrong().length, 1);
+  assert.strictEqual(store.getMathWrong()[0].level, 'addsub20');
+});
+
 chain.then(() => {
   console.log('\n全部通过：' + passed + ' 项 ✓');
 }).catch(e => {

@@ -132,6 +132,10 @@ Page({
     wx.navigateTo({ url: '/pages/read-aloud/read-aloud' });
   },
 
+  goMathDrill() {
+    wx.navigateTo({ url: '/pages/math-drill/math-drill' });
+  },
+
   onRemove() {
     const { task } = this.data;
     wx.showModal({

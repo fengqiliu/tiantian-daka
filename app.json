@@ -6,6 +6,7 @@
     "pages/profile/profile",
     "pages/task-detail/task-detail",
     "pages/read-aloud/read-aloud",
+    "pages/math-drill/math-drill",
     "pages/onboarding/onboarding"
   ],
   "window": {
