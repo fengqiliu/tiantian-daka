@@ -74,6 +74,21 @@ Page({
     }
   },
 
+  // 云端自检：验证环境 ID 配置与 login 云函数部署是否成功
+  checkCloud() {
+    wx.showLoading({ title: '检测中…' });
+    cloud.call('login', {}).then(res => {
+      wx.hideLoading();
+      if (res && res.ok) {
+        wx.showToast({ title: '云端连接正常 ✓', icon: 'none' });
+      } else if (res && res.error) {
+        wx.showModal({ title: '连接失败', content: 'login 云函数异常：' + res.error + '。请确认已在开发者工具中上传部署。', showCancel: false });
+      } else {
+        wx.showModal({ title: '连接失败', content: '请检查 utils/cloud.js 的环境 ID，以及 5 个云函数是否已「上传并部署」。', showCancel: false });
+      }
+    });
+  },
+
   pickAvatar(e) { this.setData({ avatar: e.currentTarget.dataset.emoji }); },
   pickGrade(e) { this.setData({ grade: Number(e.currentTarget.dataset.grade) }); },
   onNickname(e) { this.setData({ nickname: e.detail.value }); },

@@ -31,6 +31,7 @@
         <text class="code-num">{{familyCode || '······'}}</text>
         <text class="muted">{{familyCode ? '点击复制邀请码' : '正在生成…'}}</text>
       </view>
+      <view class="btn-ghost" style="margin-top: 20rpx;" bindtap="checkCloud">检测云端连接</view>
       <view class="muted" style="margin-top: 16rpx;">家长在自己手机上打开本小程序，输入邀请码即可绑定，只读查看你的打卡进度。</view>
     </block>
     <view wx:else class="muted">家人绑定需要先开通微信云开发，步骤见项目 README（未开通不影响打卡）。</view>

@@ -79,6 +79,7 @@ node test/run-tests.js
 
 步骤（约 15 分钟）：
 
+0. 前置：**测试号（touristappid）不支持云开发**——需在 [mp.weixin.qq.com](https://mp.weixin.qq.com) 注册自己的小程序（个人主体免费），拿到 AppID 并替换 `project.config.json` 中的 `appid`；本机若未装开发者工具，先[下载安装](https://developers.weixin.qq.com/miniprogram/dev/devtools/download.html)并扫码登录
 1. 开通：开发者工具 → 云开发 → 开通，创建环境，复制**环境 ID**
 2. 配置环境 ID：编辑 `utils/cloud.js` 顶部 `CLOUD_ENV`
 3. 部署函数：右键 `cloudfunctions/` 下 5 个函数（login / sync / family / remind / dailyRemind）→「上传并部署：云端安装依赖」
