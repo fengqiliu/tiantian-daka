@@ -503,6 +503,19 @@ t('不同级别的错题互不混入', () => {
   assert.strictEqual(store.getMathWrong()[0].level, 'addsub20');
 });
 
+t('跟读记录清理：只删 cutoff 之前的，并同步存储', () => {
+  reset();
+  RA.saveReading('2026-09-20', 'u1-s1', '/old1.mp3', 3);
+  RA.saveReading('2026-09-25', 'u1-s2', '/old2.mp3', 3);
+  RA.saveReading('2026-10-01', 'u1-s1', '/new.mp3', 4);
+  const { removed, kept } = RA.pruneReadings('2026-09-30'); // 保留 9-30 及以后
+  assert.strictEqual(removed.length, 2);
+  assert.strictEqual(kept, 1);
+  assert.deepStrictEqual(removed.map(r => r.date).sort(), ['2026-09-20', '2026-09-25']);
+  assert.strictEqual(RA.getDayReadings('2026-10-01').length, 1, '新记录保留');
+  assert.strictEqual(store.getReadings().length, 1, '存储已同步清理');
+});
+
 console.log('— 任务管理 —');
 
 // 安全设置覆盖源：用例结束（含失败）时恢复

@@ -24,11 +24,38 @@ Page({
     this.unit = EC.units[0];
     this.recorder = wx.getRecorderManager();
     this.recorder.onStop(res => this._onRecorderStop(res));
-    this.recorder.onError(() => this._resetRecording());
+    this.recorder.onError(err => this._onRecorderError(err));
     this.audio = wx.createInnerAudioContext();
     this.fs = wx.getFileSystemManager();
     this.dir = wx.env.USER_DATA_PATH + '/readaloud';
+    this._pruneOldRecordings();
     this.refresh();
+  },
+
+  // 清理过期录音（保留最近 PRUNE_DAYS 天），避免本地存储无限累积
+  _pruneOldRecordings() {
+    try {
+      const cutoff = D.addDays(this.date, -RA.PRUNE_DAYS);
+      RA.pruneReadings(cutoff).removed.forEach(r => {
+        try { this.fs.unlinkSync(r.filePath); } catch (e) { /* 文件可能已不存在 */ }
+      });
+    } catch (e) { /* 清理失败不影响使用 */ }
+  },
+
+  // 录音出错：权限被拒时引导去设置开启麦克风
+  _onRecorderError(err) {
+    this._resetRecording();
+    const msg = (err && err.errMsg) || '';
+    if (/auth|deny|permission/i.test(msg)) {
+      wx.showModal({
+        title: '无法录音',
+        content: '跟读需要使用麦克风。点击「去设置」，允许麦克风权限后回来重试。',
+        confirmText: '去设置',
+        success: res => { if (res.confirm) wx.openSetting(); },
+      });
+    } else {
+      wx.showToast({ title: '录音出错了，再试一次', icon: 'none' });
+    }
   },
 
   onUnload() {

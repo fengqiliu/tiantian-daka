@@ -5,6 +5,7 @@ const store = require('./store');
 const STATE = { IDLE: 'idle', RECORDING: 'recording', RECORDED: 'recorded' };
 const MIN_SEC = 1;
 const MAX_SEC = 60; // 单句录音上限（页面层 recorder.duration=60000ms 与此对应）
+const PRUNE_DAYS = 7; // 跟读音频保留天数
 
 function canRecord(state) { return state === STATE.IDLE || state === STATE.RECORDED; }
 function canStop(state) { return state === STATE.RECORDING; }
@@ -45,4 +46,13 @@ function completion(cards, readings) {
   };
 }
 
-module.exports = { STATE, MIN_SEC, MAX_SEC, canRecord, canStop, canPlay, clampDuration, recordId, saveReading, getDayReadings, completion };
+// 清理 cutoff 之前的跟读记录（音频文件由页面层删除），防止本地存储无限累积
+function pruneReadings(cutoffDate) {
+  const readings = store.getReadings();
+  const keep = [], removed = [];
+  readings.forEach(r => { (r.date < cutoffDate ? removed : keep).push(r); });
+  if (removed.length) store.saveReadings(keep);
+  return { removed, kept: keep.length };
+}
+
+module.exports = { STATE, MIN_SEC, MAX_SEC, PRUNE_DAYS, canRecord, canStop, canPlay, clampDuration, recordId, saveReading, getDayReadings, completion, pruneReadings };
