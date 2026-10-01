@@ -27,8 +27,9 @@ Page({
     this.date = D.todayStr();
     const profile = store.getProfile();
     this.grade = Number(profile && profile.grade) || 1;
-    const task = T.buildTask('math_calc', this.grade, true);
-    this.target = task.target;
+    // 优先用今日清单里的口算任务（含家长目标覆盖），兜底用年级默认
+    const inList = T.generateDailyTasks(this.grade, this.date).find(t => t.id === 'math_calc');
+    this.target = inList ? inList.target : T.buildTask('math_calc', this.grade, true).target;
     this.setData({ levels: AR.LEVEL_ORDER.map(k => ({ key: k, name: AR.LEVELS[k].name })) });
     this.startSession(AR.recommendByGrade(this.grade));
   },

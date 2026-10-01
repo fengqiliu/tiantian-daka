@@ -221,10 +221,55 @@ function generateDailyTasks(grade, dateStr) {
       if (dow === 0) list.push(pick('chinese_diary')); // 周日：写周记
     }
   }
-  return list.filter(Boolean);
+  return applyOverrides(list.filter(Boolean));
 }
 
-function getTaskDef(id) { return DEFS[id]; }
+// ── 家长任务管理：目标覆盖与自定义任务的注入源 ──
+// app.js 启动时接入 store（setOverrideProvider），云函数 lib 不注入即用默认值，
+// 因此 tasks.js 保持零 store 依赖、可独立测试。
+let overrideProvider = null;
+function setOverrideProvider(fn) { overrideProvider = fn; }
+
+function getOverrides() {
+  let o = null;
+  try { o = overrideProvider ? overrideProvider() : null; } catch (e) { o = null; }
+  return (o && typeof o === 'object') ? o : { targets: {}, customs: [] };
+}
+
+function getTaskDef(id) {
+  if (DEFS[id]) return DEFS[id];
+  const customs = (getOverrides().customs || []);
+  return customs.find(c => c && c.id === id) || null;
+}
+
+// 生成清单的统一后处理：应用家长目标覆盖（只改目标值，必做结构不变）并追加自定义任务
+function applyOverrides(list) {
+  const o = getOverrides();
+  const targets = (o && o.targets) || {};
+  Object.keys(targets).forEach(id => {
+    const t = list.find(x => x.id === id);
+    const v = Number(targets[id]);
+    if (t && t.type !== 'done' && v > 0) {
+      t.target = v;
+      t.targetLabel = targetLabel(t, v);
+      t.customized = true;
+    }
+  });
+  ((o && o.customs) || []).forEach(c => {
+    if (!c || !c.id || !c.name) return;
+    const target = Number(c.target) || 1;
+    const def = { ...c, type: c.type || 'done', unit: c.unit || '', target };
+    list.push({
+      ...def,
+      must: false,
+      parentConfirm: false,
+      desc: c.desc || '自定义任务',
+      targetLabel: targetLabel(def, target),
+      custom: true,
+    });
+  });
+  return list;
+}
 
 // 假期模式每日清单：无上学日/周末之分。
 // 结构：假期作业 + 阅读 + 口算（减量）+ 户外 120 分钟（近视防控，加量）为必做；
@@ -255,10 +300,11 @@ function generateHolidayTasks(grade, dow, hol) {
   if (dow === 1 || dow === 3 || dow === 5) list.push(pick('chinese_poem'));
   if (dow === 2 || dow === 4) list.push(pick('english_words'));
   if (dow === 0 && band !== 'low') list.push(pick('chinese_diary'));
-  return list.filter(Boolean);
+  return applyOverrides(list.filter(Boolean));
 }
 
 module.exports = {
   SECTIONS, SECTION_ORDER, DEFS,
   bandOf, buildTask, generateDailyTasks, generateHolidayTasks, getTaskDef, targetLabel,
+  setOverrideProvider, applyOverrides,
 };

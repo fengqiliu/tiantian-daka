@@ -95,6 +95,12 @@
     <view class="btn-primary" style="margin-top: 32rpx;" bindtap="save">保存资料</view>
   </view>
 
+  <view class="card" wx:if="{{role === 'child'}}">
+    <view class="h2" style="margin-bottom: 12rpx;">任务管理（家长）</view>
+    <view class="muted" style="margin-bottom: 20rpx;">任务量不合适？在这里调整每日目标或添加自定义任务（如练钢琴）。</view>
+    <view class="btn-ghost" bindtap="goTaskManage">🛠 调整任务目标 / 添加自定义任务</view>
+  </view>
+
   <view class="card">
     <view class="h2" style="margin-bottom: 24rpx;">数据</view>
     <view class="btn-ghost" bindtap="exportData">导出数据（复制 JSON 备份）</view>

@@ -503,6 +503,75 @@ t('不同级别的错题互不混入', () => {
   assert.strictEqual(store.getMathWrong()[0].level, 'addsub20');
 });
 
+console.log('— 任务管理 —');
+
+// 安全设置覆盖源：用例结束（含失败）时恢复
+function withOverrides(data, fn) {
+  T.setOverrideProvider(() => data);
+  try { fn(); } finally { T.setOverrideProvider(null); }
+}
+
+t('目标覆盖：生成清单使用新目标，必做结构不变', () => {
+  reset();
+  withOverrides({ targets: { pe_rope: 100 }, customs: [] }, () => {
+    const ts = T.generateDailyTasks(3, '2026-10-06'); // 学期周二
+    const rope = ts.find(x => x.id === 'pe_rope');
+    assert.strictEqual(rope.target, 100);
+    assert(rope.targetLabel.indexOf('100') >= 0, '目标文案应更新');
+    assert.strictEqual(rope.customized, true);
+    assert.strictEqual(ts.filter(x => x.must).length, 4, '必做恒 4 项不应被改变');
+  });
+  const back = T.generateDailyTasks(3, '2026-10-06').find(x => x.id === 'pe_rope');
+  assert.strictEqual(back.target, 300, '移除覆盖后应恢复默认');
+});
+t('自定义任务：学期日/周末/假期都出现，可解析可打卡', () => {
+  reset();
+  const custom = { id: 'custom_test1', section: 'fun', name: '练钢琴', emoji: '🎹', type: 'duration', unit: '分钟', target: 20, desc: '自定义任务' };
+  withOverrides({ targets: {}, customs: [custom] }, () => {
+    ['2026-10-06', '2026-10-10', '2027-01-27'].forEach(date => { // 学期周二 / 周六 / 寒假周三
+      const ts = T.generateDailyTasks(3, date);
+      const c = ts.find(x => x.id === 'custom_test1');
+      assert(c, '自定义任务应出现在 ' + date);
+      assert.strictEqual(c.target, 20);
+      assert.strictEqual(c.must, false, '自定义任务恒为自选');
+      assert.strictEqual(T.SECTIONS[c.section].name, '娱乐');
+    });
+    assert.strictEqual(T.getTaskDef('custom_test1').name, '练钢琴');
+    C.upsertRecord('2026-10-06', 'custom_test1', 20, 3, '');
+    assert(C.getDayRecords('2026-10-06').find(r => r.taskId === 'custom_test1'), '自定义任务可打卡');
+  });
+  assert.strictEqual(T.getTaskDef('custom_test1'), null, '覆盖源移除后不再解析');
+});
+t('自定义任务不计入必做，不影响达成判定', () => {
+  reset();
+  const custom = { id: 'custom_test2', section: 'habit', name: '跳绳加练', emoji: '🤸', type: 'done', unit: '', target: 1 };
+  withOverrides({ targets: {}, customs: [custom] }, () => {
+    const date = '2026-10-06';
+    T.generateDailyTasks(3, date).filter(x => x.must)
+      .forEach(task => C.upsertRecord(date, task.id, task.target, 2, ''));
+    const comp = C.dayCompletion(T.generateDailyTasks(3, date), C.getDayRecords(date));
+    assert.strictEqual(comp.allMustDone, true, '完成全部必做即达成，自定义任务不拦路');
+    assert.strictEqual(comp.total, 14, '三年级周二 13 项（10 基础 + 3 轮换）+ 自定义 1 项');
+  });
+});
+t('覆盖源异常时安全回退默认值', () => {
+  T.setOverrideProvider(() => { throw new Error('boom'); });
+  try {
+    const ts = T.generateDailyTasks(3, '2026-10-06');
+    assert.strictEqual(ts.find(x => x.id === 'pe_rope').target, 300);
+    assert(!ts.find(x => x.custom), '异常时不应出现自定义任务');
+  } finally { T.setOverrideProvider(null); }
+});
+t('任务覆盖持久化读写', () => {
+  reset();
+  store.saveTaskOverrides({ targets: { chinese_read: 25 }, customs: [{ id: 'custom_x', name: 'x' }] });
+  const o = store.getTaskOverrides();
+  assert.strictEqual(o.targets.chinese_read, 25);
+  assert.strictEqual(o.customs.length, 1);
+  store.clearAll();
+  assert.deepStrictEqual(store.getTaskOverrides(), { targets: {}, customs: [] });
+});
+
 console.log('— 每周一卷 —');
 const QZ = require('../utils/quiz');
 const QBANK = require('../utils/quiz-bank');

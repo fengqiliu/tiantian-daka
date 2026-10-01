@@ -4,7 +4,7 @@ const CTX = require('../../utils/context');
 const cloud = require('../../utils/cloud');
 
 const AVATARS = ['🐱', '🦊', '🐰', '🐻', '🐸', '🦁', '🐼', '🐷'];
-const APP_VERSION = '0.6.0';
+const APP_VERSION = '0.7.0';
 
 Page({
   data: {
@@ -174,6 +174,10 @@ Page({
       if (res.ok) wx.showToast({ title: '开启成功，孩子达成里程碑会通知你 🔔', icon: 'none' });
       else wx.showToast({ title: res.error || '未完成订阅', icon: 'none' });
     });
+  },
+
+  goTaskManage() {
+    wx.navigateTo({ url: '/pages/tasks-manage/tasks-manage' });
   },
 
   // ── 数据管理 ──

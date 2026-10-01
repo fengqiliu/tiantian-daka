@@ -11,6 +11,7 @@ const KEYS = {
   MATH_WRONG: 'math_wrong',          // 口算错题本（本地）
   QUIZ_WRONG: 'quiz_wrong',          // 每周一卷错题本（本地）
   QUIZ_HISTORY: 'quiz_history',      // 每周一卷历史（本地）
+  TASK_OVERRIDES: 'task_overrides',  // 家长任务管理：目标覆盖 + 自定义任务
   CHILD_PROFILE: 'child_profile',    // 家长端缓存：孩子资料
   CHILD_RECORDS: 'child_records',    // 家长端缓存：孩子打卡记录
   CHILD_BADGES: 'child_badges',      // 家长端缓存：孩子勋章
@@ -80,6 +81,10 @@ function saveQuizWrong(list) { backend.set(KEYS.QUIZ_WRONG, list); }
 function getQuizHistory() { return _get(KEYS.QUIZ_HISTORY, []); }
 function saveQuizHistory(list) { backend.set(KEYS.QUIZ_HISTORY, list); }
 
+// ── 任务管理（家长：目标覆盖 + 自定义任务，本地）──
+function getTaskOverrides() { return _get(KEYS.TASK_OVERRIDES, { targets: {}, customs: [] }); }
+function saveTaskOverrides(o) { backend.set(KEYS.TASK_OVERRIDES, o); }
+
 // ── 同步游标 ──
 function getSyncState() {
   return _get(KEYS.SYNC, { lastPullAt: 0, lastPushAt: 0 });
@@ -114,6 +119,7 @@ module.exports = {
   getMathWrong, saveMathWrong,
   getQuizWrong, saveQuizWrong,
   getQuizHistory, saveQuizHistory,
+  getTaskOverrides, saveTaskOverrides,
   getSyncState, saveSyncState,
   getChildProfile, getChildRecords, getChildBadges, saveChildData, clearChildData,
   clearAll,

@@ -1,0 +1,74 @@
+.tm { padding-top: 24rpx; }
+.tm-head { padding: 0 32rpx 16rpx; }
+
+.sec-header { padding: 12rpx 32rpx; }
+.sec-dot { width: 20rpx; height: 20rpx; border-radius: 6rpx; margin-right: 12rpx; }
+.sec-name { font-weight: 600; font-size: 30rpx; }
+
+.tm-task { padding: 24rpx; }
+.tm-emoji {
+  width: 72rpx; height: 72rpx;
+  border-radius: 20rpx;
+  font-size: 38rpx;
+  display: flex; align-items: center; justify-content: center;
+  margin-right: 20rpx;
+}
+.tm-name { font-size: 29rpx; font-weight: 600; }
+.tag-cu {
+  display: inline-block;
+  background: #E8F1FF;
+  color: #4D96FF;
+  font-size: 20rpx;
+  line-height: 1;
+  padding: 6rpx 12rpx;
+  border-radius: 8rpx;
+  margin-left: 10rpx;
+  vertical-align: middle;
+}
+.tm-edit { color: #FF8A00; font-size: 26rpx; font-weight: 600; padding: 8rpx 0 8rpx 16rpx; }
+
+.tm-editor { margin-top: 20rpx; border-top: 2rpx solid #FFF3E0; padding-top: 20rpx; }
+.stepper { justify-content: center; margin: 8rpx 0; }
+.step-btn {
+  width: 76rpx; height: 76rpx;
+  background: #FFF1DC;
+  color: #FF8A00;
+  border-radius: 50%;
+  font-size: 42rpx;
+  font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+}
+.step-num { min-width: 200rpx; text-align: center; font-size: 44rpx; font-weight: 700; }
+.tm-editor-actions { margin-top: 8rpx; padding: 0 40rpx; }
+.tm-editor-actions .btn-primary { padding: 16rpx 0; font-size: 28rpx; }
+.tm-editor-actions .btn-ghost { padding: 14rpx 0; font-size: 28rpx; }
+
+.tm-add { margin-left: auto; color: #FF8A00; font-weight: 600; font-size: 27rpx; padding-right: 32rpx; }
+.tm-custom { padding: 10rpx 0; }
+.tm-del { color: #FF5A3C; font-size: 26rpx; padding: 8rpx 0 8rpx 16rpx; }
+.empty { text-align: center; }
+
+.field { margin-top: 26rpx; }
+.input { background: #F7F2E8; border-radius: 16rpx; padding: 20rpx 24rpx; margin-top: 10rpx; font-size: 28rpx; }
+.emoji-row { display: flex; flex-wrap: wrap; gap: 12rpx; margin-top: 12rpx; }
+.emoji-opt {
+  width: 76rpx; height: 76rpx;
+  background: #F7F2E8;
+  border-radius: 18rpx;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 40rpx;
+  border: 3rpx solid transparent;
+}
+.emoji-opt.on { background: #FFF1DC; border-color: #FFB25A; }
+.opt-row { display: flex; flex-wrap: wrap; gap: 12rpx; margin-top: 12rpx; }
+.opt {
+  background: #F7F2E8;
+  border-radius: 999rpx;
+  padding: 12rpx 28rpx;
+  font-size: 26rpx;
+  color: #6B655B;
+  border: 3rpx solid transparent;
+}
+.opt.on { background: #FFF1DC; color: #FF8A00; border-color: #FFB25A; font-weight: 600; }
+
+.tm-foot { text-align: center; padding: 16rpx 48rpx 40rpx; font-size: 22rpx; }

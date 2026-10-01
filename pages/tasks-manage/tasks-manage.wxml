@@ -1,0 +1,87 @@
+<view class="tm safe-bottom">
+  <view class="tm-head">
+    <view class="h1">🛠 任务管理</view>
+    <view class="muted">{{gradeLabel}} · 调整目标值或添加自定义任务，对所有日期生效</view>
+  </view>
+
+  <block wx:for="{{groups}}" wx:key="key" wx:for-item="grp">
+    <view class="sec-header row">
+      <view class="sec-dot" style="background: {{grp.color}};"></view>
+      <text class="sec-name">{{grp.name}}</text>
+    </view>
+    <view class="card tm-task" wx:for="{{grp.tasks}}" wx:key="id" wx:for-item="task">
+      <view class="row" data-id="{{task.id}}" bindtap="onEdit">
+        <view class="tm-emoji" style="background: {{grp.bg}};">{{task.emoji}}</view>
+        <view class="flex1">
+          <view class="tm-name">{{task.name}}<text wx:if="{{task.must}}" class="tag-must">必做</text><text wx:if="{{task.customized}}" class="tag-cu">已调整</text><text wx:if="{{task.custom}}" class="tag-cu">自定义</text></view>
+          <view class="muted">{{task.targetLabel}}</view>
+        </view>
+        <view class="tm-edit" wx:if="{{task.type !== 'done'}}">调整</view>
+      </view>
+      <view class="tm-editor" wx:if="{{editingId === task.id}}">
+        <view class="stepper row">
+          <view class="step-btn" catchtap="onEditMinus">−</view>
+          <view class="step-num">{{editValue}} <text class="muted">{{task.unit}}</text></view>
+          <view class="step-btn" catchtap="onEditPlus">＋</view>
+        </view>
+        <view class="row tm-editor-actions">
+          <view class="btn-ghost flex1" catchtap="onEditReset">恢复默认</view>
+          <view class="btn-primary flex1" style="margin-left: 16rpx;" catchtap="onEditSave">保存</view>
+        </view>
+      </view>
+    </view>
+  </block>
+
+  <view class="sec-header row" style="padding-top: 20rpx;">
+    <text class="sec-name">自定义任务（{{customs.length}}）</text>
+    <view class="tm-add" bindtap="onToggleForm">{{formOpen ? '收起' : '＋ 添加'}}</view>
+  </view>
+
+  <view class="card" wx:if="{{customs.length}}">
+    <view class="row tm-custom" wx:for="{{customs}}" wx:key="id" wx:for-item="c">
+      <view class="tm-emoji" style="background: #F7F2E8;">{{c.emoji}}</view>
+      <view class="flex1">
+        <view class="tm-name">{{c.name}}</view>
+        <view class="muted">{{c.type === 'done' ? '完成即可' : '目标 ' + c.target + ' ' + c.unit}} · 每天</view>
+      </view>
+      <view class="tm-del" data-id="{{c.id}}" bindtap="onDelCustom">删除</view>
+    </view>
+  </view>
+  <view wx:elif="{{!formOpen}}" class="card empty muted">还没有自定义任务，点上方「＋ 添加」创建</view>
+
+  <view class="card" wx:if="{{formOpen}}">
+    <view class="field">
+      <view class="muted">任务名称</view>
+      <input class="input" placeholder="比如：练钢琴" value="{{formName}}" bindinput="onFormName" maxlength="12" />
+    </view>
+    <view class="field">
+      <view class="muted">图标</view>
+      <view class="emoji-row">
+        <view wx:for="{{emojis}}" wx:key="*this" class="emoji-opt {{formEmoji === item ? 'on' : ''}}" data-emoji="{{item}}" bindtap="onFormEmoji">{{item}}</view>
+      </view>
+    </view>
+    <view class="field">
+      <view class="muted">所属板块</view>
+      <view class="opt-row">
+        <view wx:for="{{sections}}" wx:key="key" class="opt {{formSection === item.key ? 'on' : ''}}" data-key="{{item.key}}" bindtap="onFormSection">{{item.name}}</view>
+      </view>
+    </view>
+    <view class="field">
+      <view class="muted">类型</view>
+      <view class="opt-row">
+        <view wx:for="{{types}}" wx:key="key" class="opt {{formType === item.key ? 'on' : ''}}" data-key="{{item.key}}" bindtap="onFormType">{{item.name}}</view>
+      </view>
+    </view>
+    <view class="field" wx:if="{{formType !== 'done'}}">
+      <view class="muted">每日目标</view>
+      <view class="stepper row">
+        <view class="step-btn" bindtap="onFormTargetMinus">−</view>
+        <view class="step-num">{{formTarget}}</view>
+        <view class="step-btn" bindtap="onFormTargetPlus">＋</view>
+      </view>
+    </view>
+    <view class="btn-primary" style="margin-top: 28rpx;" bindtap="onFormSubmit">添加任务</view>
+  </view>
+
+  <view class="tm-foot muted">必做结构由系统按年级设定（保持"必做恒 4 项"）；删除自定义任务后，历史打卡记录保留。</view>
+</view>

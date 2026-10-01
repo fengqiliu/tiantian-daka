@@ -8,6 +8,7 @@
     "pages/read-aloud/read-aloud",
     "pages/math-drill/math-drill",
     "pages/quiz/quiz",
+    "pages/tasks-manage/tasks-manage",
     "pages/onboarding/onboarding"
   ],
   "window": {

@@ -126,7 +126,8 @@ Page({
     const stars = comp.allDone ? 3 : (comp.recorded * 2 >= comp.total ? 2 : 1);
     const profile = store.getProfile();
     const grade = Number(profile && profile.grade) || 1;
-    const task = T.buildTask('english_listen', grade, true);
+    const inList = T.generateDailyTasks(grade, this.date).find(t => t.id === 'english_listen');
+    const task = inList || T.buildTask('english_listen', grade, true);
     C.upsertRecord(this.date, 'english_listen', task.target, stars, '跟读教室 ' + comp.recorded + '/' + comp.total + ' 句');
     const fresh = B.evaluate(store.getRecords(), profile);
     if (fresh.length) {
