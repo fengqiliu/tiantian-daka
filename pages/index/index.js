@@ -4,6 +4,7 @@ const C = require('../../utils/checkin');
 const D = require('../../utils/date');
 const CTX = require('../../utils/context');
 const cloud = require('../../utils/cloud');
+const CAL = require('../../utils/calendar-config');
 
 Page({
   data: {
@@ -68,7 +69,7 @@ Page({
 
     this.setData({
       dateLabel: D.dateLabel(today),
-      dayTag: D.isWeekend(today) ? '周末模式 🎈' : '上学日 🏫',
+      dayTag: this.dayTag(today),
       greeting: D.greeting(new Date().getHours()),
       nickname: profile.nickname,
       gradeLabel: '上海 · ' + grade + ' 年级',
@@ -80,6 +81,13 @@ Page({
       totalStars: C.totalStars(all, grade),
       streak: C.streaks(all).current,
     });
+  },
+
+  // 状态标签：假期 > 周末 > 上学日
+  dayTag(today) {
+    const hol = CAL.holidayAt(today);
+    if (hol) return hol.name + '模式 ' + hol.emoji;
+    return D.isWeekend(today) ? '周末模式 🎈' : '上学日 🏫';
   },
 
   buildSections(tasks, records) {

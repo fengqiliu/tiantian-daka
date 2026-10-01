@@ -296,6 +296,56 @@ t('数据作用域：孩子端读本机，家长端只读孩子缓存', () => {
   assert.strictEqual(s.readOnly, true);
 });
 
+console.log('— 校历与假期模式 —');
+const CAL = require('../utils/calendar-config');
+
+t('校历：区间内外与边界判断', () => {
+  assert.strictEqual(CAL.holidayAt('2027-01-23').name, '寒假');   // 起始日含
+  assert.strictEqual(CAL.holidayAt('2027-02-21').name, '寒假');   // 结束日含
+  assert.strictEqual(CAL.holidayAt('2027-02-22'), null);          // 开学日
+  assert.strictEqual(CAL.holidayAt('2026-11-11'), null);          // 学期中
+  assert.strictEqual(CAL.holidayAt('2026-08-15').name, '暑假');
+});
+t('假期生成：4 必做（作业/阅读/口算减量/户外120），无整理书包，轮换正确', () => {
+  assert.strictEqual(D.dayOfWeek('2027-01-27'), 3, '测试日期应为周三');
+  const ts = T.generateDailyTasks(3, '2027-01-27'); // 寒假周三
+  const must = ts.filter(x => x.must);
+  assert.strictEqual(must.length, 4);
+  ['holiday_homework', 'chinese_reading_ext', 'math_calc', 'pe_outdoor']
+    .forEach(id => assert(ts.find(x => x.id === id), '应包含 ' + id));
+  assert.strictEqual(ts.find(x => x.id === 'pe_outdoor').target, 120);
+  assert(!ts.find(x => x.id === 'habit_bag'), '假期不应有整理书包');
+  assert(ts.find(x => x.id === 'fun_board') && ts.find(x => x.id === 'habit_chore'));
+  assert(ts.find(x => x.id === 'chinese_poem'), '周三应有古诗');
+  assert(!ts.find(x => x.id === 'english_words'), '周三不应有单词');
+});
+t('假期与学期生成不同，且均确定', () => {
+  const hol = T.generateDailyTasks(3, '2027-01-27');
+  assert.strictEqual(JSON.stringify(hol), JSON.stringify(T.generateDailyTasks(3, '2027-01-27')));
+  const term = T.generateDailyTasks(3, '2026-10-06'); // 学期周二
+  assert(term.find(x => x.id === 'habit_bag'), '学期应有整理书包');
+  assert(!hol.find(x => x.id === 'habit_bag'));
+  assert(term.find(x => x.id === 'pe_rope').must, '学期跳绳必做');
+  assert(!hol.find(x => x.id === 'pe_rope').must, '假期跳绳自选');
+});
+t('假期各年级段目标：口算 10/20/30 题，作业 30/40/60 分钟', () => {
+  assert.strictEqual(D.dayOfWeek('2027-01-25'), 1, '测试日期应为周一');
+  [1, 3, 5].forEach((g, i) => {
+    const ts = T.generateDailyTasks(g, '2027-01-25');
+    assert.strictEqual(ts.find(x => x.id === 'math_calc').target, [10, 20, 30][i]);
+    assert.strictEqual(ts.find(x => x.id === 'holiday_homework').target, [30, 40, 60][i]);
+  });
+});
+t('假期打卡统计照常：全必做 → 加成星', () => {
+  reset();
+  const date = '2027-01-25';
+  T.generateDailyTasks(3, date).filter(x => x.must)
+    .forEach(task => C.upsertRecord(date, task.id, task.target, 2, ''));
+  const comp = C.dayCompletion(T.generateDailyTasks(3, date), C.getDayRecords(date));
+  assert.strictEqual(comp.allMustDone, true);
+  assert.strictEqual(C.totalStars(store.getRecords(), 3), 9);
+});
+
 chain.then(() => {
   console.log('\n全部通过：' + passed + ' 项 ✓');
 }).catch(e => {

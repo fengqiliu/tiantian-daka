@@ -2,18 +2,20 @@
 // 内容对齐上海小学：沪教版课程习惯、"双减"（1-2年级不留书面回家作业）、
 // 每天锻炼、近视防控（户外"目浴阳光"）、睡眠管理（小学生10小时）等要求。
 const D = require('./date');
+const CAL = require('./calendar-config');
 
 // 学科/板块元信息（颜色同时用于页面渲染）
 const SECTIONS = {
   chinese: { name: '语文', color: '#FF6B6B', bg: '#FFEBEB' },
   math:    { name: '数学', color: '#4D96FF', bg: '#E8F1FF' },
   english: { name: '英语', color: '#9B5DE5', bg: '#F3EAFE' },
+  study:   { name: '学习', color: '#A9746E', bg: '#F3EAE5' },
   pe:      { name: '运动', color: '#37B24D', bg: '#E8F8EC' },
   fun:     { name: '娱乐', color: '#F59F00', bg: '#FFF4D6' },
   habit:   { name: '习惯', color: '#12B5B0', bg: '#E0F7F6' },
 };
 
-const SECTION_ORDER = ['chinese', 'math', 'english', 'pe', 'fun', 'habit'];
+const SECTION_ORDER = ['chinese', 'math', 'english', 'study', 'pe', 'fun', 'habit'];
 
 // 年级段：low=1-2年级（双减：以听说读为主，不布置书面作业）、mid=3-4、high=5
 function bandOf(grade) { return grade <= 2 ? 'low' : grade <= 4 ? 'mid' : 'high'; }
@@ -21,6 +23,12 @@ function bandOf(grade) { return grade <= 2 ? 'low' : grade <= 4 ? 'mid' : 'high'
 // 任务定义库：type = duration(分钟) | count(计数) | done(完成即可)
 // target: { low, mid, high } 各年级段默认目标值
 const DEFS = {
+  // ── 学习（假期模式）──
+  holiday_homework: {
+    section: 'study', name: '假期作业', emoji: '📝', type: 'duration', unit: '分钟',
+    target: { low: 30, mid: 40, high: 60 },
+    desc: '按计划推进假期作业，每天固定时间做一点，开学前从容完成，不搞最后突击。',
+  },
   // ── 语文 ──
   chinese_read: {
     section: 'chinese', name: '课文朗读', emoji: '📖', type: 'duration', unit: '分钟',
@@ -161,6 +169,11 @@ function generateDailyTasks(grade, dateStr) {
   const dow = D.dayOfWeek(dateStr);
   const weekend = dow === 0 || dow === 6;
   const pick = (id, must, ov) => buildTask(id, grade, must, ov);
+
+  // 假期模式：寒暑假按校历自动切换（见 calendar-config.js）
+  const hol = CAL.holidayAt(dateStr);
+  if (hol) return generateHolidayTasks(grade, dow, hol);
+
   let list = [];
 
   if (!weekend) {
@@ -213,7 +226,39 @@ function generateDailyTasks(grade, dateStr) {
 
 function getTaskDef(id) { return DEFS[id]; }
 
+// 假期模式每日清单：无上学日/周末之分。
+// 结构：假期作业 + 阅读 + 口算（减量）+ 户外 120 分钟（近视防控，加量）为必做；
+// 跳绳/跟读/朗读转为自选保持习惯；"整理书包"随上学取消；古诗/单词/日记按星期轮换。
+function generateHolidayTasks(grade, dow, hol) {
+  const band = bandOf(grade);
+  const pick = (id, must, ov) => {
+    const t = buildTask(id, grade, must, ov);
+    if (t) t.holiday = hol.name;
+    return t;
+  };
+  const list = [
+    pick('holiday_homework', true),
+    pick('chinese_reading_ext', true, band === 'low' ? 30 : 40),
+    pick('math_calc', true, { low: 10, mid: 20, high: 30 }[band]),
+    pick('pe_outdoor', true, 120),
+    pick('chinese_read', false, { low: 15, mid: 15, high: 20 }[band]),
+    pick('english_listen'),
+    pick('pe_rope'),
+    pick('pe_ball'),
+    pick('fun_hobby', false, { low: 30, mid: 40, high: 40 }[band]),
+    pick('fun_board'),
+    pick('fun_screen', false, 20),
+    pick('habit_chore'),
+    pick('habit_sleep'),
+  ];
+  if (band !== 'low') list.push(pick('math_think'), pick('english_read'));
+  if (dow === 1 || dow === 3 || dow === 5) list.push(pick('chinese_poem'));
+  if (dow === 2 || dow === 4) list.push(pick('english_words'));
+  if (dow === 0 && band !== 'low') list.push(pick('chinese_diary'));
+  return list.filter(Boolean);
+}
+
 module.exports = {
   SECTIONS, SECTION_ORDER, DEFS,
-  bandOf, buildTask, generateDailyTasks, getTaskDef, targetLabel,
+  bandOf, buildTask, generateDailyTasks, generateHolidayTasks, getTaskDef, targetLabel,
 };

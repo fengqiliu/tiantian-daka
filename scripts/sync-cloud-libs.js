@@ -6,7 +6,7 @@ const path = require('path');
 
 const root = path.join(__dirname, '..');
 const targets = ['cloudfunctions/dailyRemind/lib'];
-const files = ['utils/tasks.js', 'utils/date.js'];
+const files = ['utils/tasks.js', 'utils/date.js', 'utils/calendar-config.js'];
 
 for (const dir of targets) {
   fs.mkdirSync(path.join(root, dir), { recursive: true });
