@@ -1,0 +1,24 @@
+{
+  "kbName": "天天小达人 · 试卷知识库",
+  "scope": "上海市小学 · 2024新教材 · 按单元收录单元测试卷（A卷基础 / B卷提高，含参考答案）",
+  "updatedAt": "2026-10-01",
+  "coverage": {
+    "grade": 1,
+    "semester": "上",
+    "subjects": {
+      "math": { "textbook": "沪教版（2024修订）", "units": [1, 2, 3, 4] },
+      "chinese": { "textbook": "统编版（2024修订）", "units": [1, 2, 3] },
+      "english": { "textbook": "沪教版（五四制）2024新教材", "units": [1] }
+    }
+  },
+  "papers": [
+    { "id": "math-g1s1-u1", "file": "data/math-g1s1-u1.json", "unitName": "我是小学生", "themes": ["位置（左右上下）", "听口令执行", "分类整理"] },
+    { "id": "math-g1s1-u2", "file": "data/math-g1s1-u2.json", "unitName": "认识图形", "themes": ["立体图形", "平面图形", "滚/站/叠", "描面"] },
+    { "id": "math-g1s1-u3", "file": "data/math-g1s1-u3.json", "unitName": "10以内的数", "themes": ["数数与数序", "比较", "分与合", "几个vs第几个", "数线"] },
+    { "id": "math-g1s1-u4", "file": "data/math-g1s1-u4.json", "unitName": "10以内数的加减法", "themes": ["口算", "未知数", "看图列式", "解决问题"], "extras": ["drills.arithmeticA 20题", "drills.arithmeticB 20题"] },
+    { "id": "chinese-g1s1-u1", "file": "data/chinese-g1s1-u1.json", "unitName": "识字", "themes": ["象形识字", "形近字", "田字格", "笔画", "数字汉字"] },
+    { "id": "chinese-g1s1-u2", "file": "data/chinese-g1s1-u2.json", "unitName": "汉语拼音（a o e ~ d t n l）", "themes": ["单韵母6", "声母8", "声调", "拼读拆分", "四线三格"] },
+    { "id": "chinese-g1s1-u3", "file": "data/chinese-g1s1-u3.json", "unitName": "汉语拼音（g k h ~ y w）", "themes": ["平翘舌", "整体认读10个", "三拼音节", "小ü省点规则"] },
+    { "id": "english-g1s1-u1", "file": "data/english-g1s1-u1.json", "unitName": "Unit 1 Greetings", "themes": ["问候语", "情境运用", "口语任务"], "extras": ["listeningScripts A/B 各5句"] }
+  ]
+}

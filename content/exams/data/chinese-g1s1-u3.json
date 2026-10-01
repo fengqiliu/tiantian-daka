@@ -1,0 +1,55 @@
+{
+  "id": "chinese-g1s1-u3",
+  "subject": "chinese",
+  "subjectName": "语文",
+  "textbook": "统编版（2024修订）",
+  "grade": 1,
+  "semester": "上",
+  "unit": 3,
+  "unitName": "汉语拼音（g k h · j q x · z c s · zh ch sh r · y w · 语文园地三）",
+  "skills": [
+    "15个新声母（g k h j q x z c s zh ch sh r y w）",
+    "平舌音（z c s）与翘舌音（zh ch sh r）辨析",
+    "10个整体认读音节（yi wu yu zi ci si zhi chi shi ri）",
+    "三拼音节（声母+介母+韵母）",
+    "j/q/x/y 与 ü 相拼省写两点规则",
+    "音节与学过汉字对应"
+  ],
+  "pdf": "../pdf/2026上海一年级语文上册第三单元测试卷_统编版2024.pdf",
+  "papers": [
+    {
+      "paper": "A",
+      "level": "基础",
+      "durationMin": 30,
+      "totalScore": 100,
+      "sections": [
+        { "no": 1, "type": "write", "title": "新声母集合（按顺序抄写）", "score": 15, "answers": "g、k、h、j、q、x、z、c、s、zh、ch、sh、r、y、w。每个声母书写正确得1分。" },
+        { "no": 2, "type": "classify", "title": "平舌音和翘舌音分分家", "score": 14, "answers": "平舌音：z、c、s；翘舌音：zh、ch、sh、r。" },
+        { "no": 3, "type": "recognize", "title": "整体认读音节找一找", "score": 10, "answers": "yi、wu、yu、zi、ci、si、zhi、chi、shi、ri。" },
+        { "no": 4, "type": "spell", "title": "拼一拼，写出音节", "score": 15, "answers": "gā、kǔ、hé、jī、xù。" },
+        { "no": 5, "type": "spell-three", "title": "三拼音节小火车", "score": 12, "answers": "guā、kuǎ、huà、jiā、qiá、xià。评分重点：声母、介母、韵母三部分拼合正确。" },
+        { "no": 6, "type": "spell", "title": "小ü有秘密", "score": 12, "answers": "jū、qǔ、xù、yū、yǔ、yǜ。提示：j、q、x、y和ü相拼时，ü上两点省写，读音仍按ü。" },
+        { "no": 7, "type": "listen-distinguish", "title": "听音辨一辨（平翘舌）", "score": 12, "answers": "家长/教师朗读顺序：1.zhū 2.cū 3.shū 4.zì 5.chì 6.shì。学生选择听到的音节。" },
+        { "no": 8, "type": "writing", "title": "四线三格写规范", "score": 10, "answers": "g、q、x、zh、w。字母占格、笔形和书写整洁均纳入评分。" }
+      ]
+    },
+    {
+      "paper": "B",
+      "level": "提高",
+      "durationMin": 35,
+      "totalScore": 100,
+      "sections": [
+        { "no": 1, "type": "odd-one-out", "title": "火眼金睛", "score": 12, "answers": "1.a 2.u 3.zh 4.m 5.e 6.z。" },
+        { "no": 2, "type": "classify", "title": "平翘舌大挑战（音节分家）", "score": 16, "answers": "平舌音节：zā、cǐ、sū、zì；翘舌音节：zhā、chǐ、shū、rì。" },
+        { "no": 3, "type": "split-three", "title": "三拼音节拆装站", "score": 12, "answers": "guā=g＋u＋ā；kuò=k＋u＋ò；huǒ=h＋u＋ǒ；jiā=j＋i＋ā；qiā=q＋i＋ā；xià=x＋i＋à。" },
+        { "no": 4, "type": "correct-spelling", "title": "小ü变身（判断改正）", "score": 12, "answers": "1.×，改jū；2.√；3.×，改xù；4.√；5.√；6.√。要点：j、q、x、y和ü相拼时，ü上两点省写。" },
+        { "no": 5, "type": "recognize", "title": "整体认读音节归队", "score": 10, "answers": "yi、wu、yu、zi、ci、si、zhi、chi、shi、ri。" },
+        { "no": 6, "type": "match", "title": "拼音和汉字手拉手", "score": 12, "answers": "shí—十；rì—日；qī—七；xià—下；tǔ—土；mù—木。" },
+        { "no": 7, "type": "listen-distinguish", "title": "听音挑战", "score": 12, "answers": "家长/教师朗读顺序：1.zhū 2.cā 3.shì 4.jū 5.wú 6.zhi。学生选择听到的音节。" },
+        { "no": 8, "type": "writing", "title": "四线三格书写挑战", "score": 4, "answers": "zh、ch、sh、yu。声母组合、字母占格和书写清楚均应纳入评分。" },
+        { "no": 9, "type": "judge", "title": "语文园地小应用（判断）", "score": 10, "answers": "1.√ 2.√ 3.√ 4.× 5.√。" }
+      ]
+    }
+  ],
+  "usageNotes": "范围：g k h、j q x、z c s、zh ch sh r、y w、语文园地三。提高卷重点：三拼音节、平翘舌辨析、整体认读音节，以及 j/q/x/y 与 ü 的拼写规则。"
+}

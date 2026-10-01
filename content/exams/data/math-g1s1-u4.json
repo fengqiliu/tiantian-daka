@@ -1,0 +1,61 @@
+{
+  "id": "math-g1s1-u4",
+  "subject": "math",
+  "subjectName": "数学",
+  "textbook": "沪教版（2024修订）",
+  "grade": 1,
+  "semester": "上",
+  "unit": 4,
+  "unitName": "10以内数的加减法",
+  "skills": [
+    "10以内加减口算",
+    "填未知数（□+3=10 型）",
+    "加减关系与互逆",
+    "看图列式",
+    "连加、连减、加减混合",
+    "解决问题（读懂\"合起来\"还是\"去掉\"）"
+  ],
+  "pdf": "../pdf/2026上海一年级数学上册第四单元测试卷_沪教版2024.pdf",
+  "papers": [
+    {
+      "paper": "A",
+      "level": "基础",
+      "durationMin": 30,
+      "totalScore": 100,
+      "sections": [
+        { "no": 1, "type": "arithmetic", "title": "算一算", "score": 20, "answers": "见 drills.arithmeticA（每行4题×5行）" },
+        { "no": 2, "type": "missing-number", "title": "填一填", "score": 20, "answers": "3+5=8；6+4=10；9-4=5；8-2=6；10-7=3；5+4=9。" },
+        { "no": 3, "type": "compare", "title": "在○里填\">\"\"<\"或\"=\"", "score": 20, "answers": "<，>，=，>。" },
+        { "no": 4, "type": "equation-from-picture", "title": "看图列式", "score": 20, "answers": "1. 3+4=7；2. 8-3=5。" },
+        { "no": 5, "type": "word-problem", "title": "解决问题", "score": 20, "answers": "1. 4+3=7（支）；2. 9-5=4（个）。" },
+        { "no": 6, "type": "bonus", "title": "10的游戏（加分题，不计入总分）", "score": 0, "answers": "1—9，2—8，3—7，4—6，5—5。" }
+      ]
+    },
+    {
+      "paper": "B",
+      "level": "提高",
+      "durationMin": 35,
+      "totalScore": 100,
+      "sections": [
+        { "no": 1, "type": "arithmetic", "title": "口算小达人", "score": 20, "answers": "见 drills.arithmeticB（每行4题×5行）" },
+        { "no": 2, "type": "chained", "title": "连加、连减、加减混合", "score": 20, "answers": "9，5，3；9，2，7。" },
+        { "no": 3, "type": "missing-number", "title": "想一想，填一填", "score": 20, "answers": "7+3=10；8-6=2；9-4=5；2+7=9；10-4=6；6+1=7。" },
+        { "no": 4, "type": "fact-family", "title": "根据一组数，写出4道算式", "score": 20, "answers": "3+7=10，7+3=10，10-3=7，10-7=3。" },
+        { "no": 5, "type": "equation-from-picture", "title": "看图想一想", "score": 10, "answers": "方框填3，因为2+3+3=8。" },
+        { "no": 6, "type": "word-problem", "title": "解决问题", "score": 10, "answers": "1. 6+4-3=7（个）；2. 10-2-3=5（本）。" },
+        { "no": 7, "type": "bonus", "title": "挑战题（加分题，不计入总分）", "score": 0, "answers": "□+□=8且两数不同：把交换位置看作同一种共4种（0+8、1+7、2+6、3+5）；看作不同填法则除4+4外共8种。" }
+      ]
+    }
+  ],
+  "drills": {
+    "arithmeticA": {
+      "problems": ["2+3", "5-2", "4+4", "9-3", "1+6", "7-5", "0+8", "6-0", "5+5", "10-4", "3+6", "8-7", "4+2", "9-6", "2+7", "10-10", "6+3", "8-2", "1+8", "7-4"],
+      "answers": [5, 3, 8, 6, 7, 2, 8, 6, 10, 6, 9, 1, 6, 3, 9, 0, 9, 6, 9, 3]
+    },
+    "arithmeticB": {
+      "problems": ["6+4", "10-7", "5+3", "8-5", "2+7", "9-4", "3+5", "7-7", "4+6", "10-2", "0+9", "9-0", "7+2", "8-6", "5+4", "6-3", "1+7", "10-5", "3+4", "9-6"],
+      "answers": [10, 3, 8, 3, 9, 5, 8, 0, 10, 8, 9, 9, 9, 2, 9, 3, 8, 5, 7, 3]
+    }
+  },
+  "usageNotes": "90-100：基础扎实；80-89：重点复习填未知数与看图列式；70-79：加强口算与题意判断；70以下：分块复习（B卷：回到\"数的分与合\"辅助理解）。参考答案强调方法理解，不要求一年级学生使用成人化解题表述。"
+}

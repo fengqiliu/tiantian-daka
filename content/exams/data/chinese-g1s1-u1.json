@@ -1,0 +1,56 @@
+{
+  "id": "chinese-g1s1-u1",
+  "subject": "chinese",
+  "subjectName": "语文",
+  "textbook": "统编版（2024修订）",
+  "grade": 1,
+  "semester": "上",
+  "unit": 1,
+  "unitName": "识字（天地上下 · 口耳目手足 · 你我他 · 数字汉字）",
+  "skills": [
+    "象形识字（日月山水火田禾）",
+    "形近字辨析（日/目、口/田、天/地）",
+    "田字格规范书写",
+    "笔画数（一1 二2 三3 口3 日4 田5）",
+    "数字汉字（一至十）",
+    "学习习惯（坐姿、爱护图书）"
+  ],
+  "pdf": "../pdf/2026上海一年级语文上册第一单元测试卷_统编版2024.pdf",
+  "papers": [
+    {
+      "paper": "A",
+      "level": "基础",
+      "durationMin": 30,
+      "totalScore": 100,
+      "sections": [
+        { "no": 1, "type": "match-picture", "title": "看图找朋友（图连字）", "score": 12, "answers": "太阳→日；月亮→月；山峰→山；流水→水；火焰→火；田地→田。" },
+        { "no": 2, "type": "recognize", "title": "我会认字（圈出相同的字）", "score": 16, "answers": "1.天 2.地 3.你 4.口 5.耳 6.足 7.上 8.禾。" },
+        { "no": 3, "type": "match", "title": "数字汉字连一连", "score": 10, "answers": "1→一；3→三；6→六；8→八；10→十。" },
+        { "no": 4, "type": "writing", "title": "我会写字（田字格）", "score": 16, "answers": "参考字：一、上、口、手、日、火、田、禾。书写正确、笔画位置基本合理即可。" },
+        { "no": 5, "type": "listen-choose", "title": "选一选（听读句子圈字）", "score": 12, "answers": "1.天 2.地 3.目 4.耳 5.手 6.上。" },
+        { "no": 6, "type": "match", "title": "找朋友（意思相对的字）", "score": 10, "answers": "天—地；上—下；日—月；水—火；站—坐。" },
+        { "no": 7, "type": "sequence", "title": "按顺序补一补", "score": 10, "answers": "1.三 2.七 3.二 4.九 5.一。" },
+        { "no": 8, "type": "read-do", "title": "读一读，按要求做一做", "score": 8, "answers": "第1题圈出口、耳、目、手、足；第2题在你、我、他下面画横线。" },
+        { "no": 9, "type": "habit", "title": "学习习惯小检查", "score": 6, "answers": "三项均为正确做法，应全部打\"√\"。" }
+      ]
+    },
+    {
+      "paper": "B",
+      "level": "提高",
+      "durationMin": 35,
+      "totalScore": 100,
+      "sections": [
+        { "no": 1, "type": "classify", "title": "汉字分分类", "score": 12, "answers": "表示人的字：①你、④我、⑦他；身体部位：②口、⑤耳、⑧手、⑩足；自然景物：③日、⑥山、⑨月、水、田。" },
+        { "no": 2, "type": "writing", "title": "看图写字（田字格）", "score": 12, "answers": "依次：日、火、田、禾、口、手。字形正确、基本落在田字格合适位置即可。" },
+        { "no": 3, "type": "strokes", "title": "笔画小侦探", "score": 12, "answers": "一1画；二2画；三3画；口3画；日4画；田5画。" },
+        { "no": 4, "type": "add-stroke", "title": "字形变变变（添一笔）", "score": 12, "answers": "一→二；二→三；口→日；日→田。" },
+        { "no": 5, "type": "listen-fill", "title": "选字填空（听读）", "score": 12, "answers": "1.我 2.她（听读时说明\"小红\"是女生）3.月 4.水 5.上 6.口。" },
+        { "no": 6, "type": "match", "title": "身体小帮手（连一连）", "score": 10, "answers": "口—说话；耳—听声音；目—看东西；手—拿东西；足—走路。" },
+        { "no": 7, "type": "sequence", "title": "按规律补字", "score": 10, "answers": "1.四 2.八 3.二 4.六 5.十。" },
+        { "no": 8, "type": "judge", "title": "判断", "score": 8, "answers": "1.× 2.√ 3.√ 4.√。" },
+        { "no": 9, "type": "read-think", "title": "读一读，想一想", "score": 12, "answers": "1.圈出：日、月、山、川；2.禾（√），火（ ）；3.你、我、他。" }
+      ]
+    }
+  ],
+  "usageNotes": "温馨提示：第一单元还没有系统学习拼音，老师或家长可以读题，孩子独立作答。提高卷适合完成基础卷后使用；若\"日/目、口/田\"等形近字失分较多，优先回到看图识字与田字格书写。评分建议以识字正确、书写规范、学习习惯为主要观察点。"
+}

@@ -1,0 +1,55 @@
+{
+  "id": "chinese-g1s1-u2",
+  "subject": "chinese",
+  "subjectName": "语文",
+  "textbook": "统编版（2024修订）",
+  "grade": 1,
+  "semester": "上",
+  "unit": 2,
+  "unitName": "汉语拼音（a o e · i u ü · b p m f · d t n l · 语文园地二）",
+  "skills": [
+    "6个单韵母（a o e i u ü）认读与书写",
+    "8个声母（b p m f d t n l）认读与书写",
+    "四声调值判断（第几声）",
+    "声母+韵母拼读与拆分",
+    "四线三格规范书写",
+    "音节与学过汉字对应"
+  ],
+  "pdf": "../pdf/2026上海一年级语文上册第二单元测试卷_统编版2024.pdf",
+  "papers": [
+    {
+      "paper": "A",
+      "level": "基础",
+      "durationMin": 30,
+      "totalScore": 100,
+      "sections": [
+        { "no": 1, "type": "classify", "title": "声母、韵母分分家", "score": 14, "answers": "单韵母：a、o、e、i、u、ü；声母：b、p、m、f、d、t、n、l。" },
+        { "no": 2, "type": "tone", "title": "声调小侦探（第几声）", "score": 12, "answers": "ā—1声；ó—2声；ě—3声；ì—4声；ǔ—3声；ǜ—4声。" },
+        { "no": 3, "type": "spell", "title": "拼一拼，连一连", "score": 16, "answers": "b+ā→bā；p+ō→pō；m+ǐ→mǐ；f+ú→fú；d+à→dà；t+ù→tù；n+ǚ→nǚ；l+ǜ→lǜ。" },
+        { "no": 4, "type": "match", "title": "读一读，给拼音找汉字朋友", "score": 10, "answers": "bā—八；tǔ—土；mù—木；nǐ—你；tā—他。" },
+        { "no": 5, "type": "writing", "title": "我会规范写拼音（四线三格）", "score": 16, "answers": "a、o、e、i、u、ü、b、p。字母占格基本正确、笔形清楚、书写整洁即可。" },
+        { "no": 6, "type": "split", "title": "拆一拆（音节=声母+韵母）", "score": 12, "answers": "bā=b＋ā；mǐ=m＋ǐ；fú=f＋ú；dà=d＋à；tù=t＋ù；nǚ=n＋ǚ。" },
+        { "no": 7, "type": "listen-distinguish", "title": "听音辨一辨", "score": 12, "answers": "家长/教师朗读顺序：1.bā 2.nǐ 3.dà 4.lǚ 5.fú 6.tù。学生选择对应音节即可。" },
+        { "no": 8, "type": "choose", "title": "读一读，选一选", "score": 8, "answers": "1.两个小点 2.右边 3.左边 4.从高到低。" }
+      ]
+    },
+    {
+      "paper": "B",
+      "level": "提高",
+      "durationMin": 35,
+      "totalScore": 100,
+      "sections": [
+        { "no": 1, "type": "odd-one-out", "title": "火眼金睛（圈不同类）", "score": 12, "answers": "1.b 2.m 3.ā 4.ó 5.f 6.ǚ。" },
+        { "no": 2, "type": "tone-order", "title": "四声排排队", "score": 16, "answers": "a：ā á ǎ à；ü：ǖ ǘ ǚ ǜ；o：ō ó ǒ ò；u：ū ú ǔ ù。" },
+        { "no": 3, "type": "spell", "title": "拼音积木", "score": 16, "answers": "bǐ、pá、mù、fó、dī、tǔ、nǚ、lù。" },
+        { "no": 4, "type": "letter-riddle", "title": "我会辨字母", "score": 12, "answers": "1.b 2.d 3.f 4.p 5.m 6.n。" },
+        { "no": 5, "type": "split", "title": "音节拆装站（先拆再拼回）", "score": 18, "answers": "bǐ=b＋ǐ；pá=p＋á；mù=m＋ù；dī=d＋ī；tǔ=t＋ǔ；lǜ=l＋ǜ。\"拼回去\"的音节与题目原音节相同。" },
+        { "no": 6, "type": "match", "title": "拼音和汉字手拉手", "score": 12, "answers": "bā—八；mù—木；tǔ—土；nǐ—你；tā—他；dì—地。" },
+        { "no": 7, "type": "listen-distinguish", "title": "听音挑战", "score": 12, "answers": "家长/教师朗读顺序：1.dǐ 2.pá 3.mù 4.tī 5.nǚ 6.dǔ。学生选择听到的音节。" },
+        { "no": 8, "type": "writing", "title": "四线三格书写挑战（完整音节）", "score": 8, "answers": "bā、mǐ、tù、nǚ。声调位置、字母占格和书写清楚均应纳入评分。" },
+        { "no": 9, "type": "judge", "title": "语文园地小应用（判断）", "score": 10, "answers": "1.√ 2.√ 3.× 4.√ 5.√。" }
+      ]
+    }
+  ],
+  "usageNotes": "范围：a o e、i u ü、b p m f、d t n l、语文园地二。提高卷更重视形近字母辨析（b/d、p/q、m/n、f/t）、声调判断、拼读与拆分。"
+}

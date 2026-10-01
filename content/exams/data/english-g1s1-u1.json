@@ -1,0 +1,59 @@
+{
+  "id": "english-g1s1-u1",
+  "subject": "english",
+  "subjectName": "英语",
+  "textbook": "沪教版（五四制）2024新教材（牛津上海版）",
+  "grade": 1,
+  "semester": "上",
+  "unit": 1,
+  "unitName": "Unit 1 Greetings（问候语）",
+  "skills": [
+    "时间-场景-表达对应（morning/afternoon/evening）",
+    "主动问候（Hello!/Hi!/Good morning./Good afternoon./Good evening.）",
+    "正确应答（How are you? → I'm fine. Thank you.）",
+    "正确告别（Goodbye.）",
+    "听说为主、书面认读为辅；口语允许轻微发音误差"
+  ],
+  "keySentences": [
+    "Hello! / Hi!",
+    "Good morning. / Good afternoon. / Good evening.",
+    "How are you?",
+    "I'm fine. Thank you.",
+    "Goodbye."
+  ],
+  "pdf": "../pdf/2026上海一年级英语上册第一单元测试卷_沪教版2024.pdf",
+  "papers": [
+    {
+      "paper": "A",
+      "level": "基础",
+      "durationMin": 30,
+      "totalScore": 100,
+      "sections": [
+        { "no": 1, "type": "listen-circle", "title": "Listen and circle. 听一听，圈出符合录音的图片", "score": 20, "answers": "1左（早晨）2左（下午）3左（见面）4左（How are you?）5左（见面）" },
+        { "no": 2, "type": "match", "title": "Look and match. 看图，把时间和问候语连起来", "score": 15, "answers": "morning—Good morning.；afternoon—Good afternoon.；evening—Good evening." },
+        { "no": 3, "type": "read-choose", "title": "Read and choose. 读一读，选择合适的应答", "score": 25, "answers": "1A 2A 3A 4A 5A" },
+        { "no": 4, "type": "context-choice", "title": "Choose the right words. 根据情境，圈出正确表达", "score": 20, "answers": "1 Good morning! 2 Good afternoon! 3 How are you? 4 Goodbye!" },
+        { "no": 5, "type": "speaking", "title": "Speaking task. 口语小任务（家长/老师评分）", "score": 20, "answers": "按\"主动问候、正确应答、声音清楚\"综合评分：优秀20｜基本完成16｜需要提示12｜暂未完成8。" }
+      ]
+    },
+    {
+      "paper": "B",
+      "level": "提高",
+      "durationMin": 35,
+      "totalScore": 100,
+      "sections": [
+        { "no": 1, "type": "listen-order", "title": "Listen and number. 听录音，按顺序给场景编号1-5", "score": 20, "answers": "见面(1)→早晨(2)→下午(3)→晚上(4)→告别(5)。注意：不按图片从左到右读，需按听力原文顺序编号。" },
+        { "no": 2, "type": "complete-dialogue", "title": "Complete the dialogue. 从词语框选表达填序号", "score": 25, "answers": "1E 2A 3D 4B 5C。词框：A. Good morning. B. I'm fine. Thank you. C. Goodbye. D. How are you? E. Hello!" },
+        { "no": 3, "type": "dialogue-order", "title": "Read and put in order. 给对话排序", "score": 15, "answers": "Good afternoon. → Good afternoon. → How are you? → I'm fine. Thank you." },
+        { "no": 4, "type": "context-choice", "title": "Choose by the situation. 根据时间和情境选择", "score": 20, "answers": "1A 2B 3A 4B。" },
+        { "no": 5, "type": "find-mistake", "title": "Find the mistake. 圈出每组中不合适的表达", "score": 15, "answers": "1 Good evening. 2 Good morning. 3 Goodbye?" },
+        { "no": 6, "type": "speaking", "title": "Speaking challenge. 口语挑战", "score": 20, "answers": "任选两个情境完成对话（①早晨到校 ②下午遇见同学 ③晚上见家人 ④放学告别），要求问候得体+回应 How are you?+正确告别：优秀20｜较好17｜少量提示14｜较多提示10。" }
+      ]
+    }
+  ],
+  "listeningScripts": {
+    "A": ["Good morning.", "Good afternoon.", "Hello!", "How are you?", "Hi!"],
+    "B": ["Hello!", "Good morning.", "Good afternoon.", "Good evening.", "Goodbye."]
+  },
+  "usageNotes": "听力每题读两遍，间隔约3秒，不提示中文含义。本单元以听说与情境运用为核心，书面认读仅作辅助。口语任务不要求逐字背诵，表达得体、意思正确即可；允许一年级学生有轻微发音误差，不影响沟通时不应过度扣分。"
+}

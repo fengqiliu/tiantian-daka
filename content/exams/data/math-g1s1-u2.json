@@ -1,0 +1,52 @@
+{
+  "id": "math-g1s1-u2",
+  "subject": "math",
+  "subjectName": "数学",
+  "textbook": "沪教版（2024修订）",
+  "grade": 1,
+  "semester": "上",
+  "unit": 2,
+  "unitName": "认识图形",
+  "skills": [
+    "生活物品与立体图形（正方体/长方体/圆柱/球）对应",
+    "按形状特征分类与判断",
+    "滚动/叠放/站住等几何直观",
+    "立体图形→平面图形（描面）对应",
+    "空间观察（斜上方看正方体看到3个面）"
+  ],
+  "pdf": "../pdf/2026上海一年级数学上册第二单元测试卷_沪教版2024.pdf",
+  "papers": [
+    {
+      "paper": "A",
+      "level": "基础",
+      "durationMin": 25,
+      "totalScore": 100,
+      "sections": [
+        { "no": 1, "type": "match", "title": "认一认，连一连", "score": 20, "answers": "骰子→正方体；纸盒→长方体；饮料罐→圆柱；皮球→球。" },
+        { "no": 2, "type": "count-classify", "title": "分一分，数一数", "score": 20, "answers": "正方体3个；长方体2个；圆柱3个；球2个。" },
+        { "no": 3, "type": "property", "title": "会滚还是会稳稳站住", "score": 15, "answers": "球：能滚；圆柱：能滚，也能稳稳站住，也能叠放。" },
+        { "no": 4, "type": "circle", "title": "认识平面图形", "score": 20, "answers": "平面图形：圆、三角形、长方形、正方形、圆；在所有\"圆\"下面画△。" },
+        { "no": 5, "type": "match", "title": "从立体图形上找\"平平的面\"", "score": 20, "answers": "正方体→正方形；长方体→长方形；圆柱→圆。" },
+        { "no": 6, "type": "judge", "title": "选一选", "score": 10, "answers": "①√ ②√。" },
+        { "no": 7, "type": "think", "title": "动脑筋", "score": 10, "answers": "长方体。" }
+      ]
+    },
+    {
+      "paper": "B",
+      "level": "提高",
+      "durationMin": 30,
+      "totalScore": 100,
+      "sections": [
+        { "no": 1, "type": "riddle", "title": "图形身份证", "score": 20, "answers": "第1空②；第2空③；第3空①；第4空④。" },
+        { "no": 2, "type": "count-classify", "title": "分类与统计", "score": 20, "answers": "正方体3个；长方体3个；圆柱3个；球2个。" },
+        { "no": 3, "type": "property", "title": "摸一摸，想一想", "score": 15, "answers": "①B（球）②A（圆柱）。" },
+        { "no": 4, "type": "match", "title": "平面图形从哪里来", "score": 20, "answers": "①A（正方形）②B（圆）。" },
+        { "no": 5, "type": "pattern", "title": "找规律，接着画", "score": 15, "answers": "接下来依次画：圆、正方形。" },
+        { "no": 6, "type": "compose", "title": "拼一拼，选一选", "score": 15, "answers": "A。" },
+        { "no": 7, "type": "challenge", "title": "挑战题", "score": 10, "answers": "3个面。" }
+      ]
+    }
+  ],
+  "usageNotes": "建议基础卷达到85分以上后再做提高卷；\"平面图形从哪里来\"出错时用积木蘸水/沿边描一描；\"滚、站、叠放\"出错时优先用真实物品操作；挑战题重在空间观察，不作唯一判断。注：原卷A/B各小题分值标注之和为115分，与封面\"总分100\"不一致，本记录按原卷保留。",
+  "observe": ["能把生活物品与基本图形建立联系", "能用\"形状特征\"进行简单分类和判断"]
+}

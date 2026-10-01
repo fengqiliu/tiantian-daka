@@ -44,7 +44,8 @@ tiantian-daka/
 │   ├── remind/                      # 提醒订阅配额管理
 │   └── dailyRemind/                 # 每天 20:00 定时提醒（timer 触发）
 ├── scripts/sync-cloud-libs.js       # 同步共享逻辑到云函数 lib/
-├── test/run-tests.js                # 23 项单元测试（node 直接运行）
+├── content/exams/                   # 试卷知识库（上海2024新教材单元卷 PDF + 结构化数据）
+├── test/run-tests.js                # 28 项单元测试（node 直接运行）
 ├── design/preview.html              # 浏览器打开的 5 屏设计预览
 └── docs/                            # PRD / 设计规范 / 数据模型 / 任务内容库
 ```
