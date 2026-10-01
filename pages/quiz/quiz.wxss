@@ -1,0 +1,40 @@
+.qz { padding-top: 24rpx; }
+.qz-head { padding: 0 32rpx 20rpx; }
+
+.qz-subs { display: flex; gap: 16rpx; }
+.qz-sub {
+  flex: 1;
+  background: #F7F2E8;
+  border-radius: 24rpx;
+  text-align: center;
+  padding: 28rpx 0;
+  border: 3rpx solid transparent;
+}
+.qz-sub.on { background: #FFF1DC; border-color: #FFB25A; }
+.qz-sub-emoji { font-size: 52rpx; }
+.qz-sub-name { font-weight: 600; margin: 8rpx 0 4rpx; }
+.qz-hint { text-align: center; margin-top: 16rpx; }
+
+.qz-q { text-align: center; padding: 40rpx 32rpx; }
+.qz-progress { margin-bottom: 20rpx; }
+.qz-prompt { font-size: 44rpx; font-weight: 700; line-height: 1.5; }
+
+.qz-opts { padding: 0 40rpx; }
+.qz-opt {
+  background: #fff;
+  border-radius: 24rpx;
+  text-align: center;
+  padding: 32rpx 0;
+  font-size: 40rpx;
+  font-weight: 700;
+  margin-bottom: 20rpx;
+  box-shadow: 0 6rpx 16rpx rgba(255, 143, 31, 0.08);
+  border: 4rpx solid transparent;
+}
+.qz-opt:active { background: #FFF1DC; }
+.qz-opt.right { background: #E8F8EC; color: #2F9E44; border-color: #8CD9A0; }
+.qz-opt.wrong { background: #FFECE8; color: #E5484D; border-color: #FFB3AB; }
+.qz-foot { text-align: center; min-height: 44rpx; }
+
+.qz-done { text-align: center; padding: 48rpx 32rpx; }
+.qz-done-emoji { font-size: 110rpx; margin-bottom: 8rpx; }

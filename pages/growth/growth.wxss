@@ -16,6 +16,9 @@
 
 .empty { text-align: center; }
 
+.quiz-entry { padding: 26rpx 28rpx; }
+.quiz-go { color: #FF8A00; font-weight: 600; font-size: 28rpx; padding-left: 16rpx; }
+
 .wall { display: flex; flex-wrap: wrap; padding: 0 12rpx; }
 .badge {
   width: 33.33%;

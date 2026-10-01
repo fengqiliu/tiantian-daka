@@ -9,6 +9,8 @@ const KEYS = {
   SYNC: 'sync',                      // 同步游标
   READINGS: 'readings',              // 跟读教室录音记录（音频文件仅存本机）
   MATH_WRONG: 'math_wrong',          // 口算错题本（本地）
+  QUIZ_WRONG: 'quiz_wrong',          // 每周一卷错题本（本地）
+  QUIZ_HISTORY: 'quiz_history',      // 每周一卷历史（本地）
   CHILD_PROFILE: 'child_profile',    // 家长端缓存：孩子资料
   CHILD_RECORDS: 'child_records',    // 家长端缓存：孩子打卡记录
   CHILD_BADGES: 'child_badges',      // 家长端缓存：孩子勋章
@@ -72,6 +74,12 @@ function saveReadings(list) { backend.set(KEYS.READINGS, list); }
 function getMathWrong() { return _get(KEYS.MATH_WRONG, []); }
 function saveMathWrong(list) { backend.set(KEYS.MATH_WRONG, list); }
 
+// ── 每周一卷（错题本与历史，本地）──
+function getQuizWrong() { return _get(KEYS.QUIZ_WRONG, []); }
+function saveQuizWrong(list) { backend.set(KEYS.QUIZ_WRONG, list); }
+function getQuizHistory() { return _get(KEYS.QUIZ_HISTORY, []); }
+function saveQuizHistory(list) { backend.set(KEYS.QUIZ_HISTORY, list); }
+
 // ── 同步游标 ──
 function getSyncState() {
   return _get(KEYS.SYNC, { lastPullAt: 0, lastPushAt: 0 });
@@ -104,6 +112,8 @@ module.exports = {
   getSettings, saveSettings,
   getReadings, saveReadings,
   getMathWrong, saveMathWrong,
+  getQuizWrong, saveQuizWrong,
+  getQuizHistory, saveQuizHistory,
   getSyncState, saveSyncState,
   getChildProfile, getChildRecords, getChildBadges, saveChildData, clearChildData,
   clearAll,

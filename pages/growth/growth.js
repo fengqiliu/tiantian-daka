@@ -4,6 +4,7 @@ const C = require('../../utils/checkin');
 const B = require('../../utils/badges');
 const D = require('../../utils/date');
 const CTX = require('../../utils/context');
+const QZ = require('../../utils/quiz');
 
 Page({
   data: {
@@ -45,6 +46,15 @@ Page({
         pct: Math.round(((week.bySection[k] || 0) / max) * 100),
       }));
 
+    // 每周一卷入口文案
+    const SUBJECT_NAME = { math: '数学', chinese: '语文', english: '英语' };
+    const quizHistory = QZ.getHistory();
+    const quizWrong = store.getQuizWrong();
+    const quizHint = quizHistory.length
+      ? '上次' + (SUBJECT_NAME[quizHistory[0].subject] || '') + '小卷「' + quizHistory[0].label + '」'
+        + (quizWrong.length ? ' · 错题 ' + quizWrong.length + ' 题' : '')
+      : (quizWrong.length ? '错题 ' + quizWrong.length + ' 题，来练一练' : '判断选择小卷，做完给等第');
+
     this.setData({
       totalStars: total,
       rank,
@@ -52,6 +62,11 @@ Page({
       week: { achieved: week.achieved, days: week.days },
       bars,
       wall: B.badgeWall(records, { grade }, s.badges),
+      quizHint,
     });
+  },
+
+  goQuiz() {
+    wx.navigateTo({ url: '/pages/quiz/quiz' });
   },
 });

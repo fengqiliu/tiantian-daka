@@ -503,6 +503,81 @@ t('不同级别的错题互不混入', () => {
   assert.strictEqual(store.getMathWrong()[0].level, 'addsub20');
 });
 
+console.log('— 每周一卷 —');
+const QZ = require('../utils/quiz');
+const QBANK = require('../utils/quiz-bank');
+
+t('题库完整：id 唯一、来源可溯、选项与答案自洽', () => {
+  const ids = QBANK.bank.map(q => q.id);
+  assert.strictEqual(new Set(ids).size, ids.length, '题 id 不应重复');
+  QBANK.bank.forEach(q => {
+    assert(q.id && q.subject && q.unit && q.prompt && q.source, '元数据齐全: ' + q.id);
+    if (q.type === 'judge') {
+      assert(['√', '×'].includes(q.answerText));
+    } else {
+      assert(q.options.length >= 2);
+      assert(q.options.includes(q.answerText), '答案必须在选项中: ' + q.id);
+    }
+  });
+});
+t('三个学科各有足够题量', () => {
+  const subs = QZ.subjects();
+  ['math', 'chinese', 'english'].forEach(s => {
+    const row = subs.find(x => x.key === s);
+    assert(row && row.count >= 10, s + ' 题量应 ≥10，实际 ' + (row && row.count));
+  });
+});
+t('等第制：阈值正确，不打分数排名', () => {
+  assert.strictEqual(QZ.verdict(10, 10).label, '优秀');
+  assert.strictEqual(QZ.verdict(10, 9).label, '优秀');   // 90%
+  assert.strictEqual(QZ.verdict(10, 8).label, '良好');   // 80%
+  assert.strictEqual(QZ.verdict(10, 7).label, '合格');   // 70%
+  assert.strictEqual(QZ.verdict(10, 5).label, '继续加油');
+  assert.strictEqual(QZ.verdict(10, 9).accuracy, 90);
+});
+t('组卷：确定性、数量正确、judge/choice 实例化正确', () => {
+  reset();
+  const r1 = QZ.buildQuiz('english', 10, seededRng(77));
+  const r2 = QZ.buildQuiz('english', 10, seededRng(77));
+  assert.deepStrictEqual(r1.cards.map(c => c.id), r2.cards.map(c => c.id), '同种子组卷应一致');
+  assert.strictEqual(r1.total, 10);
+  r1.cards.forEach(c => {
+    assert(c.options.length >= 2 && c.answerIndex >= 0 && c.answerIndex < c.options.length);
+    assert.strictEqual(c.options[c.answerIndex], c.answerText);
+  });
+  // compare 类不打乱：< = > 顺序保持
+  const cmp = QZ.buildQuiz('math', 10, seededRng(78)).cards.find(c => c.options.length === 3);
+  assert.deepStrictEqual(cmp.options, ['<', '=', '>']);
+});
+t('错题本：答错入本、混入重练（≤40%）、答对销账', () => {
+  reset();
+  const rng = seededRng(91);
+  const seeds = QZ.poolFor('chinese').slice(0, 3);
+  seeds.forEach(q => QZ.markResult(q, false));
+  assert.strictEqual(store.getQuizWrong().length, 3);
+  const quiz = QZ.buildQuiz('chinese', 10, rng);
+  const mixed = quiz.cards.filter(c => seeds.find(s => s.id === c.id));
+  assert.strictEqual(mixed.length, 3, '3 道错题应全部混入');
+  seeds.forEach(q => QZ.markResult(q, true));
+  assert.strictEqual(store.getQuizWrong().length, 0, '答对后应销账');
+});
+t('学科间错题互不混入', () => {
+  reset();
+  const q = QZ.poolFor('math')[0];
+  QZ.markResult(q, false);
+  const cn = QZ.buildQuiz('chinese', 10, seededRng(92));
+  assert(!cn.cards.find(c => c.id === q.id), '语文卷不应混入数学错题');
+  assert.strictEqual(store.getQuizWrong()[0].subject, 'math');
+});
+t('历史：最新在前且最多保留 50 条', () => {
+  reset();
+  for (let i = 0; i < 55; i++) QZ.saveHistory({ subject: 'math', total: 10, correct: i, label: '良好' });
+  const h = QZ.getHistory();
+  assert.strictEqual(h.length, 50);
+  assert.strictEqual(h[0].correct, 54, '最新的在前');
+  assert(h[0].at >= h[49].at, '时间戳应递减');
+});
+
 chain.then(() => {
   console.log('\n全部通过：' + passed + ' 项 ✓');
 }).catch(e => {

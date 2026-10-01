@@ -28,6 +28,14 @@
     </view>
   </view>
 
+  <view class="card row quiz-entry" bindtap="goQuiz">
+    <view class="flex1">
+      <view class="h2">📝 每周一卷</view>
+      <view class="muted">{{quizHint}}</view>
+    </view>
+    <view class="quiz-go">开始 ›</view>
+  </view>
+
   <view class="sec-header row" style="padding: 8rpx 32rpx 16rpx;">
     <text class="h2">本周都在忙什么</text>
   </view>

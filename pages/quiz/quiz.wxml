@@ -1,0 +1,54 @@
+<view class="qz safe-bottom">
+  <block wx:if="{{phase === 'setup'}}">
+    <view class="qz-head">
+      <view class="h1">📝 每周一卷</view>
+      <view class="muted">{{historyLine}}{{wrongCount ? ' · 错题本 ' + wrongCount + ' 题' : ''}}</view>
+    </view>
+    <view class="card">
+      <view class="h2" style="margin-bottom: 20rpx;">选一个科目开始</view>
+      <view class="qz-subs">
+        <view
+          wx:for="{{subjects}}"
+          wx:key="key"
+          class="qz-sub {{selected === item.key ? 'on' : ''}}"
+          data-key="{{item.key}}"
+          bindtap="onPick"
+        >
+          <view class="qz-sub-emoji">{{item.emoji}}</view>
+          <view class="qz-sub-name">{{item.name}}</view>
+          <view class="muted">{{item.count}} 题</view>
+        </view>
+      </view>
+      <view class="btn-primary" style="margin-top: 32rpx;" bindtap="onStart">开始练习（10 题）</view>
+      <view class="muted qz-hint">做完按等第评价：优秀 / 良好 / 合格 / 继续加油</view>
+    </view>
+  </block>
+
+  <block wx:if="{{phase === 'play'}}">
+    <view class="card qz-q">
+      <view class="muted qz-progress">第 {{idx + 1}}/{{total}} 题 · 对 {{correctCount}} · {{cards[idx].source}}</view>
+      <view class="qz-prompt">{{cards[idx].prompt}}</view>
+    </view>
+    <view class="qz-opts">
+      <view
+        wx:for="{{cards[idx].options}}"
+        wx:key="*this"
+        wx:for-index="optIdx"
+        class="qz-opt {{feedback && optIdx === rightIndex ? 'right' : ''}} {{feedback === 'wrong' && optIdx === pickedIndex ? 'wrong' : ''}}"
+        data-index="{{optIdx}}"
+        bindtap="onOption"
+      >{{item}}</view>
+    </view>
+    <view class="muted qz-foot">{{feedback === 'wrong' ? '答错啦，绿色是正确答案，已记入错题本' : feedback === 'right' ? '答对啦！' : '选出正确的一项'}}</view>
+  </block>
+
+  <block wx:if="{{phase === 'done'}}">
+    <view class="card qz-done">
+      <view class="qz-done-emoji">{{verdict.emoji}}</view>
+      <view class="h1">{{verdict.label}}</view>
+      <view class="muted">答对 {{correctCount}}/{{total}} 题 · 错题下次会自动重练</view>
+      <view class="btn-primary" style="margin-top: 32rpx;" bindtap="onStart">再来一组</view>
+      <view class="btn-ghost" style="margin-top: 20rpx;" bindtap="onBack">返回</view>
+    </view>
+  </block>
+</view>
