@@ -19,8 +19,15 @@
           <view class="muted">{{item.count}} 题</view>
         </view>
       </view>
-      <view class="btn-primary" style="margin-top: 32rpx;" bindtap="onStart">开始练习（10 题）</view>
-      <view class="muted qz-hint">做完按等第评价：优秀 / 良好 / 合格 / 继续加油</view>
+      <view class="btn-primary" style="margin-top: 32rpx;" bindtap="onStart">开始练习</view>
+      <view class="muted qz-hint">约 10 题 · 做完按等第评价：优秀 / 良好 / 合格 / 继续加油</view>
+    </view>
+    <view class="card" wx:if="{{units.length > 1}}">
+      <view class="muted" style="margin-bottom: 14rpx;">按单元练习</view>
+      <view class="qz-units">
+        <view class="qz-unit {{selectedUnit === 0 ? 'on' : ''}}" data-unit="0" bindtap="onPickUnit">全部</view>
+        <view wx:for="{{units}}" wx:key="*this" class="qz-unit {{selectedUnit === item ? 'on' : ''}}" data-unit="{{item}}" bindtap="onPickUnit">第{{item}}单元</view>
+      </view>
     </view>
   </block>
 

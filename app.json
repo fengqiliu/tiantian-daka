@@ -9,6 +9,8 @@
     "pages/math-drill/math-drill",
     "pages/quiz/quiz",
     "pages/tasks-manage/tasks-manage",
+    "pages/poems/poems",
+    "pages/wrong-book/wrong-book",
     "pages/onboarding/onboarding"
   ],
   "window": {

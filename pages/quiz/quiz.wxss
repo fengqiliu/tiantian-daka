@@ -20,6 +20,16 @@
 .qz-prompt { font-size: 44rpx; font-weight: 700; line-height: 1.5; }
 
 .qz-opts { padding: 0 40rpx; }
+.qz-units { display: flex; flex-wrap: wrap; gap: 14rpx; }
+.qz-unit {
+  background: #F7F2E8;
+  border-radius: 999rpx;
+  padding: 12rpx 28rpx;
+  font-size: 26rpx;
+  color: #6B655B;
+  border: 3rpx solid transparent;
+}
+.qz-unit.on { background: #FF8A00; color: #fff; font-weight: 600; }
 .qz-opt {
   background: #fff;
   border-radius: 24rpx;

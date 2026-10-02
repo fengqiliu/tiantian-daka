@@ -128,6 +128,10 @@ Page({
     doSave();
   },
 
+  goPoems() {
+    wx.navigateTo({ url: '/pages/poems/poems' });
+  },
+
   goReadAloud() {
     wx.navigateTo({ url: '/pages/read-aloud/read-aloud' });
   },

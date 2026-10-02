@@ -1,0 +1,42 @@
+<view class="wb safe-bottom">
+  <view class="wb-head">
+    <view class="h1">❌ 错题本</view>
+    <view class="muted">错题会在练习时自动混入重练，答对自动销账</view>
+  </view>
+
+  <view class="card">
+    <view class="row wb-sec">
+      <view class="h2 flex1">🧮 口算错题（{{mathCount}}）</view>
+      <view class="wb-clear" bindtap="onClearMath" wx:if="{{mathCount}}">清空</view>
+    </view>
+    <block wx:if="{{mathGroups.length}}">
+      <view wx:for="{{mathGroups}}" wx:key="name" wx:for-item="grp">
+        <view class="muted wb-group">{{grp.name}}</view>
+        <view class="row wb-item" wx:for="{{grp.items}}" wx:key="key" wx:for-item="q">
+          <view class="flex1 wb-text">{{q.text}}</view>
+          <view class="wb-answer">答案 {{q.answer}}</view>
+          <view class="wb-count">错 {{q.wrongCount}} 次</view>
+        </view>
+      </view>
+    </block>
+    <view wx:else class="muted wb-empty">暂无错题，太棒了！🎉</view>
+  </view>
+
+  <view class="card">
+    <view class="row wb-sec">
+      <view class="h2 flex1">📝 小卷错题（{{quizCount}}）</view>
+      <view class="wb-clear" bindtap="onClearQuiz" wx:if="{{quizCount}}">清空</view>
+    </view>
+    <block wx:if="{{quizGroups.length}}">
+      <view wx:for="{{quizGroups}}" wx:key="name" wx:for-item="grp">
+        <view class="muted wb-group">{{grp.name}}</view>
+        <view class="row wb-item" wx:for="{{grp.items}}" wx:key="key" wx:for-item="q">
+          <view class="flex1 wb-text">{{q.text}}</view>
+          <view class="wb-answer">答案 {{q.answer}}</view>
+          <view class="wb-count">错 {{q.wrongCount}} 次</view>
+        </view>
+      </view>
+    </block>
+    <view wx:else class="muted wb-empty">暂无错题，太棒了！🎉</view>
+  </view>
+</view>

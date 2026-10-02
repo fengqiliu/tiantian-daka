@@ -1,0 +1,23 @@
+<view class="pm safe-bottom">
+  <view class="pm-head">
+    <view class="h1">📜 古诗背诵库</view>
+    <view class="muted">{{textbook}} · 背一首得 3 ⭐</view>
+  </view>
+
+  <view class="card pm-card" wx:for="{{poems}}" wx:key="id" wx:for-item="poem">
+    <view class="row" data-id="{{poem.id}}" bindtap="onToggle">
+      <view class="pm-emoji">{{poem.doneToday ? '✅' : '🌱'}}</view>
+      <view class="flex1">
+        <view class="pm-title">{{poem.title}}</view>
+        <view class="muted">{{poem.author}} · {{poem.tip}}</view>
+      </view>
+      <view class="pm-arrow">{{expandedId === poem.id ? '▾' : '▸'}}</view>
+    </view>
+    <view class="pm-body" wx:if="{{expandedId === poem.id}}">
+      <view class="pm-lines">{{poem.text}}</view>
+      <view class="btn-primary" bindtap="onRecite" data-id="{{poem.id}}">{{poem.doneToday ? '今天已打卡 ✓' : '✅ 我会背这首'}}</view>
+    </view>
+  </view>
+
+  <view class="pm-foot muted">打完卡可以在「日历」里回看；古诗任务一般在一、三、五出现</view>
+</view>

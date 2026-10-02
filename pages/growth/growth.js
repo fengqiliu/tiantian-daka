@@ -55,6 +55,13 @@ Page({
         + (quizWrong.length ? ' · 错题 ' + quizWrong.length + ' 题' : '')
       : (quizWrong.length ? '错题 ' + quizWrong.length + ' 题，来练一练' : '判断选择小卷，做完给等第');
 
+    // 错题本入口文案
+    const mathWrong = store.getMathWrong().length;
+    const quizWrongN = store.getQuizWrong().length;
+    const wrongHint = (mathWrong + quizWrongN)
+      ? '口算 ' + mathWrong + ' 题 · 小卷 ' + quizWrongN + ' 题，练对自动销账'
+      : '暂无错题，练一练看看';
+
     this.setData({
       totalStars: total,
       rank,
@@ -63,10 +70,15 @@ Page({
       bars,
       wall: B.badgeWall(records, { grade }, s.badges),
       quizHint,
+      wrongHint,
     });
   },
 
   goQuiz() {
     wx.navigateTo({ url: '/pages/quiz/quiz' });
+  },
+
+  goWrongBook() {
+    wx.navigateTo({ url: '/pages/wrong-book/wrong-book' });
   },
 });

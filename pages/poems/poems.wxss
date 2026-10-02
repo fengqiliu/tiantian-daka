@@ -1,0 +1,20 @@
+.pm { padding-top: 24rpx; }
+.pm-head { padding: 0 32rpx 16rpx; }
+.pm-card { padding: 24rpx 26rpx; }
+.pm-emoji { font-size: 40rpx; margin-right: 18rpx; }
+.pm-title { font-size: 32rpx; font-weight: 700; }
+.pm-arrow { color: #B4884F; font-size: 30rpx; padding-left: 12rpx; }
+.pm-body { margin-top: 22rpx; border-top: 2rpx solid #FFF3E0; padding-top: 22rpx; }
+.pm-lines {
+  font-size: 36rpx;
+  font-weight: 600;
+  line-height: 2;
+  text-align: center;
+  letter-spacing: 2rpx;
+  background: #FFF9EF;
+  border-radius: 16rpx;
+  padding: 24rpx;
+  margin-bottom: 22rpx;
+  white-space: pre-line;
+}
+.pm-foot { text-align: center; padding: 8rpx 48rpx 32rpx; }

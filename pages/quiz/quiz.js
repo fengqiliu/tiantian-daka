@@ -12,6 +12,8 @@ Page({
   data: {
     subjects: [],
     selected: 'math',
+    units: [],
+    selectedUnit: 0,
     phase: 'setup', // setup | play | done
     cards: [],
     idx: 0,
@@ -32,8 +34,13 @@ Page({
       subjects: QZ.subjects().map(s => ({
         key: s.key, name: SUBJECT_META[s.key].name, emoji: SUBJECT_META[s.key].emoji, count: s.count,
       })),
+      units: this._unitsFor(this.data.selected),
     });
     this.refreshMeta();
+  },
+
+  _unitsFor(subject) {
+    return [...new Set(QZ.poolFor(subject).map(q => q.unit))].sort((a, b) => a - b);
   },
 
   onShow() { this.refreshMeta(); },
@@ -54,11 +61,17 @@ Page({
   },
 
   onPick(e) {
-    this.setData({ selected: e.currentTarget.dataset.key });
+    const key = e.currentTarget.dataset.key;
+    this.setData({ selected: key, selectedUnit: 0, units: this._unitsFor(key) });
+  },
+
+  onPickUnit(e) {
+    this.setData({ selectedUnit: Number(e.currentTarget.dataset.unit) || 0 });
   },
 
   onStart() {
-    const { cards, total } = QZ.buildQuiz(this.data.selected, 10);
+    const unit = this.data.selectedUnit || undefined;
+    const { cards, total } = QZ.buildQuiz(this.data.selected, 10, null, unit);
     this.setData({
       phase: 'play', cards, total,
       idx: 0, answered: 0, correctCount: 0,

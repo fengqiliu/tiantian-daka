@@ -679,6 +679,41 @@ t('历史：最新在前且最多保留 50 条', () => {
   assert(h[0].at >= h[49].at, '时间戳应递减');
 });
 
+console.log('— 古诗库与单元筛选 —');
+const POEMS = require('../utils/poems');
+
+t('古诗库：统编版一上 6 首，内容完整', () => {
+  assert.strictEqual(POEMS.poems.length, 6);
+  const ids = POEMS.poems.map(p => p.id);
+  assert.strictEqual(new Set(ids).size, ids.length);
+  POEMS.poems.forEach(p => {
+    assert(p.id && p.title && p.author && p.tip, p.id + ' 元数据齐全');
+    assert(p.lines.length >= 4 && p.lines.every(l => typeof l === 'string' && l.length > 0), p.title + ' 诗句非空');
+    assert(p.text === undefined, 'text 由页面拼接，库中不存');
+  });
+  ['咏鹅', '悯农（其二）', '古朗月行（节选）'].forEach(t2 =>
+    assert(POEMS.poems.find(p => p.title === t2), '应包含 ' + t2));
+});
+
+t('每周一卷按单元筛选：只出该单元的题（不超单元容量）', () => {
+  const quiz3 = QZ.buildQuiz('math', 5, seededRng(101), 3);   // 数学第三单元共 5 题
+  assert.strictEqual(quiz3.total, 5);
+  quiz3.cards.forEach(c => assert.strictEqual(c.unit, 3));
+  const quiz1 = QZ.buildQuiz('chinese', 4, seededRng(102), 1); // 语文第一单元共 4 题
+  assert.strictEqual(quiz1.total, 4);
+  quiz1.cards.forEach(c => assert.strictEqual(c.unit, 1));
+});
+
+t('单元筛选下错题本同样按单元过滤', () => {
+  reset();
+  const u2 = QZ.poolFor('math').find(q => q.unit === 2);
+  QZ.markResult(u2, false);
+  const quiz4 = QZ.buildQuiz('math', 10, seededRng(103), 4);
+  assert(!quiz4.cards.find(c => c.id === u2.id), '第 4 单元的卷子不应混入第 2 单元错题');
+  const quizAll = QZ.buildQuiz('math', 10, seededRng(104));
+  assert(quizAll.cards.find(c => c.id === u2.id), '不筛单元时应混入错题');
+});
+
 console.log('— 云能力封装 —');
 // cloud.js 用模块级 available 缓存状态，且 CLOUD_ENV 为空；测试需整体重载模块
 const CLOUD_PATH = require.resolve('../utils/cloud');

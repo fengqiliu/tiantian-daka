@@ -1,0 +1,15 @@
+.wb { padding-top: 24rpx; }
+.wb-head { padding: 0 32rpx 16rpx; }
+.wb-sec { margin-bottom: 14rpx; }
+.wb-clear { color: #FF5A3C; font-size: 26rpx; padding: 4rpx 0 4rpx 16rpx; }
+.wb-group { padding: 8rpx 0 4rpx; }
+.wb-item {
+  background: #FFF9EF;
+  border-radius: 16rpx;
+  padding: 16rpx 20rpx;
+  margin-bottom: 12rpx;
+}
+.wb-text { font-size: 30rpx; font-weight: 600; }
+.wb-answer { color: #2F9E44; font-size: 26rpx; font-weight: 600; padding: 0 14rpx; }
+.wb-count { color: #B4884F; font-size: 24rpx; }
+.wb-empty { text-align: center; padding: 12rpx 0; }

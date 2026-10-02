@@ -52,15 +52,19 @@ function shuffle(arr, rng) {
   return a;
 }
 
-// 组一份小卷：错题优先混入（≤40%），其余从题库随机抽，整体打散
-function buildQuiz(subject, n, rng) {
+// 组一份小卷：错题优先混入（≤40%），其余从题库随机抽，整体打散。
+// unit 可选：只从指定单元出题（错题本同样按单元过滤）。
+function buildQuiz(subject, n, rng, unit) {
   rng = rng || Math.random;
-  const wrong = store.getQuizWrong().filter(w => w.subject === subject);
+  const u = unit ? Number(unit) : null;
+  const wrong = store.getQuizWrong().filter(w => w.subject === subject && (!u || w.question.unit === u));
   const take = Math.min(Math.ceil(n * 0.4), wrong.length);
   const wrongItems = wrong.slice(0, take).map(w => w.question);
   const used = new Set(wrongItems.map(q => q.id));
-  const fresh = shuffle(poolFor(subject).filter(q => !used.has(q.id)), rng)
-    .slice(0, Math.max(0, n - wrongItems.length));
+  const fresh = shuffle(
+    poolFor(subject).filter(q => (!u || q.unit === u) && !used.has(q.id)),
+    rng
+  ).slice(0, Math.max(0, n - wrongItems.length));
   const cards = shuffle(wrongItems.concat(fresh), rng).map(q => instantiate(q, rng));
   return { cards, total: cards.length };
 }

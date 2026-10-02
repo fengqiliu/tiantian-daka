@@ -36,6 +36,14 @@
     <view class="quiz-go">开始 ›</view>
   </view>
 
+  <view class="card row quiz-entry" bindtap="goWrongBook">
+    <view class="flex1">
+      <view class="h2">❌ 错题本</view>
+      <view class="muted">{{wrongHint}}</view>
+    </view>
+    <view class="quiz-go">查看 ›</view>
+  </view>
+
   <view class="sec-header row" style="padding: 8rpx 32rpx 16rpx;">
     <text class="h2">本周都在忙什么</text>
   </view>
