@@ -9,7 +9,7 @@
 const store = require('./store');
 
 // 把一次拉取结果合并进本地（可独立测试的纯合并步骤）
-function mergePull({ records = [], profile = null, badges = [] }) {
+function mergePull({ records = [], profile = null, badges = [], overrides = null }) {
   let maxPulled = 0;
   if (records.length) {
     const raw = store.getRecordsRaw();
@@ -30,6 +30,13 @@ function mergePull({ records = [], profile = null, badges = [] }) {
       store.saveProfileRaw(profile);
     }
   }
+  if (overrides && typeof overrides === 'object') {
+    maxPulled = Math.max(maxPulled, overrides.updatedAt || 0);
+    const local = store.getTaskOverrides();
+    if (!local.updatedAt || (overrides.updatedAt || 0) > (local.updatedAt || 0)) {
+      store.saveTaskOverridesRaw(overrides);
+    }
+  }
   if (badges.length) {
     const cur = store.getBadges();
     const have = new Set(cur.map(b => b.id));
@@ -46,25 +53,35 @@ function mergePull({ records = [], profile = null, badges = [] }) {
 async function push(api) {
   const st = store.getSyncState();
   const records = store.getRecordsRaw().filter(r => (r.updatedAt || 0) > (st.lastPushAt || 0));
+  // 任务覆盖只在家长改过（有盖章）时上传，避免空配置覆盖云端
+  const localOverrides = store.getTaskOverrides();
+  const overrides = localOverrides.updatedAt ? localOverrides : null;
   const payload = {
     records,
     profile: store.getProfile(),
     badges: store.getBadges(),
+    overrides,
   };
   const res = await api.pushData(payload);
   if (!res || res.ok === false) return false; // 失败不推进游标，下次重试
   const maxSent = records.reduce((m, r) => Math.max(m, r.updatedAt || 0), 0);
-  store.saveSyncState({ ...store.getSyncState(), lastPushAt: Math.max(maxSent, st.lastPushAt) });
+  // 游标用服务器时间封顶：设备时钟快于真实时间时，避免游标越过"未来"时间戳
+  // 导致后续正常记录永远不被推送（数据丢失）；被跳过的记录最多重发，云端幂等
+  const serverTime = res.serverTime || Infinity;
+  const cap = Math.min(maxSent, serverTime);
+  store.saveSyncState({ ...store.getSyncState(), lastPushAt: Math.max(cap, st.lastPushAt) });
   return true;
 }
 
-// 拉取云端变更并合并；api = { pullData({since}) -> {ok, records, profile, badges} }
+// 拉取云端变更并合并；api = { pullData({since}) -> {ok, records, profile, badges, overrides?} }
 async function pull(api) {
   const st = store.getSyncState();
   const res = await api.pullData({ since: st.lastPullAt || 0 });
   if (!res || res.ok === false) return false;
   const maxPulled = mergePull(res);
-  store.saveSyncState({ ...store.getSyncState(), lastPullAt: Math.max(maxPulled, st.lastPullAt) });
+  // 与 push 一致：游标用服务器时间封顶，防时钟漂移导致丢包
+  const cap = Math.min(maxPulled, res.serverTime || Infinity);
+  store.saveSyncState({ ...store.getSyncState(), lastPullAt: Math.max(cap, st.lastPullAt) });
   return true;
 }
 

@@ -83,7 +83,13 @@ function saveQuizHistory(list) { backend.set(KEYS.QUIZ_HISTORY, list); }
 
 // ── 任务管理（家长：目标覆盖 + 自定义任务，本地）──
 function getTaskOverrides() { return _get(KEYS.TASK_OVERRIDES, { targets: {}, customs: [] }); }
-function saveTaskOverrides(o) { backend.set(KEYS.TASK_OVERRIDES, o); }
+// 页面保存入口：自动盖时间戳（同步冲突以 updatedAt 新者为准）
+function saveTaskOverrides(o) {
+  if (!o) return;
+  backend.set(KEYS.TASK_OVERRIDES, { ...o, updatedAt: Date.now() });
+}
+// 同步合并专用：保留远端时间戳，不重新盖章
+function saveTaskOverridesRaw(o) { if (o) backend.set(KEYS.TASK_OVERRIDES, o); }
 
 // ── 同步游标 ──
 function getSyncState() {
@@ -119,7 +125,7 @@ module.exports = {
   getMathWrong, saveMathWrong,
   getQuizWrong, saveQuizWrong,
   getQuizHistory, saveQuizHistory,
-  getTaskOverrides, saveTaskOverrides,
+  getTaskOverrides, saveTaskOverrides, saveTaskOverridesRaw,
   getSyncState, saveSyncState,
   getChildProfile, getChildRecords, getChildBadges, saveChildData, clearChildData,
   clearAll,

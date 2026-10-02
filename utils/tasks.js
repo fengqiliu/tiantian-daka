@@ -164,7 +164,32 @@ function buildTask(id, grade, must, override) {
 
 // 每日任务生成：确定性 —— 同一 (grade, date) 永远生成同一份清单。
 // must=true 的 4 项为"今日必做"（语数英 + 主运动），全部完成即达成当日目标。
+// memo：totalStars/月历/勋章评估会对同一 (grade, date) 反复生成，缓存省去重复构建；
+// key 含覆盖内容的指纹 —— 家长改目标/自定义任务后 key 变化，旧缓存自然失效。
+const _memo = new Map();
+const MEMO_MAX = 800; // 5 年级 × 730 天 ≈ 3650，实际浏览窗口远小于此；超限整体清空即可
+
+// 覆盖内容的指纹：无覆盖时为 '0'（快速路径）；有覆盖时用时间戳 + JSON 指纹
+// （仅靠 updatedAt 不够：同毫秒两次保存内容可能不同，测试注入的覆盖也可能无盖章）
+function overridesFingerprint() {
+  const o = getOverrides();
+  const targets = o.targets || {};
+  const customs = o.customs || [];
+  if (!Object.keys(targets).length && !customs.length) return '0';
+  return (o.updatedAt || 0) + ':' + JSON.stringify({ targets, customs });
+}
+
 function generateDailyTasks(grade, dateStr) {
+  const key = (Number(grade) || 3) + '@' + dateStr + '@' + overridesFingerprint();
+  const cached = _memo.get(key);
+  if (cached) return cached;
+  const result = _generateDailyTasksUncached(grade, dateStr);
+  if (_memo.size >= MEMO_MAX) _memo.clear();
+  _memo.set(key, result);
+  return result;
+}
+
+function _generateDailyTasksUncached(grade, dateStr) {
   const band = bandOf(grade);
   const dow = D.dayOfWeek(dateStr);
   const weekend = dow === 0 || dow === 6;

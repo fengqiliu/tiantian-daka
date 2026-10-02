@@ -63,13 +63,25 @@ exports.main = async (event) => {
         }
       }
     }
+    // 任务覆盖（家长调目标/自定义任务）：云端较旧才覆盖
+    if (event.overrides && typeof event.overrides === 'object') {
+      const { overrides: incoming } = event;
+      const users = db.collection('users');
+      const u = (await users.where({ openid: OPENID }).limit(1).get()).data[0];
+      if (u) {
+        const cur = u.taskOverrides || {};
+        if (!cur.updatedAt || (cur.updatedAt || 0) < (incoming.updatedAt || 0)) {
+          await users.doc(u._id).update({ data: { taskOverrides: incoming } });
+        }
+      }
+    }
     // 勋章：并集
     for (const b of event.badges || []) {
       if (!b || !b.id) continue;
       const found = await db.collection('badges').where({ openid: OPENID, id: b.id }).limit(1).get();
       if (!found.data.length) await db.collection('badges').add({ data: { ...b, openid: OPENID } });
     }
-    return { ok: true };
+    return { ok: true, serverTime: Date.now() };
   }
 
   if (action === 'pull') {
@@ -78,7 +90,7 @@ exports.main = async (event) => {
     const u = (await db.collection('users').where({ openid: OPENID }).limit(1).get()).data[0];
     const badges = (await db.collection('badges').where({ openid: OPENID }).limit(1000).get()).data
       .map(b => ({ id: b.id, earnedAt: b.earnedAt }));
-    return { ok: true, records, profile: (u && u.profile) || null, badges };
+    return { ok: true, records, profile: (u && u.profile) || null, overrides: (u && u.taskOverrides) || null, badges, serverTime: Date.now() };
   }
 
   return { ok: false, error: 'unknown action' };

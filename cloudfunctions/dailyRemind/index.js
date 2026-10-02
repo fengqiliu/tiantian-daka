@@ -43,6 +43,8 @@ exports.main = async (event) => {
       .where({ openid: u.openid, date: today })
       .limit(100)
       .get()).data.filter(r => !r.deleted);
+    // 注入家长任务覆盖（调目标/自定义任务），保证"是否全部完成"判定与孩子端一致
+    tasksLib.setOverrideProvider(() => u.taskOverrides || null);
     const tasks = tasksLib.generateDailyTasks(u.profile.grade || 3, today);
     const comp = dayCompletion(tasks, recs);
     if (comp.done >= comp.total) { skipped++; continue; } // 今日已全部完成，不打扰

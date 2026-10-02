@@ -121,6 +121,39 @@ t('未知 action 返回错误', async () => {
   assert.strictEqual(r.ok, false);
   assert.strictEqual(r.error, 'unknown action');
 });
+t('任务覆盖：push 存入 users.taskOverrides，pull 回传；云端较旧忽略', async () => {
+  reset();
+  CM.setOpenid('kid1');
+  await CM.load('login').main({});
+  const sync = CM.load('sync');
+  // 家长手机（同一账号在家长设备上登录的场景）推 500
+  await sync.main({ action: 'push', overrides: { targets: { pe_rope: 500 }, customs: [], updatedAt: 200 } });
+  let p = await sync.main({ action: 'pull', since: 0 });
+  assert(p.overrides, 'pull 应回传 taskOverrides');
+  assert.strictEqual(p.overrides.targets.pe_rope, 500);
+  // 较旧的覆盖（updatedAt 更小）不应覆盖云端
+  await sync.main({ action: 'push', overrides: { targets: { pe_rope: 300 }, customs: [], updatedAt: 100 } });
+  p = await sync.main({ action: 'pull', since: 0 });
+  assert.strictEqual(p.overrides.targets.pe_rope, 500, '较旧的覆盖不应覆盖云端');
+  // 较新的覆盖生效
+  await sync.main({ action: 'push', overrides: { targets: { pe_rope: 700 }, customs: [], updatedAt: 300 } });
+  p = await sync.main({ action: 'pull', since: 0 });
+  assert.strictEqual(p.overrides.targets.pe_rope, 700);
+  // 未推送过覆盖的用户 pull 得 null（而非报错）
+  CM.setOpenid('kid2');
+  await CM.load('login').main({});
+  p = await CM.load('sync').main({ action: 'pull', since: 0 });
+  assert.strictEqual(p.overrides, null);
+});
+t('serverTime 随 push/pull 返回（时钟漂移封顶依据）', async () => {
+  reset();
+  CM.setOpenid('kid1');
+  const sync = CM.load('sync');
+  const rp = await sync.main({ action: 'push', records: [] });
+  assert(typeof rp.serverTime === 'number' && rp.serverTime > 0, 'push 应返回 serverTime');
+  const rl = await sync.main({ action: 'pull', since: 0 });
+  assert(typeof rl.serverTime === 'number' && rl.serverTime > 0, 'pull 应返回 serverTime');
+});
 
 console.log('— 提醒订阅 remind —');
 t('grant 累加配额且上限 3；status 如实回报', async () => {
@@ -353,6 +386,29 @@ t('只提醒开启且有配额的用户', async () => {
   assert.strictEqual(r.sent, 1);
   assert.strictEqual(CM.sent[0].touser, 'ok');
 });
+t('dailyRemind 注入家长覆盖：自定义任务计入完成判定', async () => {
+  reset();
+  CM.setConfig('dailyRemind', { REMIND_TEMPLATE_ID: 'tmpl-remind-test' });
+  const D = require('../utils/date');
+  const T = require('../utils/tasks');
+  const today = D.todayStr();
+  // 孩子已完成全部默认任务
+  const allIds = T.generateDailyTasks(3, today).map(x => x.id);
+  CM.db.users.push({
+    _id: 'u1', openid: 'kid1', remindEnabled: true, remindQuota: 2,
+    profile: { nickname: '小豆', grade: 3 },
+    // 家长加了自定义任务"练琴"（未打卡）
+    taskOverrides: { targets: {}, customs: [{ id: 'custom_piano', section: 'fun', name: '练琴', emoji: '🎹', type: 'duration', unit: '分钟', target: 20, desc: '自定义任务' }], updatedAt: 100 },
+  });
+  CM.db.checkins.push(...allIds.map((id, i) => ({
+    openid: 'kid1', id: today + '#' + id, date: today, taskId: id,
+    value: { type: 'done', n: 1 }, stars: 2, updatedAt: 100 + i,
+  })));
+  const r = await CM.load('dailyRemind').main({ Type: 'Timer' });
+  assert.strictEqual(r.sent, 1, '默认任务全完成但自定义任务未打 → 仍应提醒');
+  assert(/1 项/.test(CM.sent[0].data.thing2.value), '剩余数应为 1（自定义任务计入）');
+});
+
 t('remind 与 dailyRemind 的模板 ID 契约：两处 config 必须同源', () => {
   const a = require('../cloudfunctions/remind/config.js').REMIND_TEMPLATE_ID;
   const b = require('../cloudfunctions/dailyRemind/config.js').REMIND_TEMPLATE_ID;

@@ -2,6 +2,7 @@ const store = require('../../utils/store');
 const T = require('../../utils/tasks');
 const D = require('../../utils/date');
 const CTX = require('../../utils/context');
+const cloud = require('../../utils/cloud');
 
 const EMOJIS = ['⭐', '🎹', '🎨', '🧩', '📖', '✍️', '🧮', '🎧', '🪢', '⚽', '🌞', '🎲', '🧹', '🌙', '🐄', '🥕'];
 
@@ -101,6 +102,7 @@ Page({
     o.targets = o.targets || {};
     o.targets[editingId] = editValue;
     store.saveTaskOverrides(o);
+    cloud.syncAll(); // 覆盖上云，孩子端下次同步生效（静默失败下次再试）
     this.setData({ editingId: '' });
     this.refresh();
     wx.showToast({ title: '已保存 ✓', icon: 'none' });
@@ -112,6 +114,7 @@ Page({
     const o = store.getTaskOverrides();
     if (o.targets) delete o.targets[editingId];
     store.saveTaskOverrides(o);
+    cloud.syncAll();
     this.setData({ editingId: '' });
     this.refresh();
     wx.showToast({ title: '已恢复默认', icon: 'none' });
@@ -153,6 +156,7 @@ Page({
       desc: '自定义任务',
     });
     store.saveTaskOverrides(o);
+    cloud.syncAll();
     this.setData({ formOpen: false, formName: '', formTarget: 20 });
     this.refresh();
     wx.showToast({ title: '已添加，明天开始生效 ✓', icon: 'none' });
@@ -170,6 +174,7 @@ Page({
         const o = store.getTaskOverrides();
         o.customs = (o.customs || []).filter(c => c.id !== id);
         store.saveTaskOverrides(o);
+        cloud.syncAll();
         this.refresh();
       },
     });

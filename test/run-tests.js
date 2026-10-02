@@ -201,7 +201,7 @@ function mkRec(id, ts, extra) {
 }
 // 模拟云端：按 updatedAt 新者胜接收推送，按 since 增量返回
 function mockCloud() {
-  const server = { records: [], profile: null, badges: [] };
+  const server = { records: [], profile: null, badges: [], overrides: null, now: 0 };
   return {
     server,
     pushData: async p => {
@@ -211,14 +211,17 @@ function mockCloud() {
         else if ((server.records[i].updatedAt || 0) < (r.updatedAt || 0)) server.records[i] = r;
       });
       if (p.profile && (!server.profile || (server.profile.updatedAt || 0) < (p.profile.updatedAt || 0))) server.profile = p.profile;
+      if (p.overrides && (!server.overrides || (server.overrides.updatedAt || 0) < (p.overrides.updatedAt || 0))) server.overrides = p.overrides;
       p.badges.forEach(b => { if (!server.badges.find(x => x.id === b.id)) server.badges.push(b); });
-      return { ok: true };
+      return { ok: true, serverTime: server.now || Date.now() };
     },
     pullData: async q => ({
       ok: true,
       records: server.records.filter(r => (r.updatedAt || 0) > (q.since || 0)),
       profile: server.profile,
+      overrides: server.overrides,
       badges: server.badges,
+      serverTime: server.now || Date.now(),
     }),
   };
 }
@@ -290,6 +293,64 @@ t('墓碑：远端删除同步到本地；本地删除传播到云端', async ()
   await S.push(api);
   const pushed = api.server.records.find(r => r.id === '2026-10-05#habit_sleep');
   assert(pushed && pushed.deleted === true, '墓碑应被推送');
+});
+
+t('任务覆盖随同步往返：盖章才上传，远端较新才覆盖', async () => {
+  reset();
+  // 家长未改过（无盖章，如从未保存或同步来的默认态）→ push 不携带 overrides
+  store.saveTaskOverridesRaw({ targets: {}, customs: [] });
+  const api = mockCloud();
+  await S.push(api);
+  assert.strictEqual(api.server.overrides, null, '未盖章的空配置不应上传');
+
+  // 家长调整目标（saveTaskOverrides 自动盖章）→ 上传
+  store.saveTaskOverrides({ targets: { pe_rope: 500 }, customs: [{ id: 'custom_x', name: '练琴', target: 20 }] });
+  await S.push(api);
+  assert(api.server.overrides, '盖章后应上传');
+  assert.strictEqual(api.server.overrides.targets.pe_rope, 500);
+
+  // 孩子端 pull：远端较新 → 应用；本地相同/更新 → 保留
+  await S.pull(api);
+  assert.strictEqual(store.getTaskOverrides().targets.pe_rope, 500, '远端覆盖应写入本地');
+  // 本地更新（时间戳更新）→ 不被远端旧数据覆盖
+  // （用 Raw 入口显式指定更新的时间戳：真实场景 saveTaskOverrides 盖 Date.now()，天然晚于已推送的远端）
+  const remoteTs = api.server.overrides.updatedAt;
+  store.saveTaskOverridesRaw({ targets: { pe_rope: 600 }, customs: [], updatedAt: remoteTs + 10 });
+  await S.pull(api);
+  assert.strictEqual(store.getTaskOverrides().targets.pe_rope, 600, '本地较新不应被覆盖');
+});
+
+t('时钟快于服务器：游标被封顶，重推幂等不丢数据', async () => {
+  reset();
+  const api = mockCloud();
+  api.server.now = 1000000; // 服务器真实时间
+  // 设备时钟快 1 小时：记录时间戳是"未来"
+  seedRaw([mkRec('2026-10-05#habit_sleep', 1000000 + 3600 * 1000)]);
+  assert(await S.push(api));
+  const cursor = store.getSyncState().lastPushAt;
+  assert.strictEqual(cursor, 1000000, '游标应被 serverTime 封顶，不得越过真实时间');
+  // 游标 < 记录时间戳 → 下次 push 仍会重发（云端幂等），记录不丢
+  assert(await S.push(api));
+  assert.strictEqual(api.server.records.length, 1, '重发后云端仍只有一份');
+  assert.strictEqual(api.server.records[0].id, '2026-10-05#habit_sleep');
+  // 对照：若不封顶（旧实现），游标=未来时间，新记录 updatedAt=正常时间将永远小于游标 → 丢失
+  seedRaw([...store.getRecordsRaw(), mkRec('2026-10-06#habit_sleep', 1000000 + 5000)]);
+  assert(await S.push(api));
+  assert.strictEqual(api.server.records.length, 2, '后续正常记录应能推送');
+});
+
+t('任务生成缓存：同参命中缓存，覆盖变化立即生效', () => {
+  reset();
+  const a = T.generateDailyTasks(3, '2026-10-06');
+  const b = T.generateDailyTasks(3, '2026-10-06');
+  assert.strictEqual(a, b, '同 (grade, date) 应命中缓存返回同一对象');
+  // 覆盖变化（含无盖章内容变化）→ 指纹变化 → 立即反映，不命中旧缓存
+  withOverrides({ targets: { pe_rope: 100 }, customs: [] }, () => {
+    const r = T.generateDailyTasks(3, '2026-10-06').find(x => x.id === 'pe_rope');
+    assert.strictEqual(r.target, 100, '覆盖后应立即生效（缓存不得返回旧值）');
+  });
+  const back = T.generateDailyTasks(3, '2026-10-06').find(x => x.id === 'pe_rope');
+  assert.strictEqual(back.target, 300, '移除覆盖后恢复默认');
 });
 
 t('数据作用域：孩子端读本机，家长端只读孩子缓存', () => {
