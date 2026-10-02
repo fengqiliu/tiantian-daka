@@ -1,3 +1,5 @@
+const store = require('./store');
+
 // 云能力封装：初始化、云函数调用、同步、家人绑定、订阅消息
 // ⚠️ 接入步骤见 README「云开发接入指南」：
 //   1) 开通云开发后把 CLOUD_ENV 改成你的环境 ID（留空 = 纯本地模式，所有云功能静默降级）
@@ -9,13 +11,15 @@ const REMIND_PAGE = 'pages/index/index';
 
 let available = null; // null=未初始化, true/false
 
-function init() {
-  if (typeof wx === 'undefined' || !wx.cloud || !CLOUD_ENV) {
+// envOverride 仅供测试注入 CLOUD_ENV（生产环境不传，走下方常量）
+function init(envOverride) {
+  const env = envOverride !== undefined ? envOverride : CLOUD_ENV;
+  if (typeof wx === 'undefined' || !wx.cloud || !env) {
     available = false;
     return false;
   }
   try {
-    wx.cloud.init({ env: CLOUD_ENV, traceUser: true });
+    wx.cloud.init({ env, traceUser: true });
     available = true;
   } catch (e) {
     available = false;

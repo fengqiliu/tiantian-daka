@@ -11,3 +11,6 @@ node_modules/
 # 日志与临时文件
 *.log
 *.tmp
+
+# AI 助手本地配置（与项目代码无关）
+.commandcode/

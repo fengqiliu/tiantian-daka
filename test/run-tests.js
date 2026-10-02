@@ -100,6 +100,25 @@ t('总星星 = 任务星 + 全必做加成 1 星', () => {
   must.forEach((task, i) => C.upsertRecord('2026-10-05', task.id, task.target, stars[i], ''));
   assert.strictEqual(C.totalStars(store.getRecords(), 3), 9);
 });
+t('总星星计入勋章奖励：百日挑战王 +50 应体现在总数', () => {
+  reset();
+  C.upsertRecord('2026-10-05', 'habit_sleep', 1, 2, '');
+  const base = C.totalStars(store.getRecords(), 3);
+  const withBadge = C.totalStars(store.getRecords(), 3, [{ id: 'streak_100', earnedAt: 1 }]);
+  assert.strictEqual(withBadge - base, 50, '勋章奖励星应计入总星数');
+  // 未知/未配置的勋章 id 不应报错也不加星
+  assert.strictEqual(C.totalStars(store.getRecords(), 3, [{ id: 'no_such_badge' }]), base);
+  // bonus 表与 BADGE_DEFS 的 bonus 字段一致（防两处失配）
+  B.BADGE_DEFS.forEach(d => assert.strictEqual(d.bonus, C.BADGE_BONUS[d.id] || 0, d.id + ' 的 bonus 应与计算表一致'));
+});
+t('勋章奖励计入后称号门槛随之推进', () => {
+  reset();
+  for (let i = 0; i < 3; i++) C.upsertRecord(D.addDays('2026-10-05', i), 'habit_sleep', 1, 2, '');
+  assert.strictEqual(B.rankInfo(C.totalStars(store.getRecords(), 3)).name, '见习小达人');
+  // 6 星打卡 + 百日挑战王 50 + 月度坚持王 20 = 76 → 越过铜星门槛 50
+  const boosted = [{ id: 'streak_100' }, { id: 'streak_30' }];
+  assert.strictEqual(B.rankInfo(C.totalStars(store.getRecords(), 3, boosted)).name, '铜星小达人');
+});
 t('连击：5 天连续，中间断一天后重计', () => {
   reset();
   for (let i = 0; i < 5; i++) C.upsertRecord(D.addDays('2026-10-01', i), 'habit_sleep', 1, 2, '');
@@ -658,6 +677,93 @@ t('历史：最新在前且最多保留 50 条', () => {
   assert.strictEqual(h.length, 50);
   assert.strictEqual(h[0].correct, 54, '最新的在前');
   assert(h[0].at >= h[49].at, '时间戳应递减');
+});
+
+console.log('— 云能力封装 —');
+// cloud.js 用模块级 available 缓存状态，且 CLOUD_ENV 为空；测试需整体重载模块
+const CLOUD_PATH = require.resolve('../utils/cloud');
+function reloadCloud(handlers) {
+  delete require.cache[CLOUD_PATH];
+  global.wx = { cloud: { init: () => (handlers.initThrows ? (() => { throw new Error('init failed'); })() : {}), callFunction: handlers.call } };
+  return require('../utils/cloud');
+}
+function unloadCloud() { delete require.cache[CLOUD_PATH]; delete global.wx; }
+
+t('未配置环境 ID：全部调用静默降级为 {ok:false,degraded:true}', async () => {
+  reset();
+  const cloud = reloadCloud({ call: () => { throw new Error('不应发起真实调用'); } });
+  unloadCloud();
+  assert.strictEqual(cloud.isAvailable(), false, '无 wx.cloud 或 CLOUD_ENV 空时应不可用');
+  const res = await cloud.call('sync', { action: 'push' });
+  assert.strictEqual(res.ok, false);
+  assert.strictEqual(res.degraded, true, '降级调用方无需判空');
+  assert.strictEqual(await cloud.syncAll(true), false);
+});
+
+t('init 抛异常时降级而非崩溃', () => {
+  const cloud = reloadCloud({ call: () => {}, initThrows: true });
+  unloadCloud();
+  assert.strictEqual(cloud.init(), false);
+  assert.strictEqual(cloud.isAvailable(), false);
+});
+
+t('familyRefresh：成功时写入 store 的孩子缓存（回归：store 曾未 require 导致 ReferenceError）', async () => {
+  reset();
+  const calls = [];
+  const cloud = reloadCloud({
+    call: (p) => {
+      calls.push({ name: p.name, data: p.data });
+      return Promise.resolve({ result: { ok: true, profile: { nickname: '小豆', grade: 4 }, records: [], badges: [{ id: 'first_checkin', earnedAt: 1 }] } });
+    },
+  });
+  assert.strictEqual(cloud.init("prod-test"), true);
+  const res = await cloud.familyRefresh();
+  assert.strictEqual(res.ok, true);
+  assert.strictEqual(calls[0].name, 'family');
+  assert.strictEqual(calls[0].data.action, 'summary');
+  assert.strictEqual(store.getChildProfile().nickname, '小豆', '孩子资料应写入缓存');
+  assert.deepStrictEqual(store.getChildBadges(), [{ id: 'first_checkin', earnedAt: 1 }]);
+  unloadCloud();
+});
+
+t('familyRefresh：res.ok 非真时不写缓存且不抛错', async () => {
+  reset();
+  const cloud = reloadCloud({ call: () => Promise.resolve({ result: { ok: false, error: '尚未绑定' } }) });
+  cloud.init("prod-test");
+  const res = await cloud.familyRefresh();
+  assert.strictEqual(res.error, '尚未绑定');
+  assert.strictEqual(store.getChildProfile(), null, '失败不应写缓存');
+  unloadCloud();
+});
+
+t('familyJoin：邀请码去空格并转大写', async () => {
+  reset();
+  let seen = null;
+  const cloud = reloadCloud({ call: (p) => { seen = p.data; return Promise.resolve({ result: { ok: true } }); } });
+  cloud.init("prod-test");
+  await cloud.familyJoin('  ab3fgh ');
+  assert.strictEqual(seen.code, 'AB3FGH');
+  unloadCloud();
+});
+
+t('call：云函数返回空 result 时兜底为失败而非 undefined', async () => {
+  reset();
+  const cloud = reloadCloud({ call: () => Promise.resolve({}) });
+  cloud.init("prod-test");
+  const res = await cloud.call('sync', {});
+  assert.strictEqual(res.ok, false);
+  assert.strictEqual(res.error, 'empty result');
+  unloadCloud();
+});
+
+t('call：底层 reject 被转为 {ok:false,error}，不外泄异常', async () => {
+  reset();
+  const cloud = reloadCloud({ call: () => Promise.reject({ errMsg: 'request:fail timeout' }) });
+  cloud.init("prod-test");
+  const res = await cloud.call('sync', {});
+  assert.strictEqual(res.ok, false);
+  assert.strictEqual(res.error, 'request:fail timeout');
+  unloadCloud();
 });
 
 chain.then(() => {

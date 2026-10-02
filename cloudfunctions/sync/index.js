@@ -43,13 +43,13 @@ exports.main = async (event) => {
     // 记录：按 (openid, id) upsert，云端较新则忽略
     for (const r of event.records || []) {
       if (!r || !r.id || !r.date || !r.taskId) continue;
-      const found = await db.collection('checkins').where({ openid, id: r.id }).limit(1).get();
+      const found = await db.collection('checkins').where({ openid: OPENID, id: r.id }).limit(1).get();
       if (found.data.length) {
         if ((found.data[0].updatedAt || 0) < (r.updatedAt || 0)) {
-          await db.collection('checkins').doc(found.data[0]._id).update({ data: { ...r, openid } });
+          await db.collection('checkins').doc(found.data[0]._id).update({ data: { ...r, openid: OPENID } });
         }
       } else {
-        await db.collection('checkins').add({ data: { ...r, openid } });
+        await db.collection('checkins').add({ data: { ...r, openid: OPENID } });
       }
     }
     // 资料：云端较旧才覆盖
@@ -66,8 +66,8 @@ exports.main = async (event) => {
     // 勋章：并集
     for (const b of event.badges || []) {
       if (!b || !b.id) continue;
-      const found = await db.collection('badges').where({ openid, id: b.id }).limit(1).get();
-      if (!found.data.length) await db.collection('badges').add({ data: { ...b, openid } });
+      const found = await db.collection('badges').where({ openid: OPENID, id: b.id }).limit(1).get();
+      if (!found.data.length) await db.collection('badges').add({ data: { ...b, openid: OPENID } });
     }
     return { ok: true };
   }
@@ -76,7 +76,7 @@ exports.main = async (event) => {
     const since = Number(event.since) || 0;
     const records = await pullRecords(OPENID, since);
     const u = (await db.collection('users').where({ openid: OPENID }).limit(1).get()).data[0];
-    const badges = (await db.collection('badges').where({ openid }).limit(1000).get()).data
+    const badges = (await db.collection('badges').where({ openid: OPENID }).limit(1000).get()).data
       .map(b => ({ id: b.id, earnedAt: b.earnedAt }));
     return { ok: true, records, profile: (u && u.profile) || null, badges };
   }

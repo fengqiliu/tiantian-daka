@@ -50,10 +50,13 @@ tiantian-daka/
 │   ├── sync/                        # 增量同步 push/pull
 │   ├── family/                      # 邀请码绑定/家长摘要/里程碑推送
 │   ├── remind/                      # 提醒订阅配额管理
-│   └── dailyRemind/                 # 每天 20:00 定时提醒（timer 触发）
-├── scripts/sync-cloud-libs.js       # 同步共享逻辑到云函数 lib/
+│   └── dailyRemind/                 # 每天 20:00 定时提醒（timer 触发，config.js 与 remind 同源）
+├── scripts/sync-cloud-libs.js       # 同步共享逻辑到云函数 lib/（--check 只校验漂移）
 ├── content/exams/                   # 试卷知识库（上海2024新教材单元卷 PDF + 结构化数据）
-├── test/run-tests.js                # 54 项单元测试（node 直接运行）
+├── test/
+│   ├── run-tests.js                 # 64 项客户端单元测试（node 直接运行）
+│   ├── run-cloud-tests.js           # 27 项云函数测试（内存数据库桩）
+│   └── cloud-mock.js                # wx-server-sdk 内存桩（openid 隔离 / 订阅配额 / 43101）
 ├── design/preview.html              # 浏览器打开的 5 屏设计预览
 └── docs/                            # PRD / 设计规范 / 数据模型 / 任务内容库
 ```
@@ -64,10 +67,12 @@ tiantian-daka/
 2. 打开工具 → 导入项目 → 选择本目录 `tiantian-daka`
 3. AppID 选择 **"测试号"**（`project.config.json` 已预置 `touristappid`，正式发布时替换为自己的 AppID）
 4. 编译运行：首次进入引导页设置年级昵称，即可开始打卡
-5. 运行单元测试（无需任何依赖）：
+5. 运行测试（无需任何依赖）：
 
 ```bash
-node test/run-tests.js
+node test/run-tests.js           # 客户端逻辑（64 项）
+node test/run-cloud-tests.js     # 云函数（27 项，含 openid 隔离与订阅配额）
+node scripts/sync-cloud-libs.js --check   # 校验云函数 lib 与 utils/ 是否漂移
 ```
 
 ## 云开发接入指南（家人绑定 / 提醒 / 多设备同步）
@@ -85,8 +90,8 @@ node test/run-tests.js
 2. 配置环境 ID：编辑 `utils/cloud.js` 顶部 `CLOUD_ENV`
 3. 部署函数：右键 `cloudfunctions/` 下 5 个函数（login / sync / family / remind / dailyRemind）→「上传并部署：云端安装依赖」
 4. 建索引（控制台 → 数据库）：`checkins` 加 `(openid asc, updatedAt asc)`、`(openid asc, date asc)` 组合索引
-5. 申请模板：mp.weixin.qq.com → 订阅消息 → 选用两个"打卡提醒"类模板（各含两个"事物"字段）→ 把模板 ID 分别填入 `cloudfunctions/remind/config.js`、`cloudfunctions/family/config.js`（字段名不同则同步修改对应 `index.js` 的 `data` 字段）
-6. 修改了 `utils/tasks.js` 后运行 `node scripts/sync-cloud-libs.js` 同步到 `cloudfunctions/dailyRemind/lib/` 并重新上传该函数
+5. 申请模板：mp.weixin.qq.com → 订阅消息 → 选用两个"打卡提醒"类模板（各含两个"事物"字段）→ 把模板 ID 分别填入 `cloudfunctions/remind/config.js`、`cloudfunctions/dailyRemind/config.js`（两处必须是**同一个**提醒模板 ID，否则订阅成功但定时任务发不出消息）与 `cloudfunctions/family/config.js`；字段名不同则同步修改对应 `index.js` 的 `data` 字段
+6. 修改了 `utils/tasks.js` 等共享逻辑后运行 `node scripts/sync-cloud-libs.js` 同步到 `cloudfunctions/dailyRemind/lib/` 并重新上传该函数；提交前用 `--check` 确认无漂移
 7. 真机验证：孩子端「我的 → 家人绑定」显示邀请码 → 家长手机输入绑定；点「开启提醒」授权一次后，次日 20:00 应收到消息
 
 ## 设计文档
@@ -118,5 +123,6 @@ node test/run-tests.js
 - 核心逻辑全部收敛在 `utils/`（CommonJS），与页面解耦，因此可以脱离微信环境用 Node 做单元测试（含同步引擎的增量/冲突合并测试）
 - **本地优先（offline-first）**：读写永远走本地，云端是异步备份与跨设备通道；未配置云环境时全部云调用静默降级，UI 不出现不可用状态
 - 同步协议：记录按 `id = date#taskId` 幂等；删除用墓碑（`deleted: true`）双向传播；冲突按 `updatedAt` 新者胜；勋章只增并集
+- 星星口径：总星数 = Σ任务星级 + 每日全必做加成 1 星 + Σ已获勋章奖励星；全量动态计算，不冗余存储
 - 订阅消息采用**配额模式**：用户每次授权累计 1 次可发送额度（上限 3），定时任务/里程碑触发时消费额度，43101（未订阅）自动清零
 - 云函数安全：openid 一律取自调用上下文，绝不信任前端传入

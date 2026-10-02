@@ -20,21 +20,22 @@ function rankInfo(totalStars) {
   return { ...cur, totalStars, next, pct };
 }
 
-// 勋章定义：check(ctx) 返回是否达成；bonus 为获得时奖励的星星
+// 勋章定义：check(ctx) 返回是否达成
+// 奖励星（bonus）统一从 checkin.BADGE_BONUS 取，避免与 totalStars 的计算表两处失配
 const BADGE_DEFS = [
-  { id: 'first_checkin', name: '第一次的勇气', emoji: '🎉', bonus: 0, desc: '完成第一次打卡', check: c => c.totalRecords >= 1 },
-  { id: 'perfect_day', name: '完美一天', emoji: '💯', bonus: 1, desc: '某天完成全部必做任务', check: c => c.hasPerfectDay },
-  { id: 'streak_7', name: '一周坚持王', emoji: '🔥', bonus: 5, desc: '连续打卡 7 天', check: c => c.streak.current >= 7 || c.streak.best >= 7 },
-  { id: 'streak_30', name: '月度坚持王', emoji: '🌙', bonus: 20, desc: '连续打卡 30 天', check: c => c.streak.current >= 30 || c.streak.best >= 30 },
-  { id: 'streak_100', name: '百日挑战王', emoji: '🏆', bonus: 50, desc: '连续打卡 100 天', check: c => c.streak.current >= 100 || c.streak.best >= 100 },
-  { id: 'full_week', name: '全勤小明星', emoji: '🌟', bonus: 7, desc: '一整周每天都达成目标', check: c => c.hasFullWeek },
-  { id: 'reader_10h', name: '朗读者', emoji: '🎙️', bonus: 10, desc: '累计朗读 10 小时', check: c => c.sum(['chinese_read']) >= 600 },
-  { id: 'calc_1000', name: '口算小能手', emoji: '🧮', bonus: 10, desc: '累计口算 1000 题', check: c => c.sum(['math_calc']) >= 1000 },
-  { id: 'rope_10k', name: '跳绳小飞人', emoji: '🪢', bonus: 10, desc: '累计跳绳 10000 个', check: c => c.sum(['pe_rope']) >= 10000 },
-  { id: 'bookworm', name: '小书虫', emoji: '📚', bonus: 10, desc: '累计课外阅读 30 小时', check: c => c.sum(['chinese_reading_ext']) >= 1800 },
-  { id: 'sunshine', name: '阳光少年', emoji: '🌞', bonus: 10, desc: '累计户外活动 50 小时', check: c => c.sum(['pe_outdoor']) >= 3000 },
-  { id: 'writer', name: '小作家萌芽', emoji: '📔', bonus: 5, desc: '累计完成 10 篇日记', check: c => c.sum(['chinese_diary']) >= 10 },
-];
+  { id: 'first_checkin', name: '第一次的勇气', emoji: '🎉', desc: '完成第一次打卡', check: c => c.totalRecords >= 1 },
+  { id: 'perfect_day', name: '完美一天', emoji: '💯', desc: '某天完成全部必做任务', check: c => c.hasPerfectDay },
+  { id: 'streak_7', name: '一周坚持王', emoji: '🔥', desc: '连续打卡 7 天', check: c => c.streak.current >= 7 || c.streak.best >= 7 },
+  { id: 'streak_30', name: '月度坚持王', emoji: '🌙', desc: '连续打卡 30 天', check: c => c.streak.current >= 30 || c.streak.best >= 30 },
+  { id: 'streak_100', name: '百日挑战王', emoji: '🏆', desc: '连续打卡 100 天', check: c => c.streak.current >= 100 || c.streak.best >= 100 },
+  { id: 'full_week', name: '全勤小明星', emoji: '🌟', desc: '一整周每天都达成目标', check: c => c.hasFullWeek },
+  { id: 'reader_10h', name: '朗读者', emoji: '🎙️', desc: '累计朗读 10 小时', check: c => c.sum(['chinese_read']) >= 600 },
+  { id: 'calc_1000', name: '口算小能手', emoji: '🧮', desc: '累计口算 1000 题', check: c => c.sum(['math_calc']) >= 1000 },
+  { id: 'rope_10k', name: '跳绳小飞人', emoji: '🪢', desc: '累计跳绳 10000 个', check: c => c.sum(['pe_rope']) >= 10000 },
+  { id: 'bookworm', name: '小书虫', emoji: '📚', desc: '累计课外阅读 30 小时', check: c => c.sum(['chinese_reading_ext']) >= 1800 },
+  { id: 'sunshine', name: '阳光少年', emoji: '🌞', desc: '累计户外活动 50 小时', check: c => c.sum(['pe_outdoor']) >= 3000 },
+  { id: 'writer', name: '小作家萌芽', emoji: '📔', desc: '累计完成 10 篇日记', check: c => c.sum(['chinese_diary']) >= 10 },
+].map(d => ({ ...d, bonus: C.BADGE_BONUS[d.id] || 0 }));
 
 // 每次打卡保存后调用：评估新勋章并落盘，返回本次新获得列表
 // today 参数可注入（测试用），生产环境省略

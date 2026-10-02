@@ -74,8 +74,18 @@ function streaks(records, today) {
   return { current: cur, best };
 }
 
-// 总星星 = Σ任务星 + 每日全必做加成1星（动态计算，避免冗余存储不一致）
-function totalStars(records, grade) {
+// 勋章奖励星：与 utils/badges.js 的 BADGE_DEFS[].bonus 一一对应（单向依赖，badges.js 读本表）。
+// 勋章奖励并入总星数，故此处不得反向 require badges.js 以免循环依赖。
+const BADGE_BONUS = {
+  first_checkin: 0, perfect_day: 1, streak_7: 5, streak_30: 20, streak_100: 50,
+  full_week: 7, reader_10h: 10, calc_1000: 10, rope_10k: 10,
+  bookworm: 10, sunshine: 10, writer: 5,
+};
+
+// 总星星 = Σ任务星 + 每日全必做加成1星 + Σ已获勋章奖励
+// badges 为已获勋章数组（utils/badges.js 的 evaluate/badgeWall 传同一份 store.getBadges()）；
+// 动态计算，不冗余存储，避免与勋章列表不一致。
+function totalStars(records, grade, badges) {
   const byDate = groupByDate(records);
   let total = 0;
   const cache = {};
@@ -85,6 +95,7 @@ function totalStars(records, grade) {
     if (!cache[date]) cache[date] = T.generateDailyTasks(grade, date);
     if (dayCompletion(cache[date], recs).allMustDone) total += 1;
   });
+  (badges || []).forEach(b => { total += BADGE_BONUS[b.id] || 0; });
   return total;
 }
 
@@ -167,5 +178,5 @@ function hasFullWeek(records, grade, today) {
 module.exports = {
   recordId, upsertRecord, removeRecord, getDayRecords, dayCompletion,
   groupByDate, streaks, totalStars, weeklyStats, monthStats,
-  aggregateSum, hasPerfectDay, hasFullWeek,
+  aggregateSum, hasPerfectDay, hasFullWeek, BADGE_BONUS,
 };

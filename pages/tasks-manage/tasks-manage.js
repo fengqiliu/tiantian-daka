@@ -1,6 +1,7 @@
 const store = require('../../utils/store');
 const T = require('../../utils/tasks');
 const D = require('../../utils/date');
+const CTX = require('../../utils/context');
 
 const EMOJIS = ['⭐', '🎹', '🎨', '🧩', '📖', '✍️', '🧮', '🎧', '🪢', '⚽', '🌞', '🎲', '🧹', '🌙', '🐄', '🥕'];
 
@@ -30,8 +31,8 @@ Page({
   },
 
   onLoad() {
-    const profile = store.getProfile();
-    this.grade = Number(profile && profile.grade) || 1;
+    // 用 scope() 而非 profile：家长模式下 profile.grade 为 0，需取孩子缓存的年级
+    this.grade = CTX.scope().grade;
     this.setData({
       gradeLabel: this.grade + ' 年级 · 上海',
       sections: T.SECTION_ORDER.map(k => ({ key: k, name: T.SECTIONS[k].name, color: T.SECTIONS[k].color })),

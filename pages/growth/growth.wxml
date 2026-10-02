@@ -58,6 +58,7 @@
       <view class="badge-emoji">{{item.earned ? item.emoji : '❓'}}</view>
       <view class="badge-name">{{item.name}}</view>
       <view class="badge-desc muted">{{item.earned ? '已获得 🎉' : item.desc}}</view>
+      <view class="badge-bonus" wx:if="{{item.bonus > 0}}">+{{item.bonus}} ⭐</view>
     </view>
   </view>
 </view>

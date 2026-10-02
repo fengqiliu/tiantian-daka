@@ -78,7 +78,7 @@ Page({
       total: comp.total,
       pct: comp.total ? Math.round((comp.done / comp.total) * 100) : 0,
       starsToday: comp.stars + (comp.allMustDone ? 1 : 0),
-      totalStars: C.totalStars(all, grade),
+      totalStars: C.totalStars(all, grade, store.getBadges()),
       streak: C.streaks(all).current,
     });
   },
@@ -165,7 +165,7 @@ Page({
       childDone: comp.done,
       childTotal: comp.total,
       childPct: comp.total ? Math.round((comp.done / comp.total) * 100) : 0,
-      childStars: C.totalStars(records, grade),
+      childStars: C.totalStars(records, grade, s.badges),
       childStreak: C.streaks(records, today).current,
       weekStrip,
     });

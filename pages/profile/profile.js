@@ -47,7 +47,7 @@ Page({
       avatar: profile.avatar,
       grade: Number(profile.grade) || 0,
       school: profile.school || '',
-      totalStars: C.totalStars(records, grade),
+      totalStars: C.totalStars(records, grade, s.badges),
       streak: C.streaks(records).current,
       checkinDays: new Set(records.map(r => r.date)).size,
       cloudOn: cloud.isAvailable(),

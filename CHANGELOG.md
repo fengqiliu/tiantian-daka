@@ -9,12 +9,28 @@
 
 ### 新增
 
+- **云函数测试**（`test/run-cloud-tests.js` + `test/cloud-mock.js`）：27 项用例，内存数据库桩替代 `wx-server-sdk`，覆盖 openid 跨用户隔离、同步增量/墓碑/冲突、订阅配额累加与封顶、43101 订阅失效清零、定时提醒筛选与跳过逻辑
 - **试卷知识库**（`content/exams/`）：上海一年级上册 8 套单元测试卷（每套 A 卷·基础 + B 卷·提高 + 参考答案）
   - 数学（沪教版 2024 修订）第 1-4 单元；语文（统编版 2024 修订）第 1-3 单元；英语（沪教版五四制 2024）Unit 1 Greetings
   - 原始 PDF 存档 + 结构化数据（`data/*.json` + `index.json` 总索引）：题型/分值/答案摘要、单元能力清单（skills）、数学第四单元口算题组 2×20 题（含答案）、英语听力原文 A/B 各 5 句、评分与使用建议
   - 固定题型词表，便于未来按题型归因错题
   - 规划用途：单元对齐的口算/听读任务、"每周一卷"（等第制评分）、错题本与家长周报
   - 说明：本项为内容数据更新，不影响小程序版本号；原卷数学第二/三单元分值标注与"总分100"不一致处已如实记录
+
+### 修复
+
+- **家长端绑定失效**：`utils/cloud.js` 的 `familyRefresh()` 引用了未 `require` 的 `store`，任何家长绑定/刷新路径都会抛 `ReferenceError`，导致绑定后界面卡在「未绑定」且 loading 不消失
+- **云端同步全量失败**：`cloudfunctions/sync/index.js` 的 push/pull 分支共 4 处引用了未定义的 `openid`（应为上下文里的 `OPENID`），首次推送即抛 `ReferenceError`，云端同步功能实际从未工作过
+- **定时提醒部署即崩溃**：`cloudfunctions/dailyRemind/index.js` require 的 `config.js` 在仓库中缺失，函数上传后每次触发都会加载失败；已补齐并与 `remind/config.js` 同源
+- **云函数 lib 漂移**：`cloudfunctions/dailyRemind/lib/tasks.js` 与 `utils/tasks.js` 已产生 46 行差异，导致定时提醒按过期的必做清单判定"今日是否完成"；已重新同步
+- **任务管理页年级错乱**：家长模式下 `profile.grade` 为 0，页面回退显示「1 年级」并展示 1 年级任务清单；改为取 `CTX.scope().grade`（孩子缓存年级）
+
+### 变更
+
+- **勋章奖励星计入总星数**：12 枚勋章的 `bonus`（合计 100+ 星）此前定义了却从不参与计算，孩子拿到「百日挑战王」显示 +50 但总数不变；现并入 `totalStars()`，称号门槛相应更易达成。奖励表集中在 `checkin.BADGE_BONUS`，`badges.js` 单向读取以杜绝两处失配
+- `scripts/sync-cloud-libs.js` 支持 `--check`：只校验云函数 lib 与 `utils/` 是否漂移，有差异则退出码 1，可挂 CI / pre-commit
+- `utils/cloud.js` 的 `init()` 增加可选 `envOverride` 参数，仅供测试注入环境 ID（生产调用不变）
+- 云函数测试覆盖到客户端逻辑，`test/run-tests.js` 从 55 项增至 64 项
 
 ## [0.7.1] - 2026-10-01
 
