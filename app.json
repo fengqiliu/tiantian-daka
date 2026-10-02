@@ -11,6 +11,7 @@
     "pages/tasks-manage/tasks-manage",
     "pages/poems/poems",
     "pages/wrong-book/wrong-book",
+    "pages/shop/shop",
     "pages/onboarding/onboarding"
   ],
   "window": {

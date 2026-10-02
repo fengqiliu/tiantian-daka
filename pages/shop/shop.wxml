@@ -1,0 +1,94 @@
+<view class="sp safe-bottom">
+  <view class="card sp-balance">
+    <view class="row">
+      <view class="flex1">
+        <view class="muted">我的积分</view>
+        <view class="sp-num">💰 {{balance.balance}}</view>
+      </view>
+      <view class="muted sp-sub">累计获得 {{balance.earned}}\n已兑换 {{balance.spent}}</view>
+    </view>
+    <view class="muted sp-rule">打卡得 1 ⭐ = 1 积分（勋章奖励星也算）· 花积分不减星星和称号</view>
+  </view>
+
+  <view class="sec-header row" style="padding: 12rpx 32rpx;">
+    <text class="sec-name">🎁 奖品架</text>
+    <text class="muted" wx:if="{{manage}}">管理模式</text>
+  </view>
+
+  <view class="card sp-reward" wx:for="{{rewards}}" wx:key="id" wx:for-item="r">
+    <view class="sp-emoji">{{r.emoji}}</view>
+    <view class="flex1">
+      <view class="sp-name">{{r.name}}</view>
+      <view class="muted">{{r.cost}} 积分</view>
+    </view>
+    <block wx:if="{{manage}}">
+      <view class="sp-del" data-id="{{r.id}}" bindtap="onDelReward">下架</view>
+    </block>
+    <block wx:else>
+      <view class="sp-btn {{r.can ? '' : 'off'}}" data-id="{{r.id}}" bindtap="onRedeem">
+        {{r.can ? '兑换' : '差 ' + r.shortage}}
+      </view>
+    </block>
+  </view>
+  <view wx:if="{{!rewards.length}}" class="card empty muted">奖品架空了，请家长在「我的 → 奖品管理」上架</view>
+
+  <block wx:if="{{manage}}">
+    <view class="sec-header row" style="padding: 12rpx 32rpx;">
+      <text class="sec-name">上架新奖品</text>
+      <view class="tm-add" bindtap="onToggleForm">{{formOpen ? '收起' : '＋ 添加'}}</view>
+    </view>
+    <view class="card" wx:if="{{formOpen}}">
+      <view class="field">
+        <view class="muted">奖品名称</view>
+        <input class="input" placeholder="比如：周末去游乐园" value="{{formName}}" bindinput="onFormName" maxlength="12" />
+      </view>
+      <view class="field">
+        <view class="muted">图标</view>
+        <view class="emoji-row">
+          <view wx:for="{{emojis}}" wx:key="*this" class="emoji-opt {{formEmoji === item ? 'on' : ''}}" data-emoji="{{item}}" bindtap="onFormEmoji">{{item}}</view>
+        </view>
+      </view>
+      <view class="field">
+        <view class="muted">需要积分</view>
+        <view class="stepper row">
+          <view class="step-btn" bindtap="onFormCostMinus">−</view>
+          <view class="step-num">{{formCost}}</view>
+          <view class="step-btn" bindtap="onFormCostPlus">＋</view>
+        </view>
+      </view>
+      <view class="btn-primary" style="margin-top: 28rpx;" bindtap="onFormSubmit">上架</view>
+    </view>
+
+    <view class="sec-header row" style="padding: 12rpx 32rpx;">
+      <text class="sec-name">最近兑换（可撤销）</text>
+    </view>
+    <view class="card" wx:if="{{redemptions.length}}">
+      <view class="row sp-rd" wx:for="{{redemptions}}" wx:key="id" wx:for-item="rd">
+        <view class="sp-emoji">{{rd.emoji}}</view>
+        <view class="flex1">
+          <view class="sp-name">{{rd.name}} <text class="muted">-{{rd.cost}}</text></view>
+          <view class="muted">{{rd.dateLabel}}</view>
+        </view>
+        <view class="sp-del" data-id="{{rd.id}}" bindtap="onUndoRedemption">撤销</view>
+      </view>
+    </view>
+    <view wx:else class="card empty muted">还没有兑换记录</view>
+  </block>
+
+  <block wx:else>
+    <view class="sec-header row" style="padding: 12rpx 32rpx;">
+      <text class="sec-name">兑换记录</text>
+    </view>
+    <view class="card" wx:if="{{redemptions.length}}">
+      <view class="row sp-rd" wx:for="{{redemptions}}" wx:key="id" wx:for-item="rd">
+        <view class="sp-emoji">{{rd.emoji}}</view>
+        <view class="flex1">
+          <view class="sp-name">{{rd.name}}</view>
+          <view class="muted">{{rd.dateLabel}} · -{{rd.cost}} 积分</view>
+        </view>
+      </view>
+    </view>
+    <view wx:else class="card empty muted">还没有兑换记录，攒攒积分来换吧！</view>
+    <view class="sp-foot muted">兑换后请爸爸妈妈在「我的 → 奖品管理」里兑现或撤销</view>
+  </block>
+</view>

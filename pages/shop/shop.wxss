@@ -1,0 +1,60 @@
+.sp { padding-top: 24rpx; }
+.sp-balance { padding: 32rpx; }
+.sp-num { font-size: 76rpx; font-weight: 700; color: #FF8A00; line-height: 1.2; }
+.sp-sub { text-align: right; line-height: 1.8; white-space: pre-line; }
+.sp-rule { margin-top: 16rpx; font-size: 22rpx; }
+
+.sec-header { padding: 12rpx 32rpx; }
+.sec-name { font-weight: 600; font-size: 30rpx; }
+
+.sp-reward { padding: 24rpx 26rpx; }
+.sp-emoji {
+  width: 80rpx; height: 80rpx;
+  background: #FFF4D6;
+  border-radius: 22rpx;
+  font-size: 44rpx;
+  display: flex; align-items: center; justify-content: center;
+  margin-right: 22rpx;
+}
+.sp-name { font-size: 31rpx; font-weight: 600; }
+.sp-btn {
+  background: linear-gradient(135deg, #FFB25A, #FF8A00);
+  color: #fff;
+  font-weight: 600;
+  border-radius: 999rpx;
+  padding: 14rpx 34rpx;
+  font-size: 27rpx;
+  box-shadow: 0 6rpx 16rpx rgba(255, 138, 0, 0.25);
+}
+.sp-btn.off { background: #F1EBDD; color: #B4884F; box-shadow: none; }
+.sp-del { color: #FF5A3C; font-size: 26rpx; padding: 8rpx 0 8rpx 16rpx; }
+.empty { text-align: center; }
+
+.tm-add { margin-left: auto; color: #FF8A00; font-weight: 600; font-size: 27rpx; padding-right: 0; }
+.field { margin-top: 26rpx; }
+.input { background: #F7F2E8; border-radius: 16rpx; padding: 20rpx 24rpx; margin-top: 10rpx; font-size: 28rpx; }
+.emoji-row { display: flex; flex-wrap: wrap; gap: 12rpx; margin-top: 12rpx; }
+.emoji-opt {
+  width: 76rpx; height: 76rpx;
+  background: #F7F2E8;
+  border-radius: 18rpx;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 40rpx;
+  border: 3rpx solid transparent;
+}
+.emoji-opt.on { background: #FFF1DC; border-color: #FFB25A; }
+.stepper { justify-content: center; margin: 8rpx 0; }
+.step-btn {
+  width: 76rpx; height: 76rpx;
+  background: #FFF1DC;
+  color: #FF8A00;
+  border-radius: 50%;
+  font-size: 42rpx;
+  font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+}
+.step-num { min-width: 200rpx; text-align: center; font-size: 44rpx; font-weight: 700; }
+
+.sp-rd { padding: 12rpx 0; border-bottom: 2rpx solid #FFF9EF; }
+.sp-rd:last-child { border-bottom: none; }
+.sp-foot { text-align: center; padding: 8rpx 48rpx 32rpx; font-size: 22rpx; }

@@ -740,6 +740,66 @@ t('历史：最新在前且最多保留 50 条', () => {
   assert(h[0].at >= h[49].at, '时间戳应递减');
 });
 
+console.log('— 奖励小铺 —');
+const SHOP = require('../utils/shop');
+
+t('默认奖品架：首次读取自动播种 6 件并落盘', () => {
+  reset();
+  const r = SHOP.getRewards();
+  assert.strictEqual(r.length, 6);
+  assert(r.every(x => x.id && x.name && x.emoji && x.cost > 0));
+  assert.strictEqual(store.getRewards().length, 6);
+  assert(SHOP.getRewards().find(x => x.name === '一份小零食'), '应含零食类奖品');
+});
+
+t('奖品管理：上架与下架', () => {
+  const added = SHOP.addReward({ name: '周末露营', emoji: '⛺', cost: 200 });
+  assert(added && added.id, '应返回带 id 的新奖品');
+  assert.strictEqual(SHOP.getRewards().find(x => x.id === added.id).cost, 200);
+  SHOP.removeReward(added.id);
+  assert(!SHOP.getRewards().find(x => x.id === added.id), '下架后不再出现');
+});
+
+t('积分余额 = 累计星数 − 已兑换', () => {
+  reset();
+  seedDay('2026-10-05', 3, mustIds('2026-10-05')(3), 2); // 4×2 星 + 日目标 1 = 9
+  const earned = C.totalStars(store.getRecords(), 3, store.getBadges());
+  assert.strictEqual(earned, 9);
+  const bal = SHOP.balance(earned);
+  assert.deepStrictEqual([bal.earned, bal.spent, bal.balance], [9, 0, 9]);
+});
+
+t('兑换：成功入账、余额不足拒绝且不入账', () => {
+  reset();
+  seedDay('2026-10-05', 3, mustIds('2026-10-05')(3), 2); // earned 9
+  const earned = C.totalStars(store.getRecords(), 3, store.getBadges());
+  const snack = { id: 'r-x', name: '小零食', emoji: '🍬', cost: 5 };
+  assert.strictEqual(SHOP.redeem(snack, earned).ok, true);
+  const bal = SHOP.balance(earned);
+  assert.deepStrictEqual([bal.spent, bal.balance], [5, 4]);
+  const pricey = { id: 'r-y', name: '大玩具', emoji: '🎁', cost: 50 };
+  const r2 = SHOP.redeem(pricey, earned);
+  assert.strictEqual(r2.ok, false);
+  assert.strictEqual(r2.shortage, 46);
+  assert.strictEqual(store.getRedemptions().length, 1, '被拒的兑换不入账');
+  assert.strictEqual(SHOP.getRedemptions()[0].name, '小零食', '账本最新在前');
+});
+
+t('撤销兑换：删除记录即恢复积分', () => {
+  reset();
+  seedDay('2026-10-05', 3, mustIds('2026-10-05')(3), 2);
+  const earned = C.totalStars(store.getRecords(), 3, store.getBadges());
+  // 余额 9 < 30：兑换被拒，账本为空
+  assert.strictEqual(SHOP.redeem({ id: 'r-a', name: '冰淇淋', emoji: '🍦', cost: 30 }, earned).ok, false);
+  assert.strictEqual(store.getRedemptions().length, 0);
+  // 先兑换再撤销 → 积分恢复
+  SHOP.redeem({ id: 'r-b', name: '小零食', emoji: '🍬', cost: 5 }, earned);
+  assert.strictEqual(SHOP.balance(earned).balance, 4);
+  SHOP.removeRedemption(SHOP.getRedemptions()[0].id);
+  assert.strictEqual(store.getRedemptions().length, 0);
+  assert.strictEqual(SHOP.balance(earned).balance, 9);
+});
+
 console.log('— 古诗库与单元筛选 —');
 const POEMS = require('../utils/poems');
 

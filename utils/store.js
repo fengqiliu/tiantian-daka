@@ -12,6 +12,8 @@ const KEYS = {
   QUIZ_WRONG: 'quiz_wrong',          // 每周一卷错题本（本地）
   QUIZ_HISTORY: 'quiz_history',      // 每周一卷历史（本地）
   TASK_OVERRIDES: 'task_overrides',  // 家长任务管理：目标覆盖 + 自定义任务
+  REWARDS: 'rewards',                // 奖励小铺：奖品架（家长维护）
+  REDEMPTIONS: 'redemptions',        // 奖励小铺：兑换账本（只追加）
   CHILD_PROFILE: 'child_profile',    // 家长端缓存：孩子资料
   CHILD_RECORDS: 'child_records',    // 家长端缓存：孩子打卡记录
   CHILD_BADGES: 'child_badges',      // 家长端缓存：孩子勋章
@@ -91,6 +93,12 @@ function saveTaskOverrides(o) {
 // 同步合并专用：保留远端时间戳，不重新盖章
 function saveTaskOverridesRaw(o) { if (o) backend.set(KEYS.TASK_OVERRIDES, o); }
 
+// ── 奖励小铺（奖品架 + 兑换账本，本地）──
+function getRewards() { return _get(KEYS.REWARDS, []); }
+function saveRewards(list) { backend.set(KEYS.REWARDS, list); }
+function getRedemptions() { return _get(KEYS.REDEMPTIONS, []); }
+function saveRedemptions(list) { backend.set(KEYS.REDEMPTIONS, list); }
+
 // ── 同步游标 ──
 function getSyncState() {
   return _get(KEYS.SYNC, { lastPullAt: 0, lastPushAt: 0 });
@@ -126,6 +134,8 @@ module.exports = {
   getQuizWrong, saveQuizWrong,
   getQuizHistory, saveQuizHistory,
   getTaskOverrides, saveTaskOverrides, saveTaskOverridesRaw,
+  getRewards, saveRewards,
+  getRedemptions, saveRedemptions,
   getSyncState, saveSyncState,
   getChildProfile, getChildRecords, getChildBadges, saveChildData, clearChildData,
   clearAll,

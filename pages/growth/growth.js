@@ -5,6 +5,7 @@ const B = require('../../utils/badges');
 const D = require('../../utils/date');
 const CTX = require('../../utils/context');
 const QZ = require('../../utils/quiz');
+const SHOP = require('../../utils/shop');
 
 Page({
   data: {
@@ -62,6 +63,10 @@ Page({
       ? '口算 ' + mathWrong + ' 题 · 小卷 ' + quizWrongN + ' 题，练对自动销账'
       : '暂无错题，练一练看看';
 
+    // 奖励小铺（仅孩子端；积分 = 累计星数 − 已兑换）
+    const shopBal = SHOP.balance(total);
+    const shopHint = '💰 ' + shopBal.balance + ' 积分可兑换奖品零食';
+
     this.setData({
       totalStars: total,
       rank,
@@ -71,6 +76,8 @@ Page({
       wall: B.badgeWall(records, { grade }, s.badges),
       quizHint,
       wrongHint,
+      role: s.role,
+      shopHint,
     });
   },
 
@@ -80,5 +87,9 @@ Page({
 
   goWrongBook() {
     wx.navigateTo({ url: '/pages/wrong-book/wrong-book' });
+  },
+
+  goShop() {
+    wx.navigateTo({ url: '/pages/shop/shop' });
   },
 });
