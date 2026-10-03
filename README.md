@@ -29,6 +29,7 @@ tiantian-daka/
 │   ├── quiz/                        # 每周一卷：判断/选择小卷 + 等第制评价
 │   ├── tasks-manage/                # 任务管理（家长）：调目标值/自定义任务，改完自动上云同步到孩子端
 │   ├── shop/                        # 奖励小铺：打卡赚积分，兑换奖品零食（家长维护奖品架）
+│   ├── report/                      # 家长报告：任务完成率/口算趋势/小卷记录
 │   ├── calendar/                    # 打卡日历（按身份自动切数据源）
 │   ├── growth/                      # 成长：称号/勋章/周概览
 │   └── profile/                     # 我的：资料/家人绑定/提醒订阅/导出/清空
@@ -55,7 +56,7 @@ tiantian-daka/
 ├── scripts/sync-cloud-libs.js       # 同步共享逻辑到云函数 lib/（--check 只校验漂移）
 ├── content/exams/                   # 试卷知识库（上海2024新教材单元卷 PDF + 结构化数据）
 ├── test/
-│   ├── run-tests.js                 # 75 项客户端单元测试（node 直接运行）
+│   ├── run-tests.js                 # 79 项客户端单元测试（node 直接运行）
 │   ├── run-cloud-tests.js           # 27 项云函数测试（内存数据库桩）
 │   └── cloud-mock.js                # wx-server-sdk 内存桩（openid 隔离 / 订阅配额 / 43101）
 ├── design/preview.html              # 浏览器打开的 5 屏设计预览
@@ -71,7 +72,7 @@ tiantian-daka/
 5. 运行测试（无需任何依赖）：
 
 ```bash
-node test/run-tests.js           # 客户端逻辑（75 项）
+node test/run-tests.js           # 客户端逻辑（79 项）
 node test/run-cloud-tests.js     # 云函数（27 项，含 openid 隔离与订阅配额）
 node scripts/sync-cloud-libs.js --check   # 校验云函数 lib 与 utils/ 是否漂移
 ```

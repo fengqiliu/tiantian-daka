@@ -12,6 +12,7 @@
     "pages/poems/poems",
     "pages/wrong-book/wrong-book",
     "pages/shop/shop",
+    "pages/report/report",
     "pages/onboarding/onboarding"
   ],
   "window": {

@@ -1,0 +1,77 @@
+<view class="rp safe-bottom">
+  <view class="rp-head">
+    <view class="h1">📊 家长报告</view>
+    <view class="muted">{{gradeLabel}}</view>
+  </view>
+
+  <view class="rp-ranges">
+    <view class="rp-chip {{range === 7 ? 'on' : ''}}" data-days="7" bindtap="onRange">近 7 天</view>
+    <view class="rp-chip {{range === 30 ? 'on' : ''}}" data-days="30" bindtap="onRange">近 30 天</view>
+  </view>
+
+  <view class="card row">
+    <view class="rp-kpi flex1">
+      <view class="rp-kpi-num">{{ov.checkinDays}}</view>
+      <view class="muted">打卡天数</view>
+    </view>
+    <view class="rp-kpi flex1">
+      <view class="rp-kpi-num">✅ {{ov.achievedDays}}</view>
+      <view class="muted">达成天数</view>
+    </view>
+    <view class="rp-kpi flex1">
+      <view class="rp-kpi-num">⭐ {{ov.stars}}</view>
+      <view class="muted">获得星星</view>
+    </view>
+    <view class="rp-kpi flex1">
+      <view class="rp-kpi-num">💰 {{balance}}</view>
+      <view class="muted">可用积分</view>
+    </view>
+  </view>
+
+  <view class="card">
+    <view class="row rp-sec">
+      <view class="h2 flex1">任务完成率</view>
+      <text class="muted" wx:if="{{lowCount}}">{{lowCount}} 项低于 50%，考虑调整</text>
+    </view>
+    <view class="rp-rate row" wx:for="{{rates}}" wx:key="id" wx:for-item="a">
+      <view class="rp-rate-emoji" style="background: {{a.bg}};">{{a.emoji}}</view>
+      <view class="flex1">
+        <view class="rp-rate-name">{{a.name}}</view>
+        <view class="rp-rate-track">
+          <view class="rp-rate-in" style="width: {{a.rate}}%; background: {{a.color}};"></view>
+        </view>
+      </view>
+      <view class="rp-rate-num {{a.low ? 'low' : ''}}">{{a.done}}/{{a.appeared}} · {{a.rate}}%</view>
+    </view>
+    <view class="muted rp-tip">升序排列：排在前面的任务最常被跳过，可到「任务管理」调低目标或换形式</view>
+  </view>
+
+  <view class="card">
+    <view class="row rp-sec">
+      <view class="h2 flex1">🧮 口算挑战</view>
+      <text class="muted" wx:if="{{drill.count}}">{{drill.count}} 次练习 · 正确率 {{drill.accuracy}}%</text>
+    </view>
+    <block wx:if="{{drillRows.length}}">
+      <view class="row wb-item" wx:for="{{drillRows}}" wx:key="at" wx:for-item="x">
+        <view class="flex1 wb-text">{{x.dateLabel}}</view>
+        <view class="muted">{{x.levelName}}</view>
+        <view class="wb-answer">{{x.correct}}/{{x.total}}</view>
+      </view>
+    </block>
+    <view wx:else class="muted rp-empty">区间内还没有口算练习记录</view>
+  </view>
+
+  <view class="card">
+    <view class="row rp-sec">
+      <view class="h2 flex1">📝 每周一卷</view>
+    </view>
+    <block wx:if="{{quizRows.length}}">
+      <view class="row wb-item" wx:for="{{quizRows}}" wx:key="at" wx:for-item="q">
+        <view class="flex1 wb-text">{{q.subjectName}}小卷</view>
+        <view class="muted">{{q.dateLabel}}</view>
+        <view class="wb-answer">{{q.correct}}/{{q.total}} · {{q.label}}</view>
+      </view>
+    </block>
+    <view wx:else class="muted rp-empty">区间内还没有小卷记录</view>
+  </view>
+</view>

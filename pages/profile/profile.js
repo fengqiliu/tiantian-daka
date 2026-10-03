@@ -4,7 +4,7 @@ const CTX = require('../../utils/context');
 const cloud = require('../../utils/cloud');
 
 const AVATARS = ['🐱', '🦊', '🐰', '🐻', '🐸', '🦁', '🐼', '🐷'];
-const APP_VERSION = '0.9.0';
+const APP_VERSION = '0.10.0';
 
 Page({
   data: {
@@ -182,6 +182,10 @@ Page({
 
   goShopManage() {
     wx.navigateTo({ url: '/pages/shop/shop?manage=1' });
+  },
+
+  goReport() {
+    wx.navigateTo({ url: '/pages/report/report' });
   },
 
   // ── 数据管理 ──

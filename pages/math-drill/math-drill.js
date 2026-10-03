@@ -121,6 +121,7 @@ Page({
     const acc = answered ? this.data.correctCount / answered : 0;
     const stars = acc === 1 ? 3 : acc >= 0.8 ? 2 : 1;
     C.upsertRecord(this.date, 'math_calc', answered, stars, '口算挑战 正确 ' + this.data.correctCount + '/' + answered);
+    AR.saveSession({ date: this.date, level: this.level, total: answered, correct: this.data.correctCount }); // 供家长报告看趋势
     const profile = store.getProfile();
     const fresh = B.evaluate(store.getRecords(), profile);
     if (fresh.length) {

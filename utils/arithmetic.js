@@ -147,8 +147,21 @@ function recommendByGrade(grade) {
   return 'addsub100';
 }
 
+// ── 练习会话历史（供家长报告看正确率趋势）──
+const SESSION_CAP = 100;
+
+function saveSession(session) {
+  const list = store.getDrillHistory();
+  list.unshift({ ...session, at: Date.now() });
+  store.saveDrillHistory(list.slice(0, SESSION_CAP));
+}
+
+function getSessions() { return store.getDrillHistory(); }
+
+
 module.exports = {
   LEVELS, LEVEL_ORDER,
   randInt, generate, check, textOf,
   markResult, buildSession, recommendByGrade,
+  saveSession, getSessions,
 };

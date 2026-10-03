@@ -99,6 +99,7 @@
     <view class="h2" style="margin-bottom: 12rpx;">任务管理（家长）</view>
     <view class="muted" style="margin-bottom: 20rpx;">任务量不合适？在这里调整每日目标或添加自定义任务（如练钢琴）。</view>
     <view class="btn-ghost" bindtap="goTaskManage">🛠 调整任务目标 / 添加自定义任务</view>
+    <view class="btn-ghost" style="margin-top: 16rpx;" bindtap="goReport">📊 家长报告（完成率 / 正确率趋势）</view>
     <view class="btn-ghost" style="margin-top: 16rpx;" bindtap="goShopManage">🎁 奖品管理（积分兑换设置）</view>
   </view>
 

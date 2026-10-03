@@ -14,6 +14,7 @@ const KEYS = {
   TASK_OVERRIDES: 'task_overrides',  // 家长任务管理：目标覆盖 + 自定义任务
   REWARDS: 'rewards',                // 奖励小铺：奖品架（家长维护）
   REDEMPTIONS: 'redemptions',        // 奖励小铺：兑换账本（只追加）
+  DRILL_HISTORY: 'drill_history',    // 口算挑战会话历史（家长报告用）
   CHILD_PROFILE: 'child_profile',    // 家长端缓存：孩子资料
   CHILD_RECORDS: 'child_records',    // 家长端缓存：孩子打卡记录
   CHILD_BADGES: 'child_badges',      // 家长端缓存：孩子勋章
@@ -99,6 +100,10 @@ function saveRewards(list) { backend.set(KEYS.REWARDS, list); }
 function getRedemptions() { return _get(KEYS.REDEMPTIONS, []); }
 function saveRedemptions(list) { backend.set(KEYS.REDEMPTIONS, list); }
 
+// ── 口算会话历史（本地）──
+function getDrillHistory() { return _get(KEYS.DRILL_HISTORY, []); }
+function saveDrillHistory(list) { backend.set(KEYS.DRILL_HISTORY, list); }
+
 // ── 同步游标 ──
 function getSyncState() {
   return _get(KEYS.SYNC, { lastPullAt: 0, lastPushAt: 0 });
@@ -136,6 +141,7 @@ module.exports = {
   getTaskOverrides, saveTaskOverrides, saveTaskOverridesRaw,
   getRewards, saveRewards,
   getRedemptions, saveRedemptions,
+  getDrillHistory, saveDrillHistory,
   getSyncState, saveSyncState,
   getChildProfile, getChildRecords, getChildBadges, saveChildData, clearChildData,
   clearAll,

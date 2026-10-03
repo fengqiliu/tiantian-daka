@@ -1,0 +1,37 @@
+.rp { padding-top: 24rpx; }
+.rp-head { padding: 0 32rpx 12rpx; }
+.rp-ranges { display: flex; gap: 14rpx; padding: 0 24rpx 20rpx; }
+.rp-chip {
+  background: #F7F2E8;
+  border-radius: 999rpx;
+  padding: 12rpx 32rpx;
+  font-size: 27rpx;
+  color: #6B655B;
+  border: 3rpx solid transparent;
+}
+.rp-chip.on { background: #FF8A00; color: #fff; font-weight: 600; }
+
+.rp-kpi { text-align: center; }
+.rp-kpi-num { font-size: 38rpx; font-weight: 700; color: #FF8A00; }
+
+.rp-sec { margin-bottom: 18rpx; }
+.rp-rate { margin-bottom: 18rpx; }
+.rp-rate:last-child { margin-bottom: 0; }
+.rp-rate-emoji {
+  width: 64rpx; height: 64rpx;
+  border-radius: 18rpx;
+  font-size: 34rpx;
+  display: flex; align-items: center; justify-content: center;
+  margin-right: 18rpx;
+}
+.rp-rate-name { font-size: 27rpx; font-weight: 600; margin-bottom: 6rpx; }
+.rp-rate-track { height: 14rpx; background: #F7F2E8; border-radius: 999rpx; overflow: hidden; }
+.rp-rate-in { height: 100%; border-radius: 999rpx; min-width: 6rpx; }
+.rp-rate-num { font-size: 24rpx; color: #6B655B; padding-left: 14rpx; white-space: nowrap; }
+.rp-rate-num.low { color: #E5484D; font-weight: 600; }
+.rp-tip { margin-top: 14rpx; font-size: 22rpx; }
+
+.wb-item { background: #FFF9EF; border-radius: 16rpx; padding: 14rpx 20rpx; margin-bottom: 12rpx; }
+.wb-text { font-size: 28rpx; font-weight: 600; }
+.wb-answer { color: #2F9E44; font-size: 26rpx; font-weight: 600; padding-left: 14rpx; white-space: nowrap; }
+.rp-empty { text-align: center; padding: 8rpx 0; }

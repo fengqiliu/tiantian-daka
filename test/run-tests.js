@@ -922,6 +922,68 @@ t('call：底层 reject 被转为 {ok:false,error}，不外泄异常', async () 
   unloadCloud();
 });
 
+console.log('— 家长报告 —');
+const REPORT = require('../utils/report');
+
+t('任务完成率：常做的 100%，从不做的 0% 且排最前', () => {
+  reset();
+  const today = '2026-10-05'; // 周一；近 7 天 = 09-29(二) ~ 10-05(一)，含一个周末
+  const days = 7;
+  const schoolDays = [];
+  for (let i = 0; i < days; i++) {
+    const date = D.addDays(today, -i);
+    if (!D.isWeekend(date)) schoolDays.push(date);
+  }
+  assert.strictEqual(schoolDays.length, 5, '区间应含 5 个上学日');
+  // math_calc 每天都做；habit_bag（仅上学日出现）从不做
+  for (let i = 0; i < days; i++) {
+    const date = D.addDays(today, -i);
+    const ts = T.generateDailyTasks(3, date);
+    const calc = ts.find(x => x.id === 'math_calc');
+    C.upsertRecord(date, 'math_calc', calc.target, 2, '');
+  }
+  const rates = REPORT.taskRates(store.getRecords(), 3, days, today);
+  const calc = rates.find(a => a.id === 'math_calc');
+  const bag = rates.find(a => a.id === 'habit_bag');
+  assert.strictEqual(calc.appeared, 7); assert.strictEqual(calc.done, 7); assert.strictEqual(calc.rate, 100);
+  assert.strictEqual(bag.appeared, 5); assert.strictEqual(bag.done, 0); assert.strictEqual(bag.rate, 0);
+  assert.strictEqual(rates[0].rate, 0, '完成率最低的排最前');
+  assert.strictEqual(rates[rates.length - 1].rate, 100);
+  assert.strictEqual(rates.filter(a => a.rate === 0).length, rates.length - 1, '只做了口算，其余任务全部 0%');
+});
+
+t('报告总览：打卡天数/达成天数/星星按区间统计', () => {
+  reset();
+  const today = '2026-10-05';
+  // 近 7 天只打卡 2 天，其中 1 天达成
+  seedDay('2026-10-04', 3, mustIds('2026-10-04')(3), 2); // 周日，达成
+  C.upsertRecord('2026-10-05', 'habit_sleep', 1, 1, '');  // 只打一项
+  const ov = REPORT.overview(store.getRecords(), 3, 7, today);
+  assert.strictEqual(ov.checkinDays, 2);
+  assert.strictEqual(ov.achievedDays, 1);
+  assert(ov.stars > 0);
+});
+
+t('口算趋势：区间过滤与正确率汇总', () => {
+  reset();
+  AR.saveSession({ date: '2026-09-20', level: 'addsub10', total: 20, correct: 10 }); // 区间外
+  AR.saveSession({ date: '2026-10-03', level: 'addsub10', total: 20, correct: 16 });
+  AR.saveSession({ date: '2026-10-05', level: 'missing10', total: 10, correct: 9 });
+  const s = REPORT.drillSummary(AR.getSessions(), 7, '2026-10-05');
+  assert.strictEqual(s.count, 2);
+  assert.strictEqual(s.total, 30);
+  assert.strictEqual(s.correct, 25);
+  assert.strictEqual(s.accuracy, 83);
+});
+
+t('口算会话历史：最新在前且最多 100 条', () => {
+  reset();
+  for (let i = 0; i < 105; i++) AR.saveSession({ date: '2026-10-05', level: 'addsub10', total: 10, correct: i });
+  const list = AR.getSessions();
+  assert.strictEqual(list.length, 100);
+  assert.strictEqual(list[0].correct, 104, '最新的在前');
+});
+
 chain.then(() => {
   console.log('\n全部通过：' + passed + ' 项 ✓');
 }).catch(e => {
