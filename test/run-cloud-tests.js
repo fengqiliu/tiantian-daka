@@ -154,6 +154,30 @@ t('serverTime 随 push/pull 返回（时钟漂移封顶依据）', async () => {
   const rl = await sync.main({ action: 'pull', since: 0 });
   assert(typeof rl.serverTime === 'number' && rl.serverTime > 0, 'pull 应返回 serverTime');
 });
+t('奖励小铺：push 存 users.shop，pull 回传；较旧忽略', async () => {
+  reset();
+  CM.setOpenid('kid1');
+  await CM.load('login').main({});
+  const sync = CM.load('sync');
+  const shop = {
+    rewards: [{ id: 'r-1', name: '小零食', emoji: '🍬', cost: 10 }],
+    redemptions: [{ id: 'rd-1', rewardId: 'r-1', name: '小零食', emoji: '🍬', cost: 10, at: 100 }],
+    updatedAt: 200,
+  };
+  await sync.main({ action: 'push', shop });
+  let p = await sync.main({ action: 'pull', since: 0 });
+  assert(p.shop, 'pull 应回传 shop');
+  assert.strictEqual(p.shop.rewards.length, 1);
+  assert.strictEqual(p.shop.redemptions.length, 1);
+  // 较旧的 shop 不覆盖云端
+  await sync.main({ action: 'push', shop: { ...shop, rewards: [], redemptions: [], updatedAt: 100 } });
+  p = await sync.main({ action: 'pull', since: 0 });
+  assert.strictEqual(p.shop.rewards.length, 1, '较旧的 shop 不应覆盖云端');
+  // 较新的 shop 生效
+  await sync.main({ action: 'push', shop: { ...shop, updatedAt: 300, rewards: shop.rewards.concat([{ id: 'r-2', name: '动画', emoji: '📺', cost: 20 }]) } });
+  p = await sync.main({ action: 'pull', since: 0 });
+  assert.strictEqual(p.shop.rewards.length, 2);
+});
 
 console.log('— 提醒订阅 remind —');
 t('grant 累加配额且上限 3；status 如实回报', async () => {

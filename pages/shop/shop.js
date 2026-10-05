@@ -3,6 +3,7 @@ const C = require('../../utils/checkin');
 const D = require('../../utils/date');
 const CTX = require('../../utils/context');
 const SHOP = require('../../utils/shop');
+const cloud = require('../../utils/cloud');
 
 const EMOJIS = ['🍬', '🍦', '🍿', '📺', '🎮', '🎁', '📚', '⛲', '🎪', '🍕', '🧸', '🎨'];
 
@@ -22,7 +23,15 @@ Page({
 
   onLoad(options) {
     this.manage = options.manage === '1';
-    if (CTX.scope().role === 'parent') {
+    const role = CTX.scope().role;
+    // 管理模式（?manage=1）仅家长：上架/下架/撤销兑换；
+    // 兑换页仅孩子：家长看孩子积分余额走「家长报告」
+    if (this.manage && role !== 'parent') {
+      wx.showToast({ title: '奖品管理请在家长模式进行', icon: 'none' });
+      setTimeout(() => wx.navigateBack(), 800);
+      return;
+    }
+    if (!this.manage && role === 'parent') {
       wx.showToast({ title: '奖励小铺在孩子设备上使用', icon: 'none' });
       setTimeout(() => wx.navigateBack(), 800);
       return;
@@ -70,6 +79,7 @@ Page({
         const r = SHOP.redeem(reward, earned);
         if (r.ok) {
           try { wx.vibrateShort({ type: 'light' }); } catch (e) { /* 忽略 */ }
+          cloud.syncAll(); // 兑换账本上云，家长端撤销与跨设备余额一致
           wx.showToast({ title: '兑换成功！找爸妈领取 🎉', icon: 'none' });
           this.refresh();
         } else {
@@ -98,6 +108,7 @@ Page({
       return;
     }
     SHOP.addReward({ name: formName, emoji: formEmoji, cost: formCost });
+    cloud.syncAll();
     this.setData({ formOpen: false, formName: '', formCost: 20 });
     this.refresh();
     wx.showToast({ title: '已上架 ✓', icon: 'none' });
@@ -111,7 +122,7 @@ Page({
       content: '「' + (item ? item.name : '') + '」将从奖品架移除（兑换记录保留）。确定吗？',
       confirmColor: '#FF5A3C',
       success: res => {
-        if (res.confirm) { SHOP.removeReward(id); this.refresh(); }
+        if (res.confirm) { SHOP.removeReward(id); cloud.syncAll(); this.refresh(); }
       },
     });
   },
@@ -124,6 +135,7 @@ Page({
       success: res => {
         if (!res.confirm) return;
         SHOP.removeRedemption(e.currentTarget.dataset.id);
+        cloud.syncAll();
         this.refresh();
         wx.showToast({ title: '已撤销，积分已退回', icon: 'none' });
       },

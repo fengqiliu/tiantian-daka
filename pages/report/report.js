@@ -6,6 +6,7 @@ const AR = require('../../utils/arithmetic');
 const SHOP = require('../../utils/shop');
 const QZ = require('../../utils/quiz');
 const REPORT = require('../../utils/report');
+const CTX = require('../../utils/context');
 
 const LEVEL_NAME = {};
 Object.keys(AR.LEVELS).forEach(k => { LEVEL_NAME[k] = AR.LEVELS[k].name; });
@@ -15,6 +16,7 @@ Page({
   data: {
     range: 7,
     gradeLabel: '',
+    role: 'child',
     ov: null,
     balance: 0,
     rates: [],
@@ -25,8 +27,6 @@ Page({
   },
 
   onLoad() {
-    const profile = store.getProfile();
-    this.grade = Number(profile && profile.grade) || 1;
     this.refresh();
   },
 
@@ -36,11 +36,13 @@ Page({
   },
 
   refresh() {
-    const grade = this.grade;
+    // 数据作用域：孩子端读本机，家长端读孩子缓存（家长报告的目标读者是家长）
+    const s = CTX.scope();
+    const grade = s.grade;
     const today = D.todayStr();
     const days = this.data.range;
-    const records = store.getRecords();
-    const badges = store.getBadges();
+    const records = s.records;
+    const badges = s.badges;
 
     const ov = REPORT.overview(records, grade, days, today);
     const bal = SHOP.balance(C.totalStars(records, grade, badges));
@@ -72,6 +74,7 @@ Page({
 
     this.setData({
       gradeLabel: grade + ' 年级 · 近 ' + days + ' 天',
+      role: s.role,
       ov,
       balance: bal.balance,
       rates,

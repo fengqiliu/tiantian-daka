@@ -14,6 +14,7 @@ const KEYS = {
   TASK_OVERRIDES: 'task_overrides',  // 家长任务管理：目标覆盖 + 自定义任务
   REWARDS: 'rewards',                // 奖励小铺：奖品架（家长维护）
   REDEMPTIONS: 'redemptions',        // 奖励小铺：兑换账本（只追加）
+  SHOP_STAMP: 'shop_stamp',          // 奖励小铺整体时间戳（同步冲突以新者为准）
   DRILL_HISTORY: 'drill_history',    // 口算挑战会话历史（家长报告用）
   CHILD_PROFILE: 'child_profile',    // 家长端缓存：孩子资料
   CHILD_RECORDS: 'child_records',    // 家长端缓存：孩子打卡记录
@@ -86,19 +87,43 @@ function saveQuizHistory(list) { backend.set(KEYS.QUIZ_HISTORY, list); }
 
 // ── 任务管理（家长：目标覆盖 + 自定义任务，本地）──
 function getTaskOverrides() { return _get(KEYS.TASK_OVERRIDES, { targets: {}, customs: [] }); }
-// 页面保存入口：自动盖时间戳（同步冲突以 updatedAt 新者为准）
+// 页面保存入口：自动盖时间戳（同步冲突以 updatedAt 新者为准；
+// 严格递增防同毫秒连续保存时云端比较失效）
 function saveTaskOverrides(o) {
   if (!o) return;
-  backend.set(KEYS.TASK_OVERRIDES, { ...o, updatedAt: Date.now() });
+  const prev = (_get(KEYS.TASK_OVERRIDES, {}) || {}).updatedAt || 0;
+  backend.set(KEYS.TASK_OVERRIDES, { ...o, updatedAt: Math.max(Date.now(), prev + 1) });
 }
 // 同步合并专用：保留远端时间戳，不重新盖章
 function saveTaskOverridesRaw(o) { if (o) backend.set(KEYS.TASK_OVERRIDES, o); }
 
 // ── 奖励小铺（奖品架 + 兑换账本，本地）──
+// 时间戳严格递增（Date.now() 同毫秒连续写入时至少 +1）：
+// 否则同步"新者胜"比较失效，云端不更新
+function _bumpStamp(key) {
+  const prev = _get(key, 0) || 0;
+  const next = Math.max(Date.now(), prev + 1);
+  backend.set(key, next);
+  return next;
+}
 function getRewards() { return _get(KEYS.REWARDS, []); }
-function saveRewards(list) { backend.set(KEYS.REWARDS, list); }
+// 写奖品架/账本统一盖整体时间戳（同步冲突以新者为准）
+function saveRewards(list) {
+  backend.set(KEYS.REWARDS, list);
+  _bumpStamp(KEYS.SHOP_STAMP);
+}
 function getRedemptions() { return _get(KEYS.REDEMPTIONS, []); }
-function saveRedemptions(list) { backend.set(KEYS.REDEMPTIONS, list); }
+function saveRedemptions(list) {
+  backend.set(KEYS.REDEMPTIONS, list);
+  _bumpStamp(KEYS.SHOP_STAMP);
+}
+function getShopStamp() { return _get(KEYS.SHOP_STAMP, 0); }
+// 同步合并专用：保留远端时间戳，不重新盖章
+function saveShopRaw(rewards, redemptions, stamp) {
+  backend.set(KEYS.REWARDS, rewards || []);
+  backend.set(KEYS.REDEMPTIONS, redemptions || []);
+  backend.set(KEYS.SHOP_STAMP, stamp || 0);
+}
 
 // ── 口算会话历史（本地）──
 function getDrillHistory() { return _get(KEYS.DRILL_HISTORY, []); }
@@ -141,6 +166,7 @@ module.exports = {
   getTaskOverrides, saveTaskOverrides, saveTaskOverridesRaw,
   getRewards, saveRewards,
   getRedemptions, saveRedemptions,
+  getShopStamp, saveShopRaw,
   getDrillHistory, saveDrillHistory,
   getSyncState, saveSyncState,
   getChildProfile, getChildRecords, getChildBadges, saveChildData, clearChildData,

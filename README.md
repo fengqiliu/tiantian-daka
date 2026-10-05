@@ -41,7 +41,7 @@ tiantian-daka/
 │   ├── poems/                       # 古诗背诵库与打卡入口
 │   ├── wrong-book/                  # 口算与小卷错题本查看
 │   ├── tasks-manage/                # 任务管理（家长）：调目标值/自定义任务，改完自动上云同步到孩子端
-│   ├── shop/                        # 奖励小铺：打卡赚积分，兑换奖品零食（家长维护奖品架）
+│   ├── shop/                        # 奖励小铺：孩子兑换（积分=累计星数−已兑换）；?manage=1 家长管理奖品架
 │   ├── report/                      # 家长报告：任务完成率/口算趋势/小卷记录
 │   ├── calendar/                    # 打卡日历（按身份自动切数据源）
 │   ├── growth/                      # 成长：称号/勋章/周概览
@@ -72,8 +72,8 @@ tiantian-daka/
 ├── scripts/sync-cloud-libs.js       # 同步共享逻辑到云函数 lib/（--check 只校验漂移）
 ├── content/exams/                   # 试卷知识库（上海2024新教材单元卷 PDF + 结构化数据）
 ├── test/
-│   ├── run-tests.js                 # 79 项客户端单元测试（node 直接运行）
-│   ├── run-cloud-tests.js           # 30 项云函数测试（内存数据库桩）
+│   ├── run-tests.js                 # 82 项客户端单元测试（node 直接运行）
+│   ├── run-cloud-tests.js           # 31 项云函数测试（内存数据库桩）
 │   └── cloud-mock.js                # wx-server-sdk 内存桩（openid 隔离 / 订阅配额 / 43101）
 ├── design/preview.html              # 浏览器打开的 5 屏设计预览
 └── docs/                            # PRD / 设计规范 / 数据模型 / 任务内容库
@@ -88,8 +88,8 @@ tiantian-daka/
 5. 运行测试（无需任何依赖）：
 
 ```bash
-node test/run-tests.js           # 客户端逻辑（79 项）
-node test/run-cloud-tests.js     # 云函数（30 项，含 openid 隔离与订阅配额）
+node test/run-tests.js           # 客户端逻辑（82 项）
+node test/run-cloud-tests.js     # 云函数（31 项，含 openid 隔离与订阅配额）
 node scripts/sync-cloud-libs.js --check   # 校验云函数 lib 与 utils/ 是否漂移
 ```
 
@@ -144,7 +144,7 @@ node scripts/sync-cloud-libs.js --check   # 校验云函数 lib 与 utils/ 是�
 - 客户端采用纯原生小程序框架，无第三方 UI 依赖，使用 emoji 图标；云函数部署需要云端安装 `wx-server-sdk` 等各函数声明的依赖
 - 核心逻辑全部收敛在 `utils/`（CommonJS），与页面解耦，因此可以脱离微信环境用 Node 做单元测试（含同步引擎的增量/冲突合并测试）
 - **本地优先（offline-first）**：读写永远走本地，云端是异步备份与跨设备通道；未配置云环境时全部云调用静默降级，UI 不出现不可用状态
-- 同步协议：记录按 `id = date#taskId` 幂等；删除用墓碑（`deleted: true`）双向传播；冲突按 `updatedAt` 新者胜；勋章只增并集；任务覆盖（家长调整）存 `users.taskOverrides` 同规则；增量游标以云函数返回的服务器时间为上限，防设备时钟漂移丢数据
+- 同步协议：记录按 `id = date#taskId` 幂等；删除用墓碑（`deleted: true`）双向传播；冲突按 `updatedAt` 新者胜；勋章只增并集；任务覆盖（家长调整）存 `users.taskOverrides`、奖励小铺（奖品架 + 兑换账本）存 `users.shop`，同规则；写入时间戳严格递增（同毫秒连续操作也生效）；增量游标以云函数返回的服务器时间为上限，防设备时钟漂移丢数据
 - 星星口径：总星数 = Σ任务星级 + 每日全必做加成 1 星 + Σ已获勋章奖励星；全量动态计算，不冗余存储
 - 订阅消息采用**配额模式**：用户每次授权累计 1 次可发送额度（上限 3），定时任务/里程碑触发时消费额度，43101（未订阅）自动清零
 - 云函数安全：openid 一律取自调用上下文，绝不信任前端传入

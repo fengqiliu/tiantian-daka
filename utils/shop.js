@@ -15,8 +15,9 @@ const DEFAULT_REWARDS = [
 
 function getRewards() {
   const list = store.getRewards();
-  if (list.length) return list;
-  store.saveRewards(DEFAULT_REWARDS.slice()); // 首次自动播种
+  // 仅首次（从未初始化）播种默认架；已清空（stamp > 0 但列表为空）不重复播种
+  if (list.length || store.getShopStamp()) return list;
+  store.saveRewards(DEFAULT_REWARDS.slice());
   return store.getRewards();
 }
 

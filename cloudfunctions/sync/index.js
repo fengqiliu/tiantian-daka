@@ -75,6 +75,18 @@ exports.main = async (event) => {
         }
       }
     }
+    // 奖励小铺（奖品架 + 兑换账本）：云端较旧才覆盖
+    if (event.shop && typeof event.shop === 'object') {
+      const { shop: incoming } = event;
+      const users = db.collection('users');
+      const u = (await users.where({ openid: OPENID }).limit(1).get()).data[0];
+      if (u) {
+        const cur = u.shop || {};
+        if (!cur.updatedAt || (cur.updatedAt || 0) < (incoming.updatedAt || 0)) {
+          await users.doc(u._id).update({ data: { shop: incoming } });
+        }
+      }
+    }
     // 勋章：并集
     for (const b of event.badges || []) {
       if (!b || !b.id) continue;
@@ -90,7 +102,7 @@ exports.main = async (event) => {
     const u = (await db.collection('users').where({ openid: OPENID }).limit(1).get()).data[0];
     const badges = (await db.collection('badges').where({ openid: OPENID }).limit(1000).get()).data
       .map(b => ({ id: b.id, earnedAt: b.earnedAt }));
-    return { ok: true, records, profile: (u && u.profile) || null, overrides: (u && u.taskOverrides) || null, badges, serverTime: Date.now() };
+    return { ok: true, records, profile: (u && u.profile) || null, overrides: (u && u.taskOverrides) || null, shop: (u && u.shop) || null, badges, serverTime: Date.now() };
   }
 
   return { ok: false, error: 'unknown action' };

@@ -9,7 +9,7 @@
 const store = require('./store');
 
 // 把一次拉取结果合并进本地（可独立测试的纯合并步骤）
-function mergePull({ records = [], profile = null, badges = [], overrides = null }) {
+function mergePull({ records = [], profile = null, badges = [], overrides = null, shop = null }) {
   let maxPulled = 0;
   if (records.length) {
     const raw = store.getRecordsRaw();
@@ -37,6 +37,12 @@ function mergePull({ records = [], profile = null, badges = [], overrides = null
       store.saveTaskOverridesRaw(overrides);
     }
   }
+  if (shop && typeof shop === 'object') {
+    maxPulled = Math.max(maxPulled, shop.updatedAt || 0);
+    if (!(store.getShopStamp() > 0) || (shop.updatedAt || 0) > store.getShopStamp()) {
+      store.saveShopRaw(shop.rewards, shop.redemptions, shop.updatedAt || 0);
+    }
+  }
   if (badges.length) {
     const cur = store.getBadges();
     const have = new Set(cur.map(b => b.id));
@@ -56,11 +62,19 @@ async function push(api) {
   // 任务覆盖只在家长改过（有盖章）时上传，避免空配置覆盖云端
   const localOverrides = store.getTaskOverrides();
   const overrides = localOverrides.updatedAt ? localOverrides : null;
+  // 奖励小铺：奖品架 + 兑换账本（播种后必有 stamp；余额 = 同步的星星 − 账本支出）
+  const shopStamp = store.getShopStamp();
+  const shop = shopStamp ? {
+    rewards: store.getRewards(),
+    redemptions: store.getRedemptions(),
+    updatedAt: shopStamp,
+  } : null;
   const payload = {
     records,
     profile: store.getProfile(),
     badges: store.getBadges(),
     overrides,
+    shop,
   };
   const res = await api.pushData(payload);
   if (!res || res.ok === false) return false; // 失败不推进游标，下次重试

@@ -201,7 +201,7 @@ function mkRec(id, ts, extra) {
 }
 // 模拟云端：按 updatedAt 新者胜接收推送，按 since 增量返回
 function mockCloud() {
-  const server = { records: [], profile: null, badges: [], overrides: null, now: 0 };
+  const server = { records: [], profile: null, badges: [], overrides: null, shop: null, now: 0 };
   return {
     server,
     pushData: async p => {
@@ -212,6 +212,7 @@ function mockCloud() {
       });
       if (p.profile && (!server.profile || (server.profile.updatedAt || 0) < (p.profile.updatedAt || 0))) server.profile = p.profile;
       if (p.overrides && (!server.overrides || (server.overrides.updatedAt || 0) < (p.overrides.updatedAt || 0))) server.overrides = p.overrides;
+      if (p.shop && (!server.shop || (server.shop.updatedAt || 0) < (p.shop.updatedAt || 0))) server.shop = p.shop;
       p.badges.forEach(b => { if (!server.badges.find(x => x.id === b.id)) server.badges.push(b); });
       return { ok: true, serverTime: server.now || Date.now() };
     },
@@ -220,6 +221,7 @@ function mockCloud() {
       records: server.records.filter(r => (r.updatedAt || 0) > (q.since || 0)),
       profile: server.profile,
       overrides: server.overrides,
+      shop: server.shop,
       badges: server.badges,
       serverTime: server.now || Date.now(),
     }),
@@ -798,6 +800,63 @@ t('撤销兑换：删除记录即恢复积分', () => {
   SHOP.removeRedemption(SHOP.getRedemptions()[0].id);
   assert.strictEqual(store.getRedemptions().length, 0);
   assert.strictEqual(SHOP.balance(earned).balance, 9);
+});
+
+t('下架全部奖品后默认架不复活', () => {
+  reset();
+  const all = SHOP.getRewards();
+  assert(all.length >= 6, '默认架已播种');
+  all.forEach(r => SHOP.removeReward(r.id));
+  assert.strictEqual(SHOP.getRewards().length, 0, '全部下架后应为空');
+  assert.strictEqual(SHOP.getRewards().length, 0, '再次读取仍为空（不重复播种）');
+});
+
+t('奖励小铺写入盖整体时间戳', () => {
+  reset();
+  assert.strictEqual(store.getShopStamp(), 0, '从未写入时 stamp 为 0');
+  SHOP.getRewards(); // 播种
+  const stamp1 = store.getShopStamp();
+  assert(stamp1 > 0, '播种应盖章');
+  SHOP.addReward({ name: '露营', emoji: '⛺', cost: 200 });
+  assert(store.getShopStamp() >= stamp1, '每次写入都刷新 stamp');
+  const stamp2 = store.getShopStamp();
+  SHOP.redeem({ id: 'r-x', name: '小零食', emoji: '🍬', cost: 1 }, 100);
+  assert(store.getShopStamp() >= stamp2, '兑换写入也刷新 stamp');
+});
+
+t('小铺同步往返：盖章才上传，远端较新才覆盖', async () => {
+  reset();
+  // 从未打开过小铺（无 stamp）→ 不上传
+  const api = mockCloud();
+  await S.push(api);
+  assert.strictEqual(api.server.shop, null, '未初始化的小铺不应上传');
+
+  // 家长上架奖品（盖章）→ 上传
+  SHOP.getRewards(); // 播种
+  SHOP.addReward({ name: '周末露营', emoji: '⛺', cost: 200 });
+  await S.push(api);
+  assert(api.server.shop, '盖章后应上传');
+  assert.strictEqual(api.server.shop.rewards.length, 7, '奖品架应完整上传');
+  assert.strictEqual(api.server.shop.rewards.find(x => x.name === '周末露营').cost, 200);
+
+  // 孩子端兑换 → 账本上传
+  SHOP.redeem({ id: 'r-snack', name: '一份小零食', emoji: '🍬', cost: 10 }, 100);
+  await S.push(api);
+  assert.strictEqual(api.server.shop.redemptions.length, 1, '兑换账本应上传');
+
+  // pull：新设备获得奖品架 + 账本（余额一致的关键）
+  reset();
+  await S.pull(api);
+  assert.strictEqual(store.getRewards().length, 7, '远端奖品架应写入本地');
+  assert.strictEqual(store.getRedemptions().length, 1, '远端账本应写入本地');
+  assert.strictEqual(store.getShopStamp(), api.server.shop.updatedAt, 'stamp 应保留远端值');
+
+  // 本地更新（stamp 更新）→ 不被远端旧数据覆盖
+  const remoteTs = api.server.shop.updatedAt;
+  SHOP.removeReward(store.getRewards()[0].id);
+  assert(store.getShopStamp() > remoteTs, '本地写入应晚于远端');
+  await S.pull(api);
+  assert.strictEqual(store.getRewards().length, 6, '本地较新不应被覆盖');
 });
 
 console.log('— 古诗库与单元筛选 —');

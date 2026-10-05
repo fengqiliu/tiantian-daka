@@ -58,6 +58,7 @@
         <view class="wb-answer">{{x.correct}}/{{x.total}}</view>
       </view>
     </block>
+    <view wx:elif="{{role === 'parent'}}" class="muted rp-empty">口算记录保存在孩子设备上，可到孩子手机查看</view>
     <view wx:else class="muted rp-empty">区间内还没有口算练习记录</view>
   </view>
 
@@ -72,6 +73,7 @@
         <view class="wb-answer">{{q.correct}}/{{q.total}} · {{q.label}}</view>
       </view>
     </block>
+    <view wx:elif="{{role === 'parent'}}" class="muted rp-empty">小卷记录保存在孩子设备上，可到孩子手机查看</view>
     <view wx:else class="muted rp-empty">区间内还没有小卷记录</view>
   </view>
 </view>
