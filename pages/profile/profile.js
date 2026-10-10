@@ -2,9 +2,10 @@ const store = require('../../utils/store');
 const C = require('../../utils/checkin');
 const CTX = require('../../utils/context');
 const cloud = require('../../utils/cloud');
+const BACKUP = require('../../utils/backup');
 
 const AVATARS = ['🐱', '🦊', '🐰', '🐻', '🐸', '🦁', '🐼', '🐷'];
-const APP_VERSION = '0.10.0';
+const APP_VERSION = '0.11.0';
 
 Page({
   data: {
@@ -40,6 +41,11 @@ Page({
     const s = CTX.scope();
     const records = s.records;
     const grade = s.grade;
+    // 备份提醒：有数据且 7 天未备份时温和提示
+    const lastBackupAt = (store.getSettings() || {}).lastBackupAt || 0;
+    const backupHint = records.length >= 20 && Date.now() - lastBackupAt > 7 * 24 * 3600 * 1000
+      ? '已积累 ' + records.length + ' 条打卡记录，建议先导出备份'
+      : '';
     this.setData({
       profile,
       role: s.role,
@@ -52,6 +58,7 @@ Page({
       checkinDays: new Set(records.map(r => r.date)).size,
       cloudOn: cloud.isAvailable(),
       childInfo: s.role === 'parent' ? store.getChildProfile() : null,
+      backupHint,
     });
     this.loadCloudInfo(s.role);
   },
@@ -190,14 +197,45 @@ Page({
 
   // ── 数据管理 ──
   exportData() {
-    const data = JSON.stringify({
-      profile: store.getProfile(),
-      records: store.getRecordsRaw(),
-      badges: store.getBadges(),
-    });
+    const payload = BACKUP.serialize();
+    // 记录备份时间，驱动「建议备份」提醒
+    store.saveSettings({ ...(store.getSettings() || {}), lastBackupAt: Date.now() });
     wx.setClipboardData({
-      data,
-      success: () => wx.showToast({ title: '已复制到剪贴板', icon: 'none' }),
+      data: JSON.stringify(payload),
+      success: () => wx.showModal({
+        title: '已复制到剪贴板',
+        content: '备份包含打卡/勋章/积分等全部数据。建议粘贴发送给微信"文件传输助手"留存；换机或误清空后可在本页「从剪贴板导入」恢复。',
+        showCancel: false,
+      }),
+    });
+    this.onShow();
+  },
+
+  // 从剪贴板导入备份：校验 → 预览摘要 → 二次确认 → 覆盖恢复
+  importData() {
+    wx.getClipboardData({
+      success: res => {
+        const v = BACKUP.restoreFromText(res.data || '');
+        if (!v.ok) {
+          wx.showModal({ title: '导入失败', content: v.error, showCancel: false });
+          return;
+        }
+        const d = new Date(v.summary.exportedAt);
+        wx.showModal({
+          title: '确认导入',
+          content: '备份导出于 ' + (d.getMonth() + 1) + '月' + d.getDate() + '日，包含打卡 '
+            + v.summary.records + ' 条、勋章 ' + v.summary.badges + ' 枚、兑换 ' + v.summary.redemptions
+            + ' 次。导入将覆盖本机全部数据，确定吗？',
+          confirmColor: '#FF5A3C',
+          success: r => {
+            if (!r.confirm) return;
+            BACKUP.restoreFromText(res.data || '');
+            wx.showToast({ title: '恢复完成 ✓', icon: 'none' });
+            this.onShow();
+          },
+        });
+      },
+      fail: () => wx.showToast({ title: '无法读取剪贴板', icon: 'none' }),
     });
   },
 

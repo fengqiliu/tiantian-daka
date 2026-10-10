@@ -104,8 +104,10 @@
   </view>
 
   <view class="card">
-    <view class="h2" style="margin-bottom: 24rpx;">数据</view>
+    <view class="h2" style="margin-bottom: 12rpx;">数据</view>
+    <view class="muted" wx:if="{{backupHint}}" style="margin-bottom: 16rpx; color: #E5484D;">⚠️ {{backupHint}}</view>
     <view class="btn-ghost" bindtap="exportData">导出数据（复制 JSON 备份）</view>
+    <view class="btn-ghost" style="margin-top: 16rpx;" bindtap="importData">从剪贴板导入（恢复备份）</view>
     <view class="btn-danger" style="margin-top: 20rpx;" bindtap="clearData">清空所有数据</view>
     <view class="muted" style="margin-top: 20rpx;">打卡数据保存在本机；开通云开发后自动加密同步备份，仅自己与绑定的家人可见。</view>
   </view>

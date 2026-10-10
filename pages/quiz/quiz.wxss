@@ -42,8 +42,10 @@
   border: 4rpx solid transparent;
 }
 .qz-opt:active { background: #FFF1DC; }
+.qz-opt.sel { background: #FFF1DC; color: #FF8A00; border-color: #FFB25A; }
 .qz-opt.right { background: #E8F8EC; color: #2F9E44; border-color: #8CD9A0; }
 .qz-opt.wrong { background: #FFECE8; color: #E5484D; border-color: #FFB3AB; }
+.qz-multi-submit { margin: 0 40rpx 12rpx; }
 .qz-foot { text-align: center; min-height: 44rpx; }
 
 .qz-done { text-align: center; padding: 48rpx 32rpx; }

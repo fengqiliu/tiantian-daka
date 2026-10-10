@@ -8,7 +8,7 @@
 
 - **本地功能已实现**：每日任务、打卡激励、日历、跟读、口算、小卷、任务管理、奖励小铺与家长报告。
 - **云端代码已实现，需部署验证**：同步、家人绑定、家长任务覆盖同步、每日提醒与里程碑通知。当前 `utils/cloud.js` 的 `CLOUD_ENV` 为空，默认以本地模式运行。
-- **测试资产**：79 项客户端逻辑用例、30 项云函数用例；云函数测试使用内存数据库桩，不能替代真实微信云环境与双手机联调。
+- **测试资产**：85 项客户端逻辑用例、31 项云函数用例；云函数测试使用内存数据库桩，不能替代真实微信云环境与双手机联调。
 - **试用阶段**：按 [7 天真机试用指南](docs/trial-guide.md) 验证孩子与家长端流程，收集内容和交互反馈。
 
 ## 功能一览
@@ -72,7 +72,7 @@ tiantian-daka/
 ├── scripts/sync-cloud-libs.js       # 同步共享逻辑到云函数 lib/（--check 只校验漂移）
 ├── content/exams/                   # 试卷知识库（上海2024新教材单元卷 PDF + 结构化数据）
 ├── test/
-│   ├── run-tests.js                 # 82 项客户端单元测试（node 直接运行）
+│   ├── run-tests.js                 # 85 项客户端单元测试（node 直接运行）
 │   ├── run-cloud-tests.js           # 31 项云函数测试（内存数据库桩）
 │   └── cloud-mock.js                # wx-server-sdk 内存桩（openid 隔离 / 订阅配额 / 43101）
 ├── design/preview.html              # 浏览器打开的 5 屏设计预览
@@ -88,7 +88,7 @@ tiantian-daka/
 5. 运行测试（无需任何依赖）：
 
 ```bash
-node test/run-tests.js           # 客户端逻辑（82 项）
+node test/run-tests.js           # 客户端逻辑（85 项）
 node test/run-cloud-tests.js     # 云函数（31 项，含 openid 隔离与订阅配额）
 node scripts/sync-cloud-libs.js --check   # 校验云函数 lib 与 utils/ 是否漂移
 ```

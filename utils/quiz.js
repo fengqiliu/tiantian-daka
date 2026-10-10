@@ -32,6 +32,16 @@ function instantiate(q, rng) {
   if (q.type === 'judge') {
     return { ...q, options: ['√', '×'], answerIndex: q.answerText === '√' ? 0 : 1 };
   }
+  if (q.type === 'multi') {
+    const mopts = q.options.slice();
+    if (q.shuffle) {
+      for (let i = mopts.length - 1; i > 0; i--) {
+        const j = Math.floor(rng() * (i + 1));
+        [mopts[i], mopts[j]] = [mopts[j], mopts[i]];
+      }
+    }
+    return { ...q, options: mopts, answerSet: q.answers.map(a => mopts.indexOf(a)).sort((x, y) => x - y) };
+  }
   if (q.shuffle) {
     const opts = q.options.slice();
     for (let i = opts.length - 1; i > 0; i--) {
@@ -41,6 +51,12 @@ function instantiate(q, rng) {
     return { ...q, options: opts, answerIndex: opts.indexOf(q.answerText) };
   }
   return { ...q, options: q.options.slice(), answerIndex: q.options.indexOf(q.answerText) };
+}
+
+// 多选判分：选中集合与答案集合完全一致（与顺序无关），多选/漏选都算错
+function gradeMulti(card, pickedIndexes) {
+  const norm = a => a.slice().sort((x, y) => x - y).join(',');
+  return norm(pickedIndexes) === norm(card.answerSet);
 }
 
 function shuffle(arr, rng) {
@@ -97,4 +113,4 @@ function saveHistory(entry) {
 
 function getHistory() { return store.getQuizHistory(); }
 
-module.exports = { GRADES, verdict, subjects, poolFor, buildQuiz, instantiate, markResult, saveHistory, getHistory };
+module.exports = { GRADES, verdict, subjects, poolFor, buildQuiz, instantiate, gradeMulti, markResult, saveHistory, getHistory };

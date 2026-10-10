@@ -41,12 +41,13 @@
         wx:for="{{cards[idx].options}}"
         wx:key="*this"
         wx:for-index="optIdx"
-        class="qz-opt {{feedback && optIdx === rightIndex ? 'right' : ''}} {{feedback === 'wrong' && optIdx === pickedIndex ? 'wrong' : ''}}"
+        class="qz-opt {{optStates[optIdx]}}"
         data-index="{{optIdx}}"
         bindtap="onOption"
       >{{item}}</view>
     </view>
-    <view class="muted qz-foot">{{feedback === 'wrong' ? '答错啦，绿色是正确答案，已记入错题本' : feedback === 'right' ? '答对啦！' : '选出正确的一项'}}</view>
+    <view class="btn-ghost qz-multi-submit" wx:if="{{cards[idx].type === 'multi' && !feedback}}" bindtap="onMultiSubmit">✅ 提交本题</view>
+    <view class="muted qz-foot">{{footHint}}{{feedback === 'wrong' ? ' · 绿色是正确答案，已记入错题本' : feedback === 'right' ? ' · 答对啦！' : ''}}</view>
   </block>
 
   <block wx:if="{{phase === 'done'}}">

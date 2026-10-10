@@ -671,18 +671,67 @@ console.log('— 每周一卷 —');
 const QZ = require('../utils/quiz');
 const QBANK = require('../utils/quiz-bank');
 
-t('题库完整：id 唯一、来源可溯、选项与答案自洽', () => {
+t('题库完整：id 唯一、来源可溯、选项与答案自洽（含多选）', () => {
   const ids = QBANK.bank.map(q => q.id);
   assert.strictEqual(new Set(ids).size, ids.length, '题 id 不应重复');
   QBANK.bank.forEach(q => {
     assert(q.id && q.subject && q.unit && q.prompt && q.source, '元数据齐全: ' + q.id);
     if (q.type === 'judge') {
       assert(['√', '×'].includes(q.answerText));
+    } else if (q.type === 'multi') {
+      assert(Array.isArray(q.answers) && q.answers.length >= 2, '多选答案至少 2 个: ' + q.id);
+      q.answers.forEach(a => assert(q.options.includes(a), '答案必须在选项中: ' + q.id));
+      assert.strictEqual(new Set(q.options).size, q.options.length, '选项不应重复: ' + q.id);
     } else {
       assert(q.options.length >= 2);
       assert(q.options.includes(q.answerText), '答案必须在选项中: ' + q.id);
     }
   });
+});
+t('多选题实例化与判分：乱序映射正确，集合精确匹配', () => {
+  const q = QBANK.bank.find(x => x.type === 'multi');
+  const card = QZ.instantiate(q, seededRng(55));
+  assert.strictEqual(card.options.length, q.options.length);
+  assert.deepStrictEqual(card.answerSet.map(i => card.options[i]).sort(), q.answers.slice().sort());
+  assert.strictEqual(QZ.gradeMulti(card, card.answerSet), true, '全对');
+  assert.strictEqual(QZ.gradeMulti(card, card.answerSet.slice().reverse()), true, '与顺序无关');
+  assert.strictEqual(QZ.gradeMulti(card, card.answerSet.slice(1)), false, '漏选算错');
+  const extra = card.options.findIndex((_, i) => !card.answerSet.includes(i));
+  assert.strictEqual(QZ.gradeMulti(card, card.answerSet.concat([extra])), false, '多选算错');
+});
+
+console.log('— 备份与恢复 —');
+const BACKUP = require('../utils/backup');
+
+t('备份：序列化→恢复 完整往返（含墓碑与任务覆盖）', () => {
+  reset();
+  C.upsertRecord('2026-10-05', 'math_calc', 30, 3, '好');
+  C.upsertRecord('2026-10-05', 'pe_rope', 300, 2, '');
+  C.removeRecord('2026-10-05', 'pe_rope'); // 墓碑
+  store.saveBadges([{ id: 'first_checkin', earnedAt: 1 }]);
+  store.saveTaskOverrides({ targets: { pe_rope: 100 }, customs: [] });
+  store.saveRedemptions([{ id: 'rd_1', name: '小零食', emoji: '🍬', cost: 5, at: 2 }]);
+  const text = JSON.stringify(BACKUP.serialize());
+  store.clearAll();
+  assert.strictEqual(store.getRecords().length, 0);
+  const r = BACKUP.restoreFromText(text);
+  assert.strictEqual(r.ok, true);
+  assert.strictEqual(r.summary.records, 1, '墓碑不计入有效记录数');
+  assert.strictEqual(store.getRecordsRaw().length, 2, 'raw 应含墓碑');
+  assert.strictEqual(store.getRecordsRaw().find(x => x.id === '2026-10-05#pe_rope').deleted, true);
+  assert.strictEqual(store.getBadges().length, 1);
+  assert.strictEqual(store.getTaskOverrides().targets.pe_rope, 100);
+  assert.strictEqual(store.getRedemptions().length, 1);
+});
+
+t('备份校验：拒绝非法输入并给出原因', () => {
+  assert.strictEqual(BACKUP.validate('not json').ok, false);
+  assert.strictEqual(BACKUP.validate('{"app":"other"}').ok, false);
+  assert.strictEqual(BACKUP.validate('{"app":"tiantian-daka","version":1,"data":{}}').ok, false, '缺数组字段');
+  assert.strictEqual(BACKUP.validate(JSON.stringify({
+    app: 'tiantian-daka', version: 1,
+    data: { records: [{ id: 'x' }], badges: [], readings: [], rewards: [], redemptions: [], drillHistory: [], mathWrong: [], quizWrong: [], quizHistory: [] },
+  })).ok, false, '记录缺 date/taskId 应拒绝');
 });
 t('三个学科各有足够题量', () => {
   const subs = QZ.subjects();

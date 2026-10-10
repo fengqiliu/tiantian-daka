@@ -38,7 +38,7 @@ Page({
       (bySubject[name] = bySubject[name] || []).push({
         key: w.key,
         text: w.question.prompt,
-        answer: w.question.answerText,
+        answer: w.question.answerText || (w.question.answers || []).join('、'),
         wrongCount: w.wrongCount,
       });
     });

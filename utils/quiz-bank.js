@@ -89,5 +89,26 @@ module.exports = {
       prompt: '19:00 晚上见到家人：', options: ['Good evening.', 'Good afternoon.', 'Hello, morning.'], answerText: 'Good evening.', source: '英语·Unit 1 B卷' },
     { id: 'english-u1-b4-4', subject: 'english', unit: 1, type: 'choice', shuffle: true,
       prompt: '朋友问你 “How are you?”：', options: ['Goodbye.', "I'm fine. Thank you.", 'Good morning.'], answerText: "I'm fine. Thank you.", source: '英语·Unit 1 B卷' },
+
+    // ── 语文 · 第二单元·拼音（A卷 一、声母韵母分分家 → 多选圈认）──
+    { id: 'chinese-u2-a1-1', subject: 'chinese', unit: 2, type: 'multi', shuffle: true,
+      prompt: '把下面 6 个单韵母都点出来：', options: ['a', 'b', 'o', 'p', 'e', 'm', 'i', 'f', 'u', 'd', 'ü', 't', 'n', 'l'],
+      answers: ['a', 'o', 'e', 'i', 'u', 'ü'], source: '语文·第二单元 A卷' },
+    { id: 'chinese-u2-a1-2', subject: 'chinese', unit: 2, type: 'multi', shuffle: true,
+      prompt: '把下面 8 个声母都点出来：', options: ['a', 'b', 'o', 'p', 'e', 'm', 'i', 'f', 'u', 'd', 'ü', 't', 'n', 'l'],
+      answers: ['b', 'p', 'm', 'f', 'd', 't', 'n', 'l'], source: '语文·第二单元 A卷' },
+
+    // ── 语文 · 第三单元·拼音（A卷 二、平舌音和翘舌音分分家 → 多选）──
+    { id: 'chinese-u3-a2-1', subject: 'chinese', unit: 3, type: 'multi', shuffle: true,
+      prompt: '把平舌音都点出来：', options: ['z', 'c', 's', 'zh', 'ch', 'sh', 'r'],
+      answers: ['z', 'c', 's'], source: '语文·第三单元 A卷' },
+    { id: 'chinese-u3-a2-2', subject: 'chinese', unit: 3, type: 'multi', shuffle: true,
+      prompt: '把翘舌音都点出来：', options: ['z', 'c', 's', 'zh', 'ch', 'sh', 'r'],
+      answers: ['zh', 'ch', 'sh', 'r'], source: '语文·第三单元 A卷' },
+
+    // ── 语文 · 第三单元·拼音（A卷 三、整体认读音节找一找 → 多选）──
+    { id: 'chinese-u3-a5-1', subject: 'chinese', unit: 3, type: 'multi', shuffle: true,
+      prompt: '把 10 个整体认读音节都点出来：', options: ['yi', 'ya', 'wu', 'yu', 'zi', 'ci', 'si', 'zhi', 'chi', 'shi', 'ri', 'gu', 'xu'],
+      answers: ['yi', 'wu', 'yu', 'zi', 'ci', 'si', 'zhi', 'chi', 'shi', 'ri'], source: '语文·第三单元 A卷' },
   ],
 };

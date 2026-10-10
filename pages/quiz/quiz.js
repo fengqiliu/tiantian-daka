@@ -21,8 +21,8 @@ Page({
     answered: 0,
     correctCount: 0,
     feedback: '', // '' | 'right' | 'wrong'
-    pickedIndex: -1,
-    rightIndex: -1,
+    optStates: [], // 当前题每个选项的状态：'' | 'sel' | 'right' | 'wrong'
+    footHint: '选出正确的一项',
     verdict: null,
     historyLine: '',
     wrongCount: 0,
@@ -37,10 +37,6 @@ Page({
       units: this._unitsFor(this.data.selected),
     });
     this.refreshMeta();
-  },
-
-  _unitsFor(subject) {
-    return [...new Set(QZ.poolFor(subject).map(q => q.unit))].sort((a, b) => a - b);
   },
 
   onShow() { this.refreshMeta(); },
@@ -60,6 +56,10 @@ Page({
     });
   },
 
+  _unitsFor(subject) {
+    return [...new Set(QZ.poolFor(subject).map(q => q.unit))].sort((a, b) => a - b);
+  },
+
   onPick(e) {
     const key = e.currentTarget.dataset.key;
     this.setData({ selected: key, selectedUnit: 0, units: this._unitsFor(key) });
@@ -75,30 +75,83 @@ Page({
     this.setData({
       phase: 'play', cards, total,
       idx: 0, answered: 0, correctCount: 0,
-      feedback: '', pickedIndex: -1, rightIndex: -1,
+      feedback: '', optStates: [],
+      footHint: '选出正确的一项',
     });
   },
 
+  _card() { return this.data.cards[this.data.idx]; },
+
   onOption(e) {
     if (this.data.feedback) return;
-    const card = this.data.cards[this.data.idx];
-    const picked = Number(e.currentTarget.dataset.index);
-    const ok = picked === card.answerIndex;
+    const card = this._card();
+    const idx = Number(e.currentTarget.dataset.index);
+    if (card.type === 'multi') {
+      const picked = this._multiPicked();
+      const i = picked.indexOf(idx);
+      if (i > -1) picked.splice(i, 1); else picked.push(idx);
+      this._multiPicked(picked);
+      this.setData({ optStates: card.options.map((_, k) => (picked.indexOf(k) > -1 ? 'sel' : '')) });
+      return;
+    }
+    // 单选：立即判分
+    const ok = idx === card.answerIndex;
     QZ.markResult(card, ok);
     const answered = this.data.answered + 1;
     const correctCount = this.data.correctCount + (ok ? 1 : 0);
-    this.setData({
-      answered, correctCount,
-      feedback: ok ? 'right' : 'wrong',
-      pickedIndex: picked,
-      rightIndex: card.answerIndex,
-    });
+    this._setSingleStates(card, idx, ok);
+    this.setData({ answered, correctCount, feedback: ok ? 'right' : 'wrong' });
     this._t = setTimeout(() => this.advance(answered), ok ? 600 : 1400);
+  },
+
+  onMultiSubmit() {
+    if (this.data.feedback) return;
+    const card = this._card();
+    const picked = this._multiPicked();
+    if (!picked.length) {
+      wx.showToast({ title: '先点选至少一项', icon: 'none' });
+      return;
+    }
+    const ok = QZ.gradeMulti(card, picked);
+    QZ.markResult(card, ok);
+    const answered = this.data.answered + 1;
+    const correctCount = this.data.correctCount + (ok ? 1 : 0);
+    const states = card.options.map((_, i) => {
+      if (card.answerSet.indexOf(i) > -1) return 'right';
+      if (picked.indexOf(i) > -1) return 'wrong';
+      return '';
+    });
+    this.setData({ answered, correctCount, feedback: ok ? 'right' : 'wrong', optStates: states });
+    this._t = setTimeout(() => this.advance(answered), ok ? 900 : 1800);
+  },
+
+  // 多选题当前选中项（按题缓存；set 传入时为写入）
+  _multiPicked(set) {
+    if (this._pickedFor !== this.data.idx) {
+      this._pickedFor = this.data.idx;
+      this._pickedCache = [];
+    }
+    if (set) this._pickedCache = set.slice();
+    return this._pickedCache;
+  },
+
+  _setSingleStates(card, pickedIdx, ok) {
+    const states = card.options.map((_, i) => {
+      if (i === card.answerIndex) return 'right';
+      if (i === pickedIdx && !ok) return 'wrong';
+      return '';
+    });
+    this.setData({ optStates: states });
   },
 
   advance(answered) {
     this._t = null;
-    this.setData({ feedback: '', pickedIndex: -1, rightIndex: -1 });
+    this._pickedFor = null;
+    this._pickedCache = [];
+    this.setData({
+      feedback: '', optStates: [],
+      footHint: this._card() && this._card().type === 'multi' ? '可多选，选完点提交' : '选出正确的一项',
+    });
     if (answered >= this.data.total) {
       const v = QZ.verdict(this.data.total, this.data.correctCount);
       QZ.saveHistory({
@@ -108,7 +161,11 @@ Page({
       this.setData({ phase: 'done', verdict: v });
       this.refreshMeta();
     } else {
-      this.setData({ idx: this.data.idx + 1 });
+      const next = this.data.cards[this.data.idx + 1];
+      this.setData({
+        idx: this.data.idx + 1,
+        footHint: next && next.type === 'multi' ? '可多选，选完点提交' : '选出正确的一项',
+      });
     }
   },
 
