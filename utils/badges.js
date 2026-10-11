@@ -35,6 +35,11 @@ const BADGE_DEFS = [
   { id: 'bookworm', name: '小书虫', emoji: '📚', desc: '累计课外阅读 30 小时', check: c => c.sum(['chinese_reading_ext']) >= 1800 },
   { id: 'sunshine', name: '阳光少年', emoji: '🌞', desc: '累计户外活动 50 小时', check: c => c.sum(['pe_outdoor']) >= 3000 },
   { id: 'writer', name: '小作家萌芽', emoji: '📔', desc: '累计完成 10 篇日记', check: c => c.sum(['chinese_diary']) >= 10 },
+  { id: 'first_redeem', name: '兑换初体验', emoji: '🛍️', desc: '第一次用积分兑换奖品', check: c => c.redemptions >= 1 },
+  { id: 'quiz_fan', name: '小卷爱好者', emoji: '📝', desc: '完成 3 次每周一卷', check: c => c.quizSessions.length >= 3 },
+  { id: 'quiz_perfect', name: '满分小卷', emoji: '💯', desc: '一次 10 题小卷全对', check: c => c.quizSessions.some(x => (x.total || 0) >= 10 && x.correct === x.total) },
+  { id: 'poem_6', name: '背诗小能手', emoji: '📜', desc: '累计背诵 6 首古诗', check: c => c.poemCount >= 6 },
+  { id: 'drill_perfect_3', name: '口算满分王', emoji: '🎯', desc: '口算挑战满分 3 次（每次 ≥10 题）', check: c => c.drillPerfectCount >= 3 },
 ].map(d => ({ ...d, bonus: C.BADGE_BONUS[d.id] || 0 }));
 
 // 每次打卡保存后调用：评估新勋章并落盘，返回本次新获得列表
@@ -47,6 +52,11 @@ function evaluate(records, profile, today) {
     sum: ids => C.aggregateSum(records, ids),
     hasPerfectDay: C.hasPerfectDay(records, grade),
     hasFullWeek: C.hasFullWeek(records, grade, today),
+    // 练习勋章上下文：兑换/小卷/背诗/口算会话
+    redemptions: store.getRedemptions().length,
+    quizSessions: store.getQuizHistory(),
+    drillPerfectCount: store.getDrillHistory().filter(s => (s.total || 0) >= 10 && s.correct === s.total).length,
+    poemCount: C.aggregateSum(records, ['chinese_poem']),
   };
   const earned = store.getBadges();
   const have = new Set(earned.map(b => b.id));

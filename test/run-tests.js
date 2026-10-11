@@ -943,6 +943,70 @@ t('单元筛选下错题本同样按单元过滤', () => {
   assert(quizAll.cards.find(c => c.id === u2.id), '不筛单元时应混入错题');
 });
 
+console.log('— 练习勋章（TDD）—');
+
+t('勋章：首次兑换 → 兑换初体验 🛍️', () => {
+  reset();
+  B.evaluate([], { grade: 3 }, '2026-10-05');
+  assert(!store.getBadges().find(b => b.id === 'first_redeem'), '无兑换不应触发');
+  store.saveRedemptions([{ id: 'rd1', name: '小零食', emoji: '🍬', cost: 5, at: 1 }]);
+  B.evaluate(store.getRecords(), { grade: 3 }, '2026-10-05');
+  assert(store.getBadges().find(b => b.id === 'first_redeem'), '有兑换应触发');
+});
+
+t('勋章：小卷练 3 次 → 小卷爱好者 📝', () => {
+  reset();
+  store.saveQuizHistory([
+    { subject: 'math', total: 10, correct: 8, label: '良好', at: 1 },
+    { subject: 'math', total: 10, correct: 9, label: '良好', at: 2 },
+  ]);
+  B.evaluate([], { grade: 3 }, '2026-10-05');
+  assert(!store.getBadges().find(b => b.id === 'quiz_fan'), '2 次不应触发');
+  store.saveQuizHistory(store.getQuizHistory().concat([
+    { subject: 'math', total: 10, correct: 7, label: '合格', at: 3 },
+  ]));
+  B.evaluate([], { grade: 3 }, '2026-10-05');
+  assert(store.getBadges().find(b => b.id === 'quiz_fan'), '3 次应触发');
+});
+
+t('勋章：10 题满分小卷 → 满分小卷 💯', () => {
+  reset();
+  store.saveQuizHistory([{ subject: 'math', total: 10, correct: 9, label: '良好', at: 1 }]);
+  B.evaluate([], { grade: 3 }, '2026-10-05');
+  assert(!store.getBadges().find(b => b.id === 'quiz_perfect'), '非满分不应触发');
+  store.saveQuizHistory(store.getQuizHistory().concat([
+    { subject: 'math', total: 10, correct: 10, label: '优秀', at: 2 },
+  ]));
+  B.evaluate([], { grade: 3 }, '2026-10-05');
+  assert(store.getBadges().find(b => b.id === 'quiz_perfect'), '满分应触发');
+});
+
+t('勋章：累计背诗 6 首 → 背诗小能手 📜（同日多首要累计）', () => {
+  reset();
+  // 第一天背 2 首（value 逐次累计），第二天背 4 首 —— 复现古诗页的真实写入方式
+  C.upsertRecord('2026-10-04', 'chinese_poem', 1, 3, '会背《咏鹅》');
+  C.upsertRecord('2026-10-04', 'chinese_poem', 2, 3, '会背《咏鹅》、会背《画》');
+  C.upsertRecord('2026-10-05', 'chinese_poem', 1, 3, '会背《悯农（其二）》');
+  C.upsertRecord('2026-10-05', 'chinese_poem', 2, 3, '');
+  C.upsertRecord('2026-10-05', 'chinese_poem', 3, 3, '');
+  C.upsertRecord('2026-10-05', 'chinese_poem', 4, 3, '');
+  assert.strictEqual(C.aggregateSum(store.getRecords(), ['chinese_poem']), 6);
+  B.evaluate(store.getRecords(), { grade: 3 }, '2026-10-05');
+  assert(store.getBadges().find(b => b.id === 'poem_6'), '累计 6 首应触发');
+});
+
+t('勋章：口算满分 3 次（每次 ≥10 题）→ 口算满分王 🎯', () => {
+  reset();
+  const perfect = (date, total) => AR.saveSession({ date, level: 'addsub10', total, correct: total });
+  perfect('2026-10-01', 20); perfect('2026-10-02', 20);
+  B.evaluate([], { grade: 3 }, '2026-10-05');
+  assert(!store.getBadges().find(b => b.id === 'drill_perfect_3'), '2 次不应触发');
+  perfect('2026-10-03', 5); // 不足 10 题，不应计数
+  perfect('2026-10-04', 20);
+  B.evaluate([], { grade: 3 }, '2026-10-05');
+  assert(store.getBadges().find(b => b.id === 'drill_perfect_3'), '3 次（≥10 题）应触发');
+});
+
 console.log('— 云能力封装 —');
 // cloud.js 用模块级 available 缓存状态，且 CLOUD_ENV 为空；测试需整体重载模块
 const CLOUD_PATH = require.resolve('../utils/cloud');

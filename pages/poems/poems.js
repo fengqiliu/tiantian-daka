@@ -40,7 +40,11 @@ Page({
       wx.showToast({ title: '今天这首已经背过啦', icon: 'none' });
       return;
     }
-    C.upsertRecord(this.date, 'chinese_poem', 1, 3, '会背《' + poem.title + '》');
+    // 同日多首累计：value 逐次 +1，note 追加标题（勋章按累计首数判定）
+    const existing = C.getDayRecords(this.date).find(r => r.taskId === 'chinese_poem');
+    const count = existing ? (existing.value.n || 0) + 1 : 1;
+    const note = existing && existing.note ? existing.note + '、会背《' + poem.title + '》' : '会背《' + poem.title + '》';
+    C.upsertRecord(this.date, 'chinese_poem', count, 3, note);
     const profile = store.getProfile();
     const fresh = B.evaluate(store.getRecords(), profile);
     if (fresh.length) {

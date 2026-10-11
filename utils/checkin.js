@@ -80,6 +80,7 @@ const BADGE_BONUS = {
   first_checkin: 0, perfect_day: 1, streak_7: 5, streak_30: 20, streak_100: 50,
   full_week: 7, reader_10h: 10, calc_1000: 10, rope_10k: 10,
   bookworm: 10, sunshine: 10, writer: 5,
+  first_redeem: 0, quiz_fan: 5, quiz_perfect: 10, poem_6: 10, drill_perfect_3: 10,
 };
 
 // 总星星 = Σ任务星 + 每日全必做加成1星 + Σ已获勋章奖励
