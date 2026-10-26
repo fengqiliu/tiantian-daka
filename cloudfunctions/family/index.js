@@ -1,9 +1,32 @@
-// 家人绑定：邀请码创建/加入/退出、家长拉取孩子摘要、家长动态订阅、里程碑推送
+// 家人绑定：邀请码创建/加入/退出、家长拉取孩子摘要、家长动态订阅、里程碑推送、家长鼓励留言
 const cloud = require('wx-server-sdk');
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
 const _ = db.command;
 const { NOTIFY_TEMPLATE_ID } = require('./config.js');
+const CHEER = require('./lib/cheer.js');
+
+const DAY_MS = 24 * 3600 * 1000;
+
+// 留言对外字段（不回传 openid）
+function cheerView(d) {
+  return {
+    id: d._id, from: d.from, text: d.text,
+    recordId: d.recordId || null, recordLabel: d.recordLabel || '',
+    createdAt: d.createdAt, readAt: d.readAt || 0,
+  };
+}
+
+// 内容安全（读者是孩子）：常用语免审；自定义文字送审，风险或审核不可用一律拒绝
+async function contentOk(openid, text) {
+  if (CHEER.isPreset(text)) return true;
+  try {
+    const r = await cloud.openapi.security.msgSecCheck({ openid, scene: 2, version: 2, content: text });
+    return !!(r && r.result && r.result.suggest === 'pass');
+  } catch (e) {
+    return false;
+  }
+}
 
 // 邀请码：6 位，去掉易混淆的 0/O/1/I/L
 const CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
@@ -150,6 +173,49 @@ exports.main = async (event) => {
       }
     }
     return { ok: true, sent };
+  }
+
+  // 家长端：给孩子留言（只有绑定的家长可发）
+  if (action === 'cheer') {
+    const fam = await findMyFamily(OPENID);
+    if (!fam || fam.ownerOpenid === OPENID) return { ok: false, error: '仅绑定的家长可以留言' };
+    const v = CHEER.validate(event);
+    if (!v.ok) return v;
+    const recent = await db.collection('cheers')
+      .where({ fromOpenid: OPENID, createdAt: _.gt(Date.now() - DAY_MS) })
+      .limit(CHEER.DAILY_LIMIT)
+      .get();
+    if (recent.data.length >= CHEER.DAILY_LIMIT) return { ok: false, error: '今天的留言够多啦，明天再来' };
+    if (!(await contentOk(OPENID, v.text))) return { ok: false, error: '这句话发不出去，换个说法或用常用语吧' };
+    const added = await db.collection('cheers').add({
+      data: {
+        ownerOpenid: fam.ownerOpenid, fromOpenid: OPENID,
+        from: v.from, text: v.text, recordId: v.recordId, recordLabel: v.recordLabel,
+        createdAt: Date.now(), readAt: 0,
+      },
+    });
+    return { ok: true, id: added._id };
+  }
+
+  // 孩子端：收到的留言；家长端：自己发出的（各最近 20 条）
+  if (action === 'cheers') {
+    const fam = await findMyFamily(OPENID);
+    if (!fam) return { ok: false, error: '尚未绑定' };
+    const where = fam.ownerOpenid === OPENID
+      ? { ownerOpenid: OPENID }
+      : { ownerOpenid: fam.ownerOpenid, fromOpenid: OPENID };
+    const res = await db.collection('cheers').where(where).orderBy('createdAt', 'desc').limit(20).get();
+    return { ok: true, cheers: res.data.map(cheerView) };
+  }
+
+  // 孩子端：标记已读（只能标自己收到的）
+  if (action === 'cheerRead') {
+    const ids = (Array.isArray(event.ids) ? event.ids : []).slice(0, 50);
+    const now = Date.now();
+    for (const id of ids) {
+      await db.collection('cheers').where({ _id: id, ownerOpenid: OPENID }).update({ data: { readAt: now } });
+    }
+    return { ok: true };
   }
 
   if (action === 'config') {

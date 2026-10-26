@@ -35,6 +35,15 @@
         </view>
       </view>
 
+      <view class="card row task-card" bindtap="goCheer">
+        <view class="task-emoji" style="background: #FFF1F3;">💌</view>
+        <view class="flex1 task-info">
+          <view class="task-name">给孩子留言</view>
+          <view class="muted">发一句鼓励，孩子首页会看到；点已完成的任务可以为它点赞</view>
+        </view>
+        <view class="task-right"><text class="muted">›</text></view>
+      </view>
+
       <view class="card weekly-card" wx:if="{{weekly}}" bindtap="goReport">
         <view class="row">
           <view class="h2 flex1">📬 上周周报</view>
@@ -64,6 +73,8 @@
           wx:for-item="task"
           class="card task-card row {{task.done ? 'task-done' : ''}}"
           data-id="{{task.id}}"
+          data-done="{{task.done}}"
+          data-name="{{task.name}}"
           bindtap="onParentTaskTap"
         >
           <view class="task-emoji" style="background: {{sec.bg}};">{{task.emoji}}</view>
@@ -103,6 +114,16 @@
         <view class="h2">{{done === total && total > 0 ? '全部完成，太棒啦！🎉' : '完成必做任务，达成今日目标'}}</view>
         <view class="muted">今日已获得 {{starsToday}} ⭐ · 连续打卡 {{streak}} 天 🔥</view>
       </view>
+    </view>
+
+    <view wx:if="{{cheer}}" class="card cheer-card">
+      <view class="row">
+        <view class="h2 flex1">💌 {{cheer.cheer.from}}说</view>
+        <text class="muted" wx:if="{{cheer.unread > 1}}">还有 {{cheer.unread - 1}} 条</text>
+      </view>
+      <view class="cheer-text">{{cheer.cheer.text}}</view>
+      <view class="muted" wx:if="{{cheer.cheer.recordLabel}}">为你的「{{cheer.cheer.recordLabel}}」点赞</view>
+      <view class="cheer-ack" bindtap="onCheerAck">收到啦 ❤️</view>
     </view>
 
     <view wx:if="{{reviewDue > 0 || reviewDone}}" class="card task-card row {{reviewDue ? '' : 'task-done'}}" bindtap="goReview">

@@ -1596,6 +1596,79 @@ t('cloud.resetCloud 调用 sync 云函数的 reset 动作；未配置环境时�
   assert.strictEqual(d.degraded, true);
 });
 
+console.log('— 家长鼓励留言 —');
+const CHEER = require('../utils/cheer');
+t('validate：称呼白名单、去首尾与连续空白、1-40 字（emoji 按 1 字计）、关联标签 ≤20', () => {
+  assert.deepStrictEqual(CHEER.validate({ from: '妈妈', text: '  今天  真棒 ' }), { ok: true, from: '妈妈', text: '今天 真棒', recordId: null, recordLabel: '' });
+  assert.strictEqual(CHEER.validate({ from: '妈妈', text: '👍'.repeat(40) }).ok, true, 'emoji 按字符计');
+  assert.strictEqual(CHEER.validate({ from: '妈妈', text: '👍'.repeat(41) }).ok, false);
+  assert.strictEqual(CHEER.validate({ from: '妈妈', text: '' }).ok, false);
+  assert.strictEqual(CHEER.validate({ from: '叔叔阿姨们', text: '好' }).ok, false);
+  assert.strictEqual(CHEER.validate({ from: '妈妈', text: '好', recordLabel: '长'.repeat(21) }).ok, false);
+  const v = CHEER.validate({ from: '爸爸', text: '好', recordId: '2026-10-05#pe_rope', recordLabel: '跳绳' });
+  assert.deepStrictEqual([v.recordId, v.recordLabel], ['2026-10-05#pe_rope', '跳绳']);
+  assert(CHEER.isPreset(CHEER.PRESETS[0]));
+  assert(!CHEER.isPreset('自定义的话'));
+  assert(CHEER.FROM_OPTIONS.includes('妈妈') && CHEER.FROM_OPTIONS.includes('爸爸'));
+});
+t('banner：最新一条未读 + 未读总数；全读完返回 null', () => {
+  const list = [
+    { id: 'c3', text: '最新已读', createdAt: 30, readAt: 31 },
+    { id: 'c2', text: '较新未读', createdAt: 20, readAt: 0 },
+    { id: 'c1', text: '最早未读', createdAt: 10, readAt: 0 },
+  ];
+  const b = CHEER.banner(list);
+  assert.deepStrictEqual([b.cheer.id, b.unread], ['c2', 2]);
+  assert.strictEqual(CHEER.banner([{ id: 'x', readAt: 5 }]), null);
+  assert.strictEqual(CHEER.banner([]), null);
+});
+t('孩子端缓存：本地标记已读后横幅换下一条', () => {
+  reset();
+  store.saveCheers([{ id: 'c2', createdAt: 20, readAt: 0 }, { id: 'c1', createdAt: 10, readAt: 0 }]);
+  store.markCheersRead(['c2']);
+  assert.strictEqual(CHEER.banner(store.getCheers()).cheer.id, 'c1');
+  assert(store.getCheers().find(c => c.id === 'c2').readAt > 0);
+});
+t('cloud 封装：cheerSend / cheerList（成功时写入孩子缓存）/ cheerRead', async () => {
+  reset();
+  const calls = [];
+  const cloud = reloadCloud({
+    call: p => {
+      calls.push(p.data);
+      if (p.data.action === 'cheers') return Promise.resolve({ result: { ok: true, cheers: [{ id: 'c1', text: '加油', createdAt: 1, readAt: 0 }] } });
+      return Promise.resolve({ result: { ok: true } });
+    },
+  });
+  cloud.init('prod-test');
+  await cloud.cheerSend({ from: '妈妈', text: '加油', recordId: 'd#t', recordLabel: '跳绳' });
+  await cloud.cheerList();
+  await cloud.cheerRead(['c1']);
+  unloadCloud();
+  assert.deepStrictEqual(calls.map(c => c.action), ['cheer', 'cheers', 'cheerRead']);
+  assert.deepStrictEqual(calls[0], { action: 'cheer', from: '妈妈', text: '加油', recordId: 'd#t', recordLabel: '跳绳' });
+  assert.deepStrictEqual(calls[2].ids, ['c1']);
+  assert.strictEqual(store.getCheers().length, 1, '列表写入缓存');
+});
+t('cheerList 在家长端不写缓存（家长拿到的是发出的留言，切回孩子身份时不能当成收到的）', async () => {
+  reset();
+  store.saveProfile({ role: 'parent' });
+  const cloud = reloadCloud({ call: () => Promise.resolve({ result: { ok: true, cheers: [{ id: 'sent', createdAt: 1, readAt: 0 }] } }) });
+  cloud.init('prod-test');
+  const res = await cloud.cheerList();
+  unloadCloud();
+  assert.strictEqual(res.cheers.length, 1, '结果照常返回给页面');
+  assert.deepStrictEqual(store.getCheers(), [], '不写孩子端缓存');
+});
+t('cheerList 失败时保留旧缓存', async () => {
+  reset();
+  store.saveCheers([{ id: 'old', createdAt: 1, readAt: 0 }]);
+  const cloud = reloadCloud({ call: () => Promise.resolve({ result: { ok: false, error: 'net' } }) });
+  cloud.init('prod-test');
+  await cloud.cheerList();
+  unloadCloud();
+  assert.strictEqual(store.getCheers()[0].id, 'old');
+});
+
 chain.then(() => {
   console.log('\n全部通过：' + passed + ' 项 ✓');
 }).catch(e => {

@@ -132,6 +132,7 @@ exports.main = async (event) => {
   if (action === 'reset') {
     await db.collection('checkins').where({ openid: OPENID }).remove();
     await db.collection('badges').where({ openid: OPENID }).remove();
+    await db.collection('cheers').where({ ownerOpenid: OPENID }).remove(); // 收到的家长留言
     const users = db.collection('users');
     const u = (await users.where({ openid: OPENID }).limit(1).get()).data[0];
     if (u) {

@@ -1,4 +1,4 @@
-// 把客户端共享逻辑同步到云函数 lib/（dailyRemind：tasks/date/calendar-config；sync：history-merge）
+// 把客户端共享逻辑同步到云函数 lib/（dailyRemind：tasks/date/calendar-config；sync：history-merge；family：cheer）
 // 云函数独立打包，无法 require 小程序目录；此脚本保证两边一致。
 // 用法：
 //   node scripts/sync-cloud-libs.js           复制（修改 utils/ 共享逻辑后重跑，并重新上传对应云函数）
@@ -11,6 +11,7 @@ const root = path.join(__dirname, '..');
 const targets = {
   'cloudfunctions/dailyRemind/lib': ['utils/tasks.js', 'utils/date.js', 'utils/calendar-config.js'],
   'cloudfunctions/sync/lib': ['utils/history-merge.js'],
+  'cloudfunctions/family/lib': ['utils/cheer.js'],
 };
 
 const checkOnly = process.argv.includes('--check');

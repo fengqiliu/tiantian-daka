@@ -7,6 +7,7 @@ const cloud = require('../../utils/cloud');
 const CAL = require('../../utils/calendar-config');
 const RV = require('../../utils/review');
 const REPORT = require('../../utils/report');
+const CHEER = require('../../utils/cheer');
 
 Page({
   data: {
@@ -27,6 +28,7 @@ Page({
     streak: 0,
     reviewDue: 0,
     reviewDone: false,
+    cheer: null, // { cheer, unread }：家长留言横幅
     // 家长模式
     bound: false,
     bindCode: '',
@@ -60,6 +62,7 @@ Page({
       this.setData({ isParent: false });
       this.refreshChild(s.profile);
       cloud.syncAll(); // 节流 1 分钟，静默失败
+      this.refreshCheers();
     }
   },
 
@@ -87,7 +90,26 @@ Page({
       streak: C.streaks(all).current,
       reviewDue: RV.dueCount(today),
       reviewDone: RV.reviewedToday(today),
+      cheer: CHEER.banner(store.getCheers()),
     });
+  },
+
+  // 家长留言：先显示缓存，再静默拉最新（节流 1 分钟）
+  refreshCheers() {
+    if (!cloud.isAvailable() || Date.now() - (this._cheersAt || 0) < 60 * 1000) return;
+    this._cheersAt = Date.now();
+    cloud.cheerList().then(res => {
+      if (res && res.ok) this.setData({ cheer: CHEER.banner(store.getCheers()) });
+    });
+  },
+
+  // 「收到啦」：本地先标已读（横幅换下一条），云端异步跟上
+  onCheerAck() {
+    const c = this.data.cheer && this.data.cheer.cheer;
+    if (!c) return;
+    store.markCheersRead([c.id]);
+    cloud.cheerRead([c.id]);
+    this.setData({ cheer: CHEER.banner(store.getCheers()) });
   },
 
   // 状态标签：假期 > 周末 > 上学日
@@ -236,7 +258,20 @@ Page({
     });
   },
 
-  onParentTaskTap() {
-    wx.showToast({ title: '家长端只读，去孩子手机上打卡吧', icon: 'none' });
+  // 家长端：点已完成的任务 → 给这次打卡点赞留言；未完成的仍提示只读
+  onParentTaskTap(e) {
+    const { id, done, name } = e.currentTarget.dataset;
+    if (!done) {
+      wx.showToast({ title: '家长端只读，去孩子手机上打卡吧', icon: 'none' });
+      return;
+    }
+    const recordId = D.todayStr() + '#' + id;
+    wx.navigateTo({
+      url: '/pages/cheer/cheer?recordId=' + encodeURIComponent(recordId) + '&label=' + encodeURIComponent(name),
+    });
+  },
+
+  goCheer() {
+    wx.navigateTo({ url: '/pages/cheer/cheer' });
   },
 });

@@ -406,6 +406,128 @@ t('summary 返回孩子的练习记录（口算会话 + 小卷历史）', async 
   assert.strictEqual(s.practice.drill.length, 1, '家长应拿到孩子口算会话');
   assert.strictEqual(s.practice.quiz.length, 1, '家长应拿到孩子小卷历史');
 });
+// 家庭：kid1 创建，parent1 加入；kid2/parent2 另一家
+async function twoFamilies() {
+  reset();
+  const family = CM.load('family');
+  CM.setOpenid('kid1'); await CM.load('login').main({});
+  const c1 = (await family.main({ action: 'create' })).code;
+  CM.setOpenid('kid2'); await CM.load('login').main({});
+  const c2 = (await family.main({ action: 'create' })).code;
+  CM.setOpenid('parent1'); await family.main({ action: 'join', code: c1 });
+  CM.setOpenid('parent2'); await family.main({ action: 'join', code: c2 });
+  return family;
+}
+console.log('— 家长鼓励留言 cheer —');
+t('家长留言 → 孩子收到（未读）；家长看到自己发出的；别的家庭互不可见', async () => {
+  const family = await twoFamilies();
+  CM.setOpenid('parent1');
+  const s = await family.main({ action: 'cheer', from: '妈妈', text: '今天跳绳真棒！', recordId: '2026-10-05#pe_rope', recordLabel: '跳绳' });
+  assert.strictEqual(s.ok, true, JSON.stringify(s));
+  assert(s.id);
+  CM.setOpenid('kid1');
+  const got = await family.main({ action: 'cheers' });
+  assert.strictEqual(got.ok, true);
+  assert.strictEqual(got.cheers.length, 1);
+  assert.deepStrictEqual(
+    [got.cheers[0].from, got.cheers[0].text, got.cheers[0].recordLabel, got.cheers[0].readAt],
+    ['妈妈', '今天跳绳真棒！', '跳绳', 0]);
+  assert.strictEqual(got.cheers[0].fromOpenid, undefined, '不回传对方 openid');
+  CM.setOpenid('parent1');
+  assert.strictEqual((await family.main({ action: 'cheers' })).cheers.length, 1, '家长看到自己发出的');
+  CM.setOpenid('kid2');
+  assert.strictEqual((await family.main({ action: 'cheers' })).cheers.length, 0, '别家孩子收不到');
+  CM.setOpenid('parent2');
+  assert.strictEqual((await family.main({ action: 'cheers' })).cheers.length, 0, '别家家长看不到');
+});
+t('只有绑定的家长能留言：孩子自己、未绑定者被拒', async () => {
+  const family = await twoFamilies();
+  CM.setOpenid('kid1');
+  assert.strictEqual((await family.main({ action: 'cheer', from: '妈妈', text: '加油' })).ok, false, '孩子不能给自己留言');
+  CM.setOpenid('stranger');
+  assert.strictEqual((await family.main({ action: 'cheer', from: '妈妈', text: '加油' })).ok, false, '未绑定者被拒');
+  assert.strictEqual(CM.db.cheers ? CM.db.cheers.length : 0, 0);
+});
+t('校验：空/超长内容、非法称呼、超长关联标签被拒；内容去首尾空白', async () => {
+  const family = await twoFamilies();
+  CM.setOpenid('parent1');
+  for (const bad of [
+    { from: '妈妈', text: '   ' },
+    { from: '妈妈', text: '好'.repeat(41) },
+    { from: '隔壁老王', text: '加油' },
+    { from: '妈妈', text: '加油', recordLabel: '长'.repeat(21) },
+  ]) {
+    assert.strictEqual((await family.main({ action: 'cheer', ...bad })).ok, false, JSON.stringify(bad));
+  }
+  const ok = await family.main({ action: 'cheer', from: '爸爸', text: '  ' + '好'.repeat(40) + '  ' });
+  assert.strictEqual(ok.ok, true, '40 字以内可发');
+  CM.setOpenid('kid1');
+  assert.strictEqual((await family.main({ action: 'cheers' })).cheers[0].text, '好'.repeat(40));
+});
+t('内容安全：自定义文字送审，常用语免审；风险或审核不可用时拒绝', async () => {
+  const family = await twoFamilies();
+  const CHEER = require('../utils/cheer');
+  CM.setOpenid('parent1');
+  await family.main({ action: 'cheer', from: '妈妈', text: CHEER.PRESETS[0] });
+  assert.strictEqual(CM.secChecks.length, 0, '常用语不送审');
+  await family.main({ action: 'cheer', from: '妈妈', text: '周末带你去公园' });
+  assert.strictEqual(CM.secChecks.length, 1, '自定义文字送审');
+  assert.deepStrictEqual([CM.secChecks[0].openid, CM.secChecks[0].scene, CM.secChecks[0].version, CM.secChecks[0].content], ['parent1', 2, 2, '周末带你去公园']);
+  CM.setSecImpl(async () => ({ errCode: 0, result: { suggest: 'risky', label: 20001 } }));
+  const risky = await family.main({ action: 'cheer', from: '妈妈', text: '某些不合适的话' });
+  assert.strictEqual(risky.ok, false);
+  CM.setSecImpl(async () => { throw Object.assign(new Error('api unauthorized'), { errCode: -604101 }); });
+  const down = await family.main({ action: 'cheer', from: '妈妈', text: '审核挂了时的自定义话' });
+  assert.strictEqual(down.ok, false, '审核不可用时宁可拒绝（读者是孩子）');
+  assert.strictEqual(CM.db.cheers.length, 2, '只落库通过的两条');
+});
+t('防刷：同一家长 24 小时内最多 10 条', async () => {
+  const family = await twoFamilies();
+  const CHEER = require('../utils/cheer');
+  CM.setOpenid('parent1');
+  for (let i = 0; i < CHEER.DAILY_LIMIT; i++) {
+    assert.strictEqual((await family.main({ action: 'cheer', from: '妈妈', text: CHEER.PRESETS[i % CHEER.PRESETS.length] })).ok, true);
+  }
+  const over = await family.main({ action: 'cheer', from: '妈妈', text: CHEER.PRESETS[0] });
+  assert.strictEqual(over.ok, false);
+  CM.db.cheers.forEach(c => { c.createdAt -= 25 * 3600 * 1000; }); // 一天后
+  assert.strictEqual((await family.main({ action: 'cheer', from: '妈妈', text: CHEER.PRESETS[0] })).ok, true, '窗口过后恢复');
+});
+t('孩子标记已读：只能标自己的', async () => {
+  const family = await twoFamilies();
+  CM.setOpenid('parent1'); const a = await family.main({ action: 'cheer', from: '妈妈', text: '加油哦' });
+  CM.setOpenid('parent2'); const b = await family.main({ action: 'cheer', from: '爸爸', text: '真棒' });
+  CM.setOpenid('kid1');
+  const r = await family.main({ action: 'cheerRead', ids: [a.id, b.id] });
+  assert.strictEqual(r.ok, true);
+  assert(CM.db.cheers.find(c => c._id === a.id).readAt > 0, '自己的标记已读');
+  assert.strictEqual(CM.db.cheers.find(c => c._id === b.id).readAt, 0, '别人的不受影响');
+  CM.setOpenid('parent1');
+  await family.main({ action: 'cheerRead', ids: [a.id] });
+  assert.strictEqual(CM.db.cheers.find(c => c._id === a.id).readAt > 0, true);
+});
+t('一键清空（sync reset）删除孩子收到的留言', async () => {
+  const family = await twoFamilies();
+  CM.setOpenid('parent1'); await family.main({ action: 'cheer', from: '妈妈', text: '加油哦' });
+  CM.setOpenid('parent2'); await family.main({ action: 'cheer', from: '爸爸', text: '真棒' });
+  CM.setOpenid('kid1');
+  await CM.load('sync').main({ action: 'reset' });
+  assert.deepStrictEqual(CM.db.cheers.map(c => c.ownerOpenid), ['kid2'], '只删 kid1 收到的');
+});
+t('login 自愈创建 cheers 集合', async () => {
+  reset();
+  CM.setOpenid('kid1');
+  await CM.load('login').main({});
+  assert(Array.isArray(CM.db.cheers));
+});
+t('family lib：cheer.js 与 utils/ 一致', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const root = path.join(__dirname, '..');
+  const lib = path.join(root, 'cloudfunctions/family/lib/cheer.js');
+  assert(fs.existsSync(lib), '应由 scripts/sync-cloud-libs.js 复制');
+  assert.strictEqual(fs.readFileSync(lib, 'utf8'), fs.readFileSync(path.join(root, 'utils/cheer.js'), 'utf8'));
+});
 t('leave 移除家长成员；孩子端 leave 不影响家庭', async () => {
   reset();
   const family = CM.load('family');

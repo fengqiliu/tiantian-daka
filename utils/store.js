@@ -18,6 +18,7 @@ const KEYS = {
   SHOP_STAMP: 'shop_stamp',          // 奖励小铺整体时间戳（同步冲突以新者为准）
   DRILL_HISTORY: 'drill_history',    // 口算挑战会话历史（家长报告用）
   REVIEW_LOG: 'review_log',          // 错题复习日志：每天一条 { date, total, correct }
+  CHEERS: 'cheers',                  // 孩子端：收到的家长留言缓存（云端为准，离线可看）
   CHILD_PROFILE: 'child_profile',    // 家长端缓存：孩子资料
   CHILD_RECORDS: 'child_records',    // 家长端缓存：孩子打卡记录
   CHILD_BADGES: 'child_badges',      // 家长端缓存：孩子勋章
@@ -154,6 +155,15 @@ function saveDrillHistory(list) { backend.set(KEYS.DRILL_HISTORY, list); }
 function getReviewLog() { return _get(KEYS.REVIEW_LOG, []); }
 function saveReviewLog(list) { backend.set(KEYS.REVIEW_LOG, list); }
 
+// ── 家长留言（孩子端缓存）──
+function getCheers() { return _get(KEYS.CHEERS, []); }
+function saveCheers(list) { backend.set(KEYS.CHEERS, list); }
+// 本地先标已读（横幅立刻换下一条），云端 cheerRead 异步跟上
+function markCheersRead(ids) {
+  const now = Date.now();
+  saveCheers(getCheers().map(c => (ids.indexOf(c.id) > -1 && !c.readAt ? { ...c, readAt: now } : c)));
+}
+
 // ── 同步游标 ──
 function getSyncState() {
   return _get(KEYS.SYNC, { lastPullAt: 0, lastPushAt: 0 });
@@ -214,6 +224,7 @@ module.exports = {
   getShopStamp, saveShopRaw,
   getDrillHistory, saveDrillHistory,
   getReviewLog, saveReviewLog,
+  getCheers, saveCheers, markCheersRead,
   getSyncState, saveSyncState,
   getChildProfile, getChildRecords, getChildBadges, getChildDrillHistory, getChildQuizHistory, getChildReviewLog,
   getChildMathWrong, getChildQuizWrong,

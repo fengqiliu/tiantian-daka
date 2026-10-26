@@ -8,6 +8,8 @@ let currentOpenid = '';
 let sent = [];          // subscribeMessage.send 的调用记录
 let sendImpl = null;    // 自定义发送行为（抛 43101 等）
 let configOverrides = {}; // config.js 导出覆盖（模板 ID 等）
+let secChecks = [];     // security.msgSecCheck 的调用记录
+let secImpl = null;     // 自定义内容安全结果（返回 suggest 或抛错）
 
 function reset() {
   db = { users: [], checkins: [], badges: [], families: [] };
@@ -15,6 +17,8 @@ function reset() {
   sent = [];
   sendImpl = null;
   configOverrides = {};
+  secChecks = [];
+  secImpl = null;
 }
 reset();
 
@@ -150,6 +154,13 @@ function load(fn) {
               return { errCode: 0 };
             },
           },
+          security: {
+            msgSecCheck: async (args) => {
+              secChecks.push(args);
+              if (secImpl) return secImpl(args);
+              return { errCode: 0, result: { suggest: 'pass', label: 100 } };
+            },
+          },
         },
       };
     }
@@ -174,4 +185,6 @@ module.exports = {
   get sent() { return sent; },
   setOpenid(id) { currentOpenid = id; },
   setSendImpl(fn) { sendImpl = fn; },
+  get secChecks() { return secChecks; },
+  setSecImpl(fn) { secImpl = fn; },
 };

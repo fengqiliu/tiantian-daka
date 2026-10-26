@@ -10,7 +10,7 @@ async function ensureCollection(name) {
 exports.main = async () => {
   const { OPENID } = cloud.getWXContext();
   if (!OPENID) return { ok: false, error: 'no openid' };
-  for (const name of ['users', 'checkins', 'badges', 'families']) await ensureCollection(name);
+  for (const name of ['users', 'checkins', 'badges', 'families', 'cheers']) await ensureCollection(name);
 
   const users = db.collection('users');
   let u = (await users.where({ openid: OPENID }).limit(1).get()).data[0];

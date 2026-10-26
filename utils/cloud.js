@@ -82,6 +82,22 @@ function notifyParents(title, body) {
 function grantParentSub(n) { return call('family', { action: 'grantParentSub', n }); }
 function familyConfig() { return call('family', { action: 'config' }); }
 
+// ── 家长鼓励留言 ──
+// 家长端：发送；{ from, text, recordId?, recordLabel? }
+function cheerSend(c) {
+  return call('family', { action: 'cheer', from: c.from, text: c.text, recordId: c.recordId, recordLabel: c.recordLabel });
+}
+// 孩子端拉收到的 / 家长端拉发出的；孩子端成功时写入缓存（首页横幅用，失败保留旧缓存）
+// 家长端不写缓存：拿到的是发出的留言，同一手机切回孩子身份时不能当成收到的
+function cheerList() {
+  return call('family', { action: 'cheers' }).then(res => {
+    const isParent = (store.getProfile() || {}).role === 'parent';
+    if (res && res.ok && !isParent) store.saveCheers(res.cheers || []);
+    return res;
+  });
+}
+function cheerRead(ids) { return call('family', { action: 'cheerRead', ids }); }
+
 // ── 每日提醒订阅 ──
 function remindConfig() { return call('remind', { action: 'config' }); }
 function remindGrant(n, hour) { return call('remind', { action: 'grant', n, hour }); }
@@ -117,6 +133,7 @@ module.exports = {
   CLOUD_ENV, init, isAvailable, call,
   syncAll, resetCloud,
   familyCreate, familyJoin, familyLeave, familyRefresh, notifyParents, grantParentSub, familyConfig,
+  cheerSend, cheerList, cheerRead,
   remindConfig, remindGrant, remindStatus, remindDisable, subscribeAndGrant,
   REMIND_PAGE,
 };

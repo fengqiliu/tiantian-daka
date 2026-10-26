@@ -1,0 +1,47 @@
+<view class="ch safe-bottom">
+  <view class="ch-head">
+    <view class="h1">💌 给孩子留言</view>
+    <view class="muted">孩子打开小程序时，首页会弹出你的话</view>
+  </view>
+
+  <view class="card" wx:if="{{cloudOff}}">
+    <view class="muted">留言需要先开通云开发（见 README）</view>
+  </view>
+
+  <block wx:else>
+    <view class="card">
+      <view class="muted ch-label">我是</view>
+      <view class="ch-chips">
+        <view wx:for="{{fromOptions}}" wx:key="*this" class="ch-chip {{from === item ? 'on' : ''}}" data-v="{{item}}" bindtap="onFrom">{{item}}</view>
+      </view>
+
+      <view class="ch-link row" wx:if="{{recordLabel}}">
+        <view class="flex1">👍 为孩子的「{{recordLabel}}」点赞</view>
+        <view class="ch-unlink" bindtap="onUnlink">不关联</view>
+      </view>
+
+      <textarea class="ch-input" value="{{text}}" maxlength="{{maxLen}}" placeholder="写一句鼓励的话，或点下面的常用语" bindinput="onInput" auto-height />
+      <view class="muted ch-count">{{text.length}}/{{maxLen}}</view>
+
+      <view class="muted ch-label">常用语</view>
+      <view class="ch-presets">
+        <view wx:for="{{presets}}" wx:key="*this" class="ch-preset" data-v="{{item}}" bindtap="onPreset">{{item}}</view>
+      </view>
+
+      <view class="btn-primary {{sending ? 'off' : ''}}" style="margin-top: 28rpx;" bindtap="onSend">{{sending ? '发送中…' : '发送给孩子'}}</view>
+      <view class="muted ch-tip">自定义文字会经过微信内容安全检查；每天最多 10 条</view>
+    </view>
+
+    <view class="card">
+      <view class="h2" style="margin-bottom: 12rpx;">已发出</view>
+      <view wx:for="{{sent}}" wx:key="id" class="ch-sent">
+        <view class="row">
+          <view class="flex1 ch-sent-text">{{item.from}}：{{item.text}}</view>
+          <text class="ch-read {{item.readAt ? 'on' : ''}}">{{item.readAt ? '已读' : '未读'}}</text>
+        </view>
+        <view class="muted">{{item.timeLabel}}{{item.recordLabel ? ' · 「' + item.recordLabel + '」' : ''}}</view>
+      </view>
+      <view wx:if="{{!sent.length}}" class="muted">还没有发过留言</view>
+    </view>
+  </block>
+</view>
