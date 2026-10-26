@@ -14,6 +14,9 @@ const SUBJECT_NAME = { math: '数学', chinese: '语文', english: '英语' };
 Page({
   data: {
     range: 7,
+    weekMonday: '',
+    canNextWeek: false,
+    week: null,
     gradeLabel: '',
     role: 'child',
     ov: null,
@@ -26,6 +29,19 @@ Page({
   },
 
   onLoad() {
+    this.setData({ weekMonday: REPORT.lastWeekMonday(D.todayStr()) });
+    this.refresh();
+  },
+
+  // 周报翻页：最远翻到本周（进行中）
+  onPrevWeek() {
+    this.setData({ weekMonday: D.addDays(this.data.weekMonday, -7) });
+    this.refresh();
+  },
+
+  onNextWeek() {
+    if (!this.data.canNextWeek) return;
+    this.setData({ weekMonday: D.addDays(this.data.weekMonday, 7) });
     this.refresh();
   },
 
@@ -71,7 +87,18 @@ Page({
         subjectName: SUBJECT_NAME[h.subject] || h.subject,
       }));
 
+    const thisMonday = D.mondayOf(today);
+    const week = REPORT.weeklyDigest({ ...s, today }, this.data.weekMonday);
+    week.title = this.data.weekMonday === thisMonday ? '本周（进行中）'
+      : this.data.weekMonday === REPORT.lastWeekMonday(today) ? '上周周报' : '周报';
+    week.vsPrevAbs = Math.abs(week.vsPrev);
+    week.practiceLine = '🧮 口算 ' + week.drill.count + ' 次'
+      + (week.drill.accuracy === null ? '' : ' · 正确率 ' + week.drill.accuracy + '%')
+      + '　📝 小卷 ' + week.quiz.count + ' 份　🧠 复习 ' + week.review.days + ' 天';
+
     this.setData({
+      week,
+      canNextWeek: this.data.weekMonday < thisMonday,
       gradeLabel: grade + ' 年级 · 近 ' + days + ' 天',
       role: s.role,
       ov,

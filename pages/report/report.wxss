@@ -35,3 +35,22 @@
 .wb-text { font-size: 28rpx; font-weight: 600; }
 .wb-answer { color: #2F9E44; font-size: 26rpx; font-weight: 600; padding-left: 14rpx; white-space: nowrap; }
 .rp-empty { text-align: center; padding: 8rpx 0; }
+
+.rp-week-nav { font-size: 44rpx; color: #FF8A00; padding: 0 16rpx; font-weight: 700; }
+.rp-week-nav.off { opacity: 0.25; }
+.rp-week-title { text-align: center; }
+.rp-up { color: #2F9E44; font-weight: 600; }
+.rp-down { color: #E5484D; font-weight: 600; }
+.rp-week-line { text-align: center; margin: 12rpx 0 4rpx; }
+.rp-week-block { margin-top: 16rpx; }
+.rp-week-tag {
+  display: inline-block;
+  font-size: 22rpx;
+  font-weight: 600;
+  border-radius: 999rpx;
+  padding: 4rpx 16rpx;
+  margin-bottom: 8rpx;
+}
+.rp-week-tag.good { background: #E8F8EC; color: #2F9E44; }
+.rp-week-tag.warn { background: #FFF1DC; color: #C26A00; }
+.rp-week-item { font-size: 28rpx; line-height: 1.6; }

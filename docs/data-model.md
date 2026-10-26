@@ -89,7 +89,7 @@ pull: 云端 updatedAt > lastPullAt 的记录（含墓碑） + profile + badges
 
 | 集合 | 文档结构 | 说明 |
 | --- | --- | --- |
-| `users` | `{ openid, profile, taskOverrides, shop, practice: { drill[], quiz[] }, remindEnabled, remindQuota, remindHour, createdAt }`（`practice` 为口算会话 ≤100 / 小卷历史 ≤50，按 `at` 并集合并） | `login` 首次调用自动创建（集合也自愈创建） |
+| `users` | `{ openid, profile, taskOverrides, shop, practice: { drill[], quiz[], review[] }, remindEnabled, remindQuota, remindHour, createdAt }`（`practice` 为口算会话 ≤100 / 小卷历史 ≤50，按 `at` 并集合并；复习日志 ≤366 按日期合并、同日取次数多的） | `login` 首次调用自动创建（集合也自愈创建） |
 | `checkins` | 本地 record + `openid` | 推荐索引：`(openid+updatedAt)`、`(openid+date)` |
 | `badges` | `{ openid, id, earnedAt }` | 并集写入 |
 | `families` | `{ code, ownerOpenid, ownerProfile, members:[{openid, parentSubQuota, joinedAt}], createdAt }` | `code` 为 6 位邀请码（去除易混淆字符 0/O/1/I/L） |

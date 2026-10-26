@@ -14,6 +14,7 @@ function scope() {
       badges: store.getBadges(),
       drillSessions: store.getDrillHistory(),
       quizHistory: store.getQuizHistory(),
+      reviewLog: store.getReviewLog(),
       readOnly: false,
       bound: true,
     };
@@ -28,6 +29,7 @@ function scope() {
     badges: store.getChildBadges(),
     drillSessions: store.getChildDrillHistory(),
     quizHistory: store.getChildQuizHistory(),
+    reviewLog: store.getChildReviewLog(),
     readOnly: true,
     bound: !!child,
   };

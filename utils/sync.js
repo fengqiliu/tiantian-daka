@@ -44,11 +44,12 @@ function mergePull({ records = [], profile = null, badges = [], overrides = null
       store.saveShopRaw(shop.rewards, shop.redemptions, shop.updatedAt || 0);
     }
   }
-  // 练习历史（口算会话 + 小卷）：只追加列表，按 at 并集合并，不参与游标
+  // 练习历史（口算会话 + 小卷 + 复习日志）：并集合并，不参与游标
   if (practice && typeof practice === 'object') {
-    const m = HM.mergePractice({ drill: store.getDrillHistory(), quiz: store.getQuizHistory() }, practice);
+    const m = HM.mergePractice({ drill: store.getDrillHistory(), quiz: store.getQuizHistory(), review: store.getReviewLog() }, practice);
     store.saveDrillHistory(m.drill);
     store.saveQuizHistory(m.quiz);
+    store.saveReviewLog(m.review);
   }
   if (badges.length) {
     const cur = store.getBadges();
@@ -79,7 +80,8 @@ async function push(api) {
   // 练习历史：有记录才上传（云端并集合并，重复上传幂等）
   const drill = store.getDrillHistory();
   const quiz = store.getQuizHistory();
-  const practice = (drill.length || quiz.length) ? { drill, quiz } : null;
+  const review = store.getReviewLog();
+  const practice = (drill.length || quiz.length || review.length) ? { drill, quiz, review } : null;
   const payload = {
     records,
     profile: store.getProfile(),

@@ -245,6 +245,16 @@ t('练习记录：push 按 at 并集合并入 users.practice，pull 取回，并
   assert.strictEqual(p2.practice.drill.length, 100);
   assert.strictEqual(p2.practice.drill[0].at, 1119, '保留最新');
 });
+t('复习日志：push 按日期合并（同日取次数多的），pull 取回', async () => {
+  reset();
+  CM.setOpenid('kid1');
+  await CM.load('login').main({});
+  const sync = CM.load('sync');
+  await sync.main({ action: 'push', practice: { drill: [], quiz: [], review: [{ date: '2026-10-05', total: 5, correct: 5 }] } });
+  await sync.main({ action: 'push', practice: { review: [{ date: '2026-10-05', total: 3, correct: 1 }, { date: '2026-10-06', total: 5, correct: 4 }] } });
+  const p = await sync.main({ action: 'pull', since: 0 });
+  assert.deepStrictEqual(p.practice.review.map(x => [x.date, x.total]), [['2026-10-06', 5], ['2026-10-05', 5]]);
+});
 t('练习记录 openid 隔离：B 拉不到 A 的练习', async () => {
   reset();
   const sync = CM.load('sync');

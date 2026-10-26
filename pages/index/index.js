@@ -6,6 +6,7 @@ const CTX = require('../../utils/context');
 const cloud = require('../../utils/cloud');
 const CAL = require('../../utils/calendar-config');
 const RV = require('../../utils/review');
+const REPORT = require('../../utils/report');
 
 Page({
   data: {
@@ -38,6 +39,7 @@ Page({
     childTotal: 0,
     childPct: 0,
     weekStrip: [],
+    weekly: null,
     cloudOff: false,
   },
 
@@ -177,6 +179,7 @@ Page({
       childStars: C.totalStars(records, grade, s.badges),
       childStreak: C.streaks(records, today).current,
       weekStrip,
+      weekly: this.buildWeekly(s, today),
     });
 
     // 后台刷新最新数据（节流由 syncAt 控制）
@@ -188,6 +191,21 @@ Page({
         if (res && res.ok) this.refreshParent();
       }).catch(() => { this._refreshing = false; });
     }
+  },
+
+  // 上周周报摘要卡（家长端）：一句话 + 首条亮点/需关注
+  buildWeekly(s, today) {
+    const g = REPORT.weeklyDigest(s, REPORT.lastWeekMonday(today));
+    return {
+      label: g.label,
+      line: '打卡 ' + g.checkinDays + '/7 天 · 达成 ' + g.achievedDays + ' 天 · ⭐ ' + g.stars,
+      highlight: g.highlights[0] || '',
+      attention: g.attention[0] || '',
+    };
+  },
+
+  goReport() {
+    wx.navigateTo({ url: '/pages/report/report' });
   },
 
   onBindInput(e) { this.setData({ bindCode: e.detail.value }); },

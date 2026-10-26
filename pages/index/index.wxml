@@ -35,6 +35,16 @@
         </view>
       </view>
 
+      <view class="card weekly-card" wx:if="{{weekly}}" bindtap="goReport">
+        <view class="row">
+          <view class="h2 flex1">📬 上周周报</view>
+          <text class="muted">{{weekly.label}} ›</text>
+        </view>
+        <view class="muted weekly-line">{{weekly.line}}</view>
+        <view class="weekly-item" wx:if="{{weekly.highlight}}">🌟 {{weekly.highlight}}</view>
+        <view class="weekly-item" wx:if="{{weekly.attention}}">💡 {{weekly.attention}}</view>
+      </view>
+
       <view class="card row">
         <view class="strip-day" wx:for="{{weekStrip}}" wx:key="index" wx:for-item="d">
           <view class="strip-dot {{d.state}}"></view>

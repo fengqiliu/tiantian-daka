@@ -4,6 +4,40 @@
     <view class="muted">{{gradeLabel}}</view>
   </view>
 
+  <view class="card rp-week">
+    <view class="row rp-sec">
+      <view class="rp-week-nav" bindtap="onPrevWeek">‹</view>
+      <view class="flex1 rp-week-title">
+        <view class="h2">📬 {{week.title}}</view>
+        <view class="muted">{{week.label}}</view>
+      </view>
+      <view class="rp-week-nav {{canNextWeek ? '' : 'off'}}" bindtap="onNextWeek">›</view>
+    </view>
+    <view class="row">
+      <view class="rp-kpi flex1">
+        <view class="rp-kpi-num">{{week.checkinDays}}/7</view>
+        <view class="muted">打卡天数</view>
+      </view>
+      <view class="rp-kpi flex1">
+        <view class="rp-kpi-num">✅ {{week.achievedDays}}</view>
+        <view class="muted">达成天数<text wx:if="{{week.vsPrev > 0}}" class="rp-up"> ↑{{week.vsPrevAbs}}</text><text wx:elif="{{week.vsPrev < 0}}" class="rp-down"> ↓{{week.vsPrevAbs}}</text></view>
+      </view>
+      <view class="rp-kpi flex1">
+        <view class="rp-kpi-num">⭐ {{week.stars}}</view>
+        <view class="muted">任务星星</view>
+      </view>
+    </view>
+    <view class="rp-week-line muted">{{week.practiceLine}}</view>
+    <view wx:if="{{week.highlights.length}}" class="rp-week-block">
+      <view class="rp-week-tag good">亮点</view>
+      <view class="rp-week-item" wx:for="{{week.highlights}}" wx:key="*this">🌟 {{item}}</view>
+    </view>
+    <view wx:if="{{week.attention.length}}" class="rp-week-block">
+      <view class="rp-week-tag warn">需关注</view>
+      <view class="rp-week-item" wx:for="{{week.attention}}" wx:key="*this">💡 {{item}}</view>
+    </view>
+  </view>
+
   <view class="rp-ranges">
     <view class="rp-chip {{range === 7 ? 'on' : ''}}" data-days="7" bindtap="onRange">近 7 天</view>
     <view class="rp-chip {{range === 30 ? 'on' : ''}}" data-days="30" bindtap="onRange">近 30 天</view>

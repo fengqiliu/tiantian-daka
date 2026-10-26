@@ -1184,7 +1184,7 @@ t('mergePractice：口算 100 / 小卷 50 分别截断', () => {
   assert.strictEqual(m.drill.length, HM.DRILL_CAP);
   assert.strictEqual(m.quiz.length, HM.QUIZ_CAP);
   assert.strictEqual(m.drill[0].at, 120, '保留最新');
-  assert.deepStrictEqual(HM.mergePractice(null, null), { drill: [], quiz: [] });
+  assert.deepStrictEqual(HM.mergePractice(null, null), { drill: [], quiz: [], review: [] });
 });
 t('练习记录同步往返：推送全量，拉取按并集合并（两台设备各自的练习都保留）', async () => {
   reset();
@@ -1332,6 +1332,122 @@ t('备份包含复习日志；旧备份（无 reviewLog）仍可导入', () => {
   reset();
   assert.strictEqual(BACKUP.restoreFromText(JSON.stringify(old)).ok, true);
   assert.deepStrictEqual(store.getReviewLog(), []);
+});
+
+console.log('— 家长周报 —');
+const W0 = '2026-10-19'; // 周一
+const weekDates = monday => Array.from({ length: 7 }, (_, i) => D.addDays(monday, i));
+const ts = (date, hh) => new Date(date + 'T' + (hh || '10') + ':00:00').getTime();
+function digestOf(extra) {
+  return REPORT.weeklyDigest({
+    records: store.getRecords(), grade: 1, badges: [], drillSessions: [], quizHistory: [], reviewLog: [], ...extra,
+  }, W0);
+}
+t('周区间：上周一 / 区间标签', () => {
+  assert.strictEqual(REPORT.lastWeekMonday('2026-10-26'), '2026-10-19', '周一看上周');
+  assert.strictEqual(REPORT.lastWeekMonday('2026-10-25'), '2026-10-12', '周日看的是前一个完整周');
+  assert.strictEqual(REPORT.weekLabel('2026-10-19'), '10月19日–10月25日');
+  assert.strictEqual(REPORT.weekLabel('2026-12-28'), '12月28日–1月3日', '跨年');
+});
+t('全勤周：7/7 达成、对比前一周、亮点含全勤与坚持的选做任务、无需关注', () => {
+  reset();
+  weekDates(W0).forEach(d => seedDay(d, 1, mustIds(d)(1).concat(['habit_sleep'])));
+  weekDates('2026-10-12').slice(0, 3).forEach(d => seedDay(d, 1, mustIds(d)(1)));
+  const g = digestOf();
+  assert.strictEqual(g.label, '10月19日–10月25日');
+  assert.deepStrictEqual([g.checkinDays, g.achievedDays, g.vsPrev], [7, 7, 4]);
+  assert(g.stars > 0);
+  assert(g.highlights.some(h => h.includes('全勤')), '应有全勤亮点');
+  assert(g.highlights.some(h => h.includes(T.getTaskDef('habit_sleep').name)), '坚持 7 天的选做任务是亮点');
+  assert.deepStrictEqual(g.attention, [], '必做全完成时不提示关注（选做没做不算问题）');
+});
+t('需关注：必做任务常漏、口算正确率低、达成天数比前一周明显下降', () => {
+  reset();
+  weekDates('2026-10-12').forEach(d => seedDay(d, 1, mustIds(d)(1)));
+  weekDates(W0).slice(0, 4).forEach(d => seedDay(d, 1, mustIds(d)(1).filter(id => id !== 'english_listen')));
+  const g = digestOf({ drillSessions: [{ date: '2026-10-20', level: 'addsub10', total: 10, correct: 6, at: ts('2026-10-20') }] });
+  assert.deepStrictEqual([g.checkinDays, g.achievedDays, g.vsPrev], [4, 0, -7]);
+  const en = T.getTaskDef('english_listen').name;
+  assert(g.attention.some(a => a.includes(en) && a.includes('0/7')), '漏做的必做任务：' + JSON.stringify(g.attention));
+  assert(g.attention.some(a => a.includes('口算') && a.includes('60%')), '口算正确率偏低');
+  assert(g.attention.some(a => a.includes('少 7 天')), '达成天数下降');
+  assert(g.attention.length <= 3, '最多 3 条');
+});
+t('练习概况与勋章：只统计本周（口算按 date、小卷按 at、复习按 date、勋章按 earnedAt）', () => {
+  reset();
+  const g = digestOf({
+    drillSessions: [
+      { date: '2026-10-20', total: 10, correct: 10, at: ts('2026-10-20') },
+      { date: '2026-10-22', total: 10, correct: 9, at: ts('2026-10-22') },
+      { date: '2026-10-27', total: 10, correct: 1, at: ts('2026-10-27') }, // 下周
+    ],
+    quizHistory: [
+      { subject: 'math', total: 10, correct: 9, label: '优秀', at: ts('2026-10-21') },
+      { subject: 'chinese', total: 10, correct: 5, label: '继续加油', at: ts('2026-10-12') }, // 上上周
+    ],
+    reviewLog: [
+      { date: '2026-10-19', total: 5, correct: 4 }, { date: '2026-10-21', total: 5, correct: 5 },
+      { date: '2026-10-23', total: 3, correct: 3 }, { date: '2026-10-30', total: 5, correct: 5 },
+    ],
+    badges: [{ id: 'quiz_fan', earnedAt: ts('2026-10-21') }, { id: 'first_checkin', earnedAt: ts('2026-09-01') }],
+  });
+  assert.deepStrictEqual(g.drill, { count: 2, total: 20, correct: 19, accuracy: 95 });
+  assert.deepStrictEqual(g.quiz, { count: 1, labels: ['优秀'] });
+  assert.deepStrictEqual(g.review, { days: 3, total: 13, correct: 12 });
+  assert.deepStrictEqual(g.badgesEarned.map(b => b.id), ['quiz_fan']);
+  assert(g.badgesEarned[0].name, '带勋章名');
+  ['勋章', '口算', '复习'].forEach(k => assert(g.highlights.some(h => h.includes(k)), '亮点应含' + k + '：' + JSON.stringify(g.highlights)));
+  assert(g.highlights.length <= 3, '最多 3 条');
+});
+t('进行中的本周：只统计到今天，未来的日子不算漏做', () => {
+  reset();
+  // 周二打开：周一、周二都只漏了英语跟读
+  weekDates(W0).slice(0, 2).forEach(d => seedDay(d, 1, mustIds(d)(1).filter(id => id !== 'english_listen')));
+  const g = REPORT.weeklyDigest({ records: store.getRecords(), grade: 1, today: '2026-10-20' }, W0);
+  assert(g.attention.every(a => !a.includes('/7')), '不应按 7 天算：' + JSON.stringify(g.attention));
+  assert.deepStrictEqual(g.attention, [], '才过 2 天，不足 3 天不下结论');
+  const g3 = REPORT.weeklyDigest({ records: store.getRecords(), grade: 1, today: '2026-10-21' }, W0);
+  assert(g3.attention.some(a => a.includes('0/3')), '第 3 天起按已过天数提示：' + JSON.stringify(g3.attention));
+});
+t('空周：没有打卡也给出提示，不报错', () => {
+  reset();
+  const g = digestOf();
+  assert.deepStrictEqual([g.checkinDays, g.achievedDays, g.stars], [0, 0, 0]);
+  assert.deepStrictEqual(g.highlights, []);
+  assert(g.attention.some(a => a.includes('没有打卡')));
+  assert.strictEqual(g.drill.accuracy, null);
+});
+t('复习日志合并：按日期，同日取次数多的一份；mergePractice 带上 review', () => {
+  const a = [{ date: '2026-10-05', total: 5, correct: 4 }, { date: '2026-10-04', total: 5, correct: 5 }];
+  const b = [{ date: '2026-10-05', total: 10, correct: 9 }, { date: '2026-10-06', total: 5, correct: 3 }, { total: 1 }];
+  const m = HM.mergeReviewLog(a, b, 100);
+  assert.deepStrictEqual(m.map(x => x.date), ['2026-10-06', '2026-10-05', '2026-10-04'], '最新在前，丢弃无日期条目');
+  assert.strictEqual(m[1].total, 10, '同日取次数多的');
+  assert.strictEqual(HM.mergeReviewLog(a, b, 2).length, 2);
+  assert.deepStrictEqual(HM.mergePractice({ review: a }, null).review.length, 2);
+});
+t('复习日志随同步往返，家长端缓存并经 scope 读取', async () => {
+  reset();
+  const api = mockCloud();
+  store.saveReviewLog([{ date: '2026-10-05', total: 5, correct: 5 }]);
+  await S.push(api);
+  assert.strictEqual(api.server.practice.review.length, 1, '只有复习日志也应上传');
+  reset();
+  store.saveReviewLog([{ date: '2026-10-06', total: 5, correct: 4 }]);
+  await S.pull(api);
+  assert.strictEqual(store.getReviewLog().length, 2, '拉取后两台设备的复习日都在');
+
+  reset();
+  const cloud = reloadCloud({
+    call: () => Promise.resolve({ result: { ok: true, profile: null, records: [], badges: [], practice: { drill: [], quiz: [], review: [{ date: '2026-10-05', total: 5, correct: 5 }] } } }),
+  });
+  cloud.init('prod-test');
+  await cloud.familyRefresh();
+  unloadCloud();
+  store.saveProfile({ role: 'parent' });
+  assert.strictEqual(CTX.scope().reviewLog.length, 1, '家长 scope 读孩子复习缓存');
+  store.saveProfile({ role: 'child', grade: 1 });
+  assert.strictEqual(CTX.scope().reviewLog.length, 0, '孩子 scope 读本机');
 });
 
 chain.then(() => {

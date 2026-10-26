@@ -22,6 +22,7 @@ const KEYS = {
   CHILD_BADGES: 'child_badges',      // 家长端缓存：孩子勋章
   CHILD_DRILL: 'child_drill',        // 家长端缓存：孩子口算会话
   CHILD_QUIZ: 'child_quiz',          // 家长端缓存：孩子小卷历史
+  CHILD_REVIEW: 'child_review',      // 家长端缓存：孩子错题复习日志
 };
 
 let memory = {};
@@ -148,6 +149,7 @@ function getChildRecords() { return _get(KEYS.CHILD_RECORDS, []).filter(r => !r.
 function getChildBadges() { return _get(KEYS.CHILD_BADGES, []); }
 function getChildDrillHistory() { return _get(KEYS.CHILD_DRILL, []); }
 function getChildQuizHistory() { return _get(KEYS.CHILD_QUIZ, []); }
+function getChildReviewLog() { return _get(KEYS.CHILD_REVIEW, []); }
 // practice 缺省（旧版云函数不返回）时保留已有缓存
 function saveChildData(profile, records, badges, practice) {
   if (profile) backend.set(KEYS.CHILD_PROFILE, profile);
@@ -156,6 +158,7 @@ function saveChildData(profile, records, badges, practice) {
   if (practice) {
     backend.set(KEYS.CHILD_DRILL, practice.drill || []);
     backend.set(KEYS.CHILD_QUIZ, practice.quiz || []);
+    backend.set(KEYS.CHILD_REVIEW, practice.review || []);
   }
 }
 
@@ -165,6 +168,7 @@ function clearChildData() {
   backend.remove(KEYS.CHILD_BADGES);
   backend.remove(KEYS.CHILD_DRILL);
   backend.remove(KEYS.CHILD_QUIZ);
+  backend.remove(KEYS.CHILD_REVIEW);
 }
 
 function clearAll() { Object.keys(KEYS).forEach(k => backend.remove(KEYS[k])); }
@@ -186,7 +190,7 @@ module.exports = {
   getDrillHistory, saveDrillHistory,
   getReviewLog, saveReviewLog,
   getSyncState, saveSyncState,
-  getChildProfile, getChildRecords, getChildBadges, getChildDrillHistory, getChildQuizHistory,
+  getChildProfile, getChildRecords, getChildBadges, getChildDrillHistory, getChildQuizHistory, getChildReviewLog,
   saveChildData, clearChildData,
   clearAll,
 };

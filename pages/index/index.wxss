@@ -87,3 +87,6 @@
   border-radius: 999rpx;
   padding: 8rpx 22rpx;
 }
+
+.weekly-line { margin: 6rpx 0 4rpx; }
+.weekly-item { font-size: 27rpx; line-height: 1.6; }
