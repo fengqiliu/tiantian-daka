@@ -275,6 +275,54 @@ t('错题本：push 云端较旧才覆盖，pull 取回；家长 summary 返回�
   const s = await family.main({ action: 'summary', since: 0 });
   assert.strictEqual(s.wrongBook.math.length, 1, '家长拿到孩子错题本');
 });
+t('reset：清空调用者云端数据（记录/勋章/资料/覆盖/小铺/练习/错题本），保留档案、提醒设置与家人绑定，不碰别人', async () => {
+  reset();
+  const family = CM.load('family');
+  const sync = CM.load('sync');
+  CM.setOpenid('kid1');
+  await CM.load('login').main({});
+  const code = (await family.main({ action: 'create' })).code;
+  await sync.main({
+    action: 'push',
+    records: [rec('2026-10-05#pe_rope'), rec('2026-10-06#pe_rope')],
+    profile: { nickname: '小豆', updatedAt: 100 },
+    badges: [{ id: 'first_checkin', earnedAt: 100 }],
+    overrides: { targets: { pe_rope: 50 }, customs: [], updatedAt: 100 },
+    shop: { rewards: [{ id: 'r' }], redemptions: [], updatedAt: 100 },
+    practice: { drill: [{ at: 1 }], quiz: [], review: [{ date: '2026-10-05', total: 5, correct: 5 }] },
+    wrong: { math: [{ key: 'a' }], quiz: [], updatedAt: 100 },
+  });
+  CM.db.users.find(u => u.openid === 'kid1').remindEnabled = true;
+  CM.setOpenid('kid2');
+  await CM.load('login').main({});
+  await sync.main({ action: 'push', records: [rec('2026-10-05#pe_rope')], badges: [{ id: 'first_checkin', earnedAt: 1 }] });
+  CM.setOpenid('parent1');
+  await family.main({ action: 'join', code });
+
+  CM.setOpenid('kid1');
+  const r = await sync.main({ action: 'reset' });
+  assert.strictEqual(r.ok, true);
+  assert(r.serverTime > 0);
+  const p = await sync.main({ action: 'pull', since: 0 });
+  assert.deepStrictEqual([p.records.length, p.badges.length], [0, 0], '记录与勋章删除');
+  assert.deepStrictEqual([p.profile, p.overrides, p.shop, p.practice, p.wrong], [null, null, null, null, null], '同步字段清空');
+  const u = CM.db.users.find(x => x.openid === 'kid1');
+  assert(u, '保留用户档案（openid / 提醒订阅）');
+  assert.strictEqual(u.remindEnabled, true, '提醒设置不属于打卡数据，保留');
+  assert.strictEqual(CM.db.checkins.filter(c => c.openid === 'kid2').length, 1, '不碰别人的记录');
+  assert.strictEqual(CM.db.badges.filter(b => b.openid === 'kid2').length, 1, '不碰别人的勋章');
+  assert.strictEqual(CM.db.families[0].members.length, 1, '家人绑定保留：家长继续看到孩子重新开始后的数据');
+
+  // 重置后可以正常重新开始
+  await sync.main({ action: 'push', records: [rec('2026-10-07#pe_rope', { updatedAt: 300 })] });
+  assert.strictEqual((await sync.main({ action: 'pull', since: 0 })).records.length, 1);
+});
+t('reset：无 openid 拒绝', async () => {
+  reset();
+  CM.setOpenid('');
+  const r = await CM.load('sync').main({ action: 'reset' });
+  assert.strictEqual(r.ok, false);
+});
 t('练习记录 openid 隔离：B 拉不到 A 的练习', async () => {
   reset();
   const sync = CM.load('sync');

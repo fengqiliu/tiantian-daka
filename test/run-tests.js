@@ -1537,6 +1537,65 @@ t('周报需关注：反复错（≥3 次）的题型按口算级别 / 小卷科
   assert(!g3.attention.some(a => a.includes('反复错')), '错不到 3 次不提示');
 });
 
+console.log('— 一键清空（本机 + 云端）—');
+const RESET = require('../utils/reset');
+function seedAll() {
+  store.saveProfile({ role: 'child', grade: 1, nickname: '小豆' });
+  seedDay('2026-10-05', 1, mustIds('2026-10-05')(1));
+  store.saveMathWrong([mw('a')]);
+  store.saveReviewLog([{ date: '2026-10-05', total: 5, correct: 5 }]);
+  store.saveSyncState({ lastPullAt: 5, lastPushAt: 5 });
+}
+t('纯本地模式（未开通云）：只清本机', async () => {
+  reset();
+  seedAll();
+  let called = 0;
+  const res = await RESET.clearEverything({ isAvailable: () => false, resetCloud: () => { called++; return Promise.resolve({ ok: true }); } });
+  assert.deepStrictEqual(res, { ok: true, cloud: false });
+  assert.strictEqual(called, 0, '未开通云不调用云函数');
+  assert.strictEqual(store.getProfile(), null);
+  assert.strictEqual(store.getRecords().length, 0);
+});
+t('云可用：先清云端，成功后再清本机（含同步游标）', async () => {
+  reset();
+  seedAll();
+  const order = [];
+  const res = await RESET.clearEverything({
+    isAvailable: () => true,
+    resetCloud: () => { order.push('cloud:' + store.getRecords().length); return Promise.resolve({ ok: true }); },
+  });
+  assert.deepStrictEqual(res, { ok: true, cloud: true });
+  assert.deepStrictEqual(order, ['cloud:' + 4], '云端清空时本机数据还在（失败可保留）');
+  assert.strictEqual(store.getRecords().length, 0);
+  assert.deepStrictEqual(store.getMathWrong(), []);
+  assert.deepStrictEqual(store.getSyncState(), { lastPullAt: 0, lastPushAt: 0 }, '游标归零');
+});
+t('云端清空失败：本机不动，返回错误（避免本机清了、云端数据下次又同步回来）', async () => {
+  reset();
+  seedAll();
+  const res = await RESET.clearEverything({ isAvailable: () => true, resetCloud: () => Promise.resolve({ ok: false, error: 'timeout' }) });
+  assert.deepStrictEqual(res, { ok: false, error: 'timeout' });
+  assert.strictEqual(store.getRecords().length, 4, '本机数据保留');
+  assert.strictEqual(store.getProfile().nickname, '小豆');
+  const res2 = await RESET.clearEverything({ isAvailable: () => true, resetCloud: () => Promise.reject(new Error('boom')) });
+  assert.strictEqual(res2.ok, false, '异常也不清本机');
+  assert.strictEqual(store.getRecords().length, 4);
+});
+t('cloud.resetCloud 调用 sync 云函数的 reset 动作；未配置环境时降级', async () => {
+  reset();
+  const calls = [];
+  let cloud = reloadCloud({ call: p => { calls.push(p.data); return Promise.resolve({ result: { ok: true } }); } });
+  cloud.init('prod-test');
+  assert.strictEqual((await cloud.resetCloud()).ok, true);
+  assert.deepStrictEqual(calls, [{ action: 'reset' }]);
+  unloadCloud();
+  cloud = reloadCloud({ call: () => Promise.resolve({ result: { ok: true } }) });
+  cloud.init('');
+  const d = await cloud.resetCloud();
+  unloadCloud();
+  assert.strictEqual(d.degraded, true);
+});
+
 chain.then(() => {
   console.log('\n全部通过：' + passed + ' 项 ✓');
 }).catch(e => {

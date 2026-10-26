@@ -1,4 +1,4 @@
-// 云函数测试桩：用内存数据库模拟 wx-server-sdk，支持 where/_.gt/_.inc/_.set/_.push/_.elemMatch。
+// 云函数测试桩：用内存数据库模拟 wx-server-sdk，支持 where/_.gt/_.inc/_.set/_.push/_.remove/_.elemMatch 与 remove()。
 // 云函数 openid 一律取自 getWXContext()，测试通过 setOpenid() 切换调用者身份。
 const path = require('path');
 const Module = require('module');
@@ -60,6 +60,7 @@ function applyUpdate(doc, data) {
     if (v && typeof v === 'object' && v.__op === 'inc') doc[k] = (doc[k] || 0) + v.arg;
     else if (v && typeof v === 'object' && v.__op === 'set') doc[k] = v.arg;
     else if (v && typeof v === 'object' && v.__op === 'push') doc[k] = (doc[k] || []).concat(v.arg);
+    else if (v && typeof v === 'object' && v.__op === 'remove') delete doc[k];
     else doc[k] = v;
   });
 }
@@ -90,6 +91,12 @@ function collection(name) {
       targets.forEach(d => applyUpdate(d, data));
       return { stats: { updated: targets.length } };
     },
+    // 删除：doc(id).remove() 或 where(...).remove()（服务端批量删除）
+    async remove() {
+      const targets = q.docId ? rows.filter(r => r._id === q.docId) : build(q);
+      targets.forEach(d => rows.splice(rows.indexOf(d), 1));
+      return { stats: { removed: targets.length } };
+    },
   };
   let q = {};
   return Object.assign(query, {
@@ -113,6 +120,7 @@ const database = {
     inc: v => op({ op: 'inc', v }),
     set: v => op({ op: 'set', v }),
     push: v => op({ op: 'push', v }),
+    remove: () => ({ __op: 'remove' }),
     elemMatch: v => ({ __op: 'elemMatch', arg: v }),
   },
   collection,

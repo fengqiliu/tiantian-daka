@@ -59,6 +59,9 @@ function syncAll(force) {
     .then(r => { syncing = false; return r; });
 }
 
+// 一键清空云端（sync 云函数 reset 动作）；云不可用时降级为 {ok:false, degraded:true}
+function resetCloud() { return call('sync', { action: 'reset' }); }
+
 // ── 家人绑定 ──
 function familyCreate() { return call('family', { action: 'create' }); }
 function familyJoin(code) { return call('family', { action: 'join', code: (code || '').trim().toUpperCase() }); }
@@ -112,7 +115,7 @@ function subscribeAndGrant(kind) { // kind: 'remind' | 'parent'
 
 module.exports = {
   CLOUD_ENV, init, isAvailable, call,
-  syncAll,
+  syncAll, resetCloud,
   familyCreate, familyJoin, familyLeave, familyRefresh, notifyParents, grantParentSub, familyConfig,
   remindConfig, remindGrant, remindStatus, remindDisable, subscribeAndGrant,
   REMIND_PAGE,

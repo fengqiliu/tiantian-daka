@@ -3,9 +3,10 @@ const C = require('../../utils/checkin');
 const CTX = require('../../utils/context');
 const cloud = require('../../utils/cloud');
 const BACKUP = require('../../utils/backup');
+const RESET = require('../../utils/reset');
 
 const AVATARS = ['🐱', '🦊', '🐰', '🐻', '🐸', '🦁', '🐼', '🐷'];
-const APP_VERSION = '0.12.0';
+const APP_VERSION = '0.17.0';
 
 Page({
   data: {
@@ -240,9 +241,12 @@ Page({
   },
 
   clearData() {
+    const withCloud = cloud.isAvailable();
     wx.showModal({
       title: '清空所有数据',
-      content: '将删除本机的全部打卡记录、勋章和资料，无法恢复。确定继续吗？',
+      content: withCloud
+        ? '将删除本机和云端的全部打卡记录、勋章、错题和资料，无法恢复（家人绑定保留）。确定继续吗？'
+        : '将删除本机的全部打卡记录、勋章和资料，无法恢复。确定继续吗？',
       confirmColor: '#FF5A3C',
       success: res => {
         if (!res.confirm) return;
@@ -250,14 +254,34 @@ Page({
           title: '再次确认',
           content: '真的要重新开始吗？建议先「导出数据」备份。',
           confirmColor: '#FF5A3C',
-          success: r2 => {
-            if (r2.confirm) {
-              store.clearAll();
-              wx.reLaunch({ url: '/pages/onboarding/onboarding' });
-            }
-          },
+          success: r2 => { if (r2.confirm) this._doClear(); },
         });
       },
+    });
+  },
+
+  // 先清云端、成功后清本机（utils/reset.js）；云端失败时本机不动
+  _doClear() {
+    wx.showLoading({ title: '清空中…' });
+    RESET.clearEverything(cloud).then(res => {
+      wx.hideLoading();
+      if (res.ok) {
+        wx.reLaunch({ url: '/pages/onboarding/onboarding' });
+        return;
+      }
+      wx.showModal({
+        title: '云端清空失败',
+        content: '本机数据还在，可以联网后重试。也可以只清本机，但云端的数据会在下次同步时回来。',
+        confirmText: '稍后重试',
+        cancelText: '只清本机',
+        cancelColor: '#FF5A3C',
+        success: r3 => {
+          if (r3.cancel) {
+            store.clearAll();
+            wx.reLaunch({ url: '/pages/onboarding/onboarding' });
+          }
+        },
+      });
     });
   },
 });

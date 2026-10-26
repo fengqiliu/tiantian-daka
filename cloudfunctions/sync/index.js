@@ -1,4 +1,4 @@
-// 数据同步：push（本地→云端）/ pull（云端→本地）
+// 数据同步：push（本地→云端）/ pull（云端→本地）/ reset（一键清空云端）
 // 冲突规则与 utils/sync.js 一致：记录/资料按 updatedAt 新者胜，勋章与练习历史并集，删除走墓碑。
 // 安全：openid 一律取自调用上下文，绝不信任前端传入。
 const cloud = require('wx-server-sdk');
@@ -125,6 +125,28 @@ exports.main = async (event) => {
     const badges = (await db.collection('badges').where({ openid: OPENID }).limit(1000).get()).data
       .map(b => ({ id: b.id, earnedAt: b.earnedAt }));
     return { ok: true, records, profile: (u && u.profile) || null, overrides: (u && u.taskOverrides) || null, shop: (u && u.shop) || null, practice: (u && u.practice) || null, wrong: (u && u.wrongBook) || null, badges, serverTime: Date.now() };
+  }
+
+  // 一键清空：删除调用者的全部打卡数据（客户端「清空所有数据」先调此动作，成功后再清本机）
+  // 保留 users 档案本身（openid、提醒订阅配额）与家人绑定：家长继续看到孩子重新开始后的数据
+  if (action === 'reset') {
+    await db.collection('checkins').where({ openid: OPENID }).remove();
+    await db.collection('badges').where({ openid: OPENID }).remove();
+    const users = db.collection('users');
+    const u = (await users.where({ openid: OPENID }).limit(1).get()).data[0];
+    if (u) {
+      await users.doc(u._id).update({
+        data: {
+          profile: null,
+          taskOverrides: _.remove(),
+          shop: _.remove(),
+          practice: _.remove(),
+          wrongBook: _.remove(),
+          updatedAt: Date.now(),
+        },
+      });
+    }
+    return { ok: true, serverTime: Date.now() };
   }
 
   return { ok: false, error: 'unknown action' };
