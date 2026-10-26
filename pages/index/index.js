@@ -5,6 +5,7 @@ const D = require('../../utils/date');
 const CTX = require('../../utils/context');
 const cloud = require('../../utils/cloud');
 const CAL = require('../../utils/calendar-config');
+const RV = require('../../utils/review');
 
 Page({
   data: {
@@ -23,6 +24,8 @@ Page({
     starsToday: 0,
     totalStars: 0,
     streak: 0,
+    reviewDue: 0,
+    reviewDone: false,
     // 家长模式
     bound: false,
     bindCode: '',
@@ -80,6 +83,8 @@ Page({
       starsToday: comp.stars + (comp.allMustDone ? 1 : 0),
       totalStars: C.totalStars(all, grade, store.getBadges()),
       streak: C.streaks(all).current,
+      reviewDue: RV.dueCount(today),
+      reviewDone: RV.reviewedToday(today),
     });
   },
 
@@ -120,6 +125,10 @@ Page({
     wx.navigateTo({
       url: '/pages/task-detail/task-detail?taskId=' + e.currentTarget.dataset.id + '&date=' + D.todayStr(),
     });
+  },
+
+  goReview() {
+    wx.navigateTo({ url: '/pages/review/review' });
   },
 
   goGrowth() {

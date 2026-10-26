@@ -1,5 +1,7 @@
 const store = require('../../utils/store');
 const AR = require('../../utils/arithmetic');
+const D = require('../../utils/date');
+const RV = require('../../utils/review');
 
 const LEVEL_NAME = {};
 Object.keys(AR.LEVELS).forEach(k => { LEVEL_NAME[k] = AR.LEVELS[k].name; });
@@ -11,11 +13,19 @@ Page({
     quizGroups: [],
     mathCount: 0,
     quizCount: 0,
+    dueCount: 0,
   },
 
   onShow() { this.refresh(); },
 
+  // 复习进度："第 2/3 轮 · 10月12日 · 周一复习"；到期显示"今天复习"
+  _schedule(w, today) {
+    const round = '第 ' + ((w.box || 0) + 1) + '/' + RV.MASTER_BOX + ' 轮 · ';
+    return round + (RV.isDue(w, today) ? '今天复习' : D.dateLabel(w.due) + '复习');
+  },
+
   refresh() {
+    const today = D.todayStr();
     // 口算错题：按级别分组
     const mathWrong = store.getMathWrong();
     const byLevel = {};
@@ -26,6 +36,7 @@ Page({
         text: AR.textOf(w.problem),
         answer: w.problem.answer,
         wrongCount: w.wrongCount,
+        schedule: this._schedule(w, today),
       });
     });
     const mathGroups = Object.keys(byLevel).map(name => ({ name, items: byLevel[name] }));
@@ -40,6 +51,7 @@ Page({
         text: w.question.prompt,
         answer: w.question.answerText || (w.question.answers || []).join('、'),
         wrongCount: w.wrongCount,
+        schedule: this._schedule(w, today),
       });
     });
     const quizGroups = Object.keys(bySubject).map(name => ({ name, items: bySubject[name] }));
@@ -49,7 +61,12 @@ Page({
       quizGroups,
       mathCount: mathWrong.length,
       quizCount: quizWrong.length,
+      dueCount: RV.dueCount(today),
     });
+  },
+
+  goReview() {
+    wx.navigateTo({ url: '/pages/review/review' });
   },
 
   onClearMath() {

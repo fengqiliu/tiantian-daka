@@ -16,6 +16,7 @@ const KEYS = {
   REDEMPTIONS: 'redemptions',        // 奖励小铺：兑换账本（只追加）
   SHOP_STAMP: 'shop_stamp',          // 奖励小铺整体时间戳（同步冲突以新者为准）
   DRILL_HISTORY: 'drill_history',    // 口算挑战会话历史（家长报告用）
+  REVIEW_LOG: 'review_log',          // 错题复习日志：每天一条 { date, total, correct }
   CHILD_PROFILE: 'child_profile',    // 家长端缓存：孩子资料
   CHILD_RECORDS: 'child_records',    // 家长端缓存：孩子打卡记录
   CHILD_BADGES: 'child_badges',      // 家长端缓存：孩子勋章
@@ -131,6 +132,10 @@ function saveShopRaw(rewards, redemptions, stamp) {
 function getDrillHistory() { return _get(KEYS.DRILL_HISTORY, []); }
 function saveDrillHistory(list) { backend.set(KEYS.DRILL_HISTORY, list); }
 
+// ── 错题复习日志（本地）──
+function getReviewLog() { return _get(KEYS.REVIEW_LOG, []); }
+function saveReviewLog(list) { backend.set(KEYS.REVIEW_LOG, list); }
+
 // ── 同步游标 ──
 function getSyncState() {
   return _get(KEYS.SYNC, { lastPullAt: 0, lastPushAt: 0 });
@@ -179,6 +184,7 @@ module.exports = {
   getRedemptions, saveRedemptions,
   getShopStamp, saveShopRaw,
   getDrillHistory, saveDrillHistory,
+  getReviewLog, saveReviewLog,
   getSyncState, saveSyncState,
   getChildProfile, getChildRecords, getChildBadges, getChildDrillHistory, getChildQuizHistory,
   saveChildData, clearChildData,

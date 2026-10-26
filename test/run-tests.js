@@ -549,20 +549,27 @@ t('表内乘除法：乘积与除法商均正确', () => {
     assert(AR.check(p, p.answer));
   });
 });
-t('错题本：答错入本累计、答对销账', () => {
+t('错题本：答错入本累计；间隔复习 1/3/7 天连对 3 次才销账', () => {
   reset();
   const rng = seededRng(5);
   const p = AR.generate('addsub10', 1, rng)[0];
-  assert.strictEqual(AR.markResult(p, false, 'addsub10'), 'recorded');
-  assert.strictEqual(AR.markResult(p, false, 'addsub10'), 'recorded');
+  assert.strictEqual(AR.markResult(p, false, 'addsub10', '2026-10-05'), 'recorded');
+  assert.strictEqual(AR.markResult(p, false, 'addsub10', '2026-10-05'), 'recorded');
   let wrong = store.getMathWrong();
   assert.strictEqual(wrong.length, 1);
   assert.strictEqual(wrong[0].wrongCount, 2, '同一题应累计次数');
   assert.strictEqual(wrong[0].level, 'addsub10');
-  assert.strictEqual(AR.markResult(p, true, 'addsub10'), 'mastered');
-  assert.strictEqual(store.getMathWrong().length, 0);
+  assert.strictEqual(wrong[0].due, '2026-10-06', '答错后隔 1 天复习');
+  // 未到期答对：不升级（防止同一天反复答对刷掉）
+  assert.strictEqual(AR.markResult(p, true, 'addsub10', '2026-10-05'), 'early');
+  assert.strictEqual(AR.markResult(p, true, 'addsub10', '2026-10-06'), 'promoted');
+  assert.strictEqual(store.getMathWrong()[0].due, '2026-10-09', '第 1 轮对 → 隔 3 天');
+  assert.strictEqual(AR.markResult(p, true, 'addsub10', '2026-10-09'), 'promoted');
+  assert.strictEqual(store.getMathWrong()[0].due, '2026-10-16', '第 2 轮对 → 隔 7 天');
+  assert.strictEqual(AR.markResult(p, true, 'addsub10', '2026-10-16'), 'mastered');
+  assert.strictEqual(store.getMathWrong().length, 0, '连对 3 次移出错题本');
 });
-t('会话自动混入错题（≤40%），答对后错题本清空', () => {
+t('会话自动混入错题（≤40%），当天答对不销账', () => {
   reset();
   const rng = seededRng(21);
   const seeds = AR.generate('addsub10', 3, rng);
@@ -570,9 +577,9 @@ t('会话自动混入错题（≤40%），答对后错题本清空', () => {
   const session = AR.buildSession('addsub10', 10, rng);
   const mixed = session.filter(p => seeds.find(s => s.id === p.id));
   assert.strictEqual(mixed.length, 3, '3 道错题应全部混入（3 ≤ ceil(10×0.4)）');
-  // 答对全部错题 → 销账；此后同一 id 仍可能作为"新题"随机出现，属正常
-  seeds.forEach(p => AR.markResult(p, true, 'addsub10'));
-  assert.strictEqual(store.getMathWrong().length, 0);
+  // 当天再答对：未到复习日，不升级也不销账
+  seeds.forEach(p => assert.strictEqual(AR.markResult(p, true, 'addsub10'), 'early'));
+  assert.strictEqual(store.getMathWrong().length, 3);
   const next = AR.buildSession('addsub10', 10, seededRng(22));
   assert.strictEqual(next.length, 10);
 });
@@ -765,7 +772,7 @@ t('组卷：确定性、数量正确、judge/choice 实例化正确', () => {
   const cmp = QZ.buildQuiz('math', 10, seededRng(78)).cards.find(c => c.options.length === 3);
   assert.deepStrictEqual(cmp.options, ['<', '=', '>']);
 });
-t('错题本：答错入本、混入重练（≤40%）、答对销账', () => {
+t('错题本：答错入本、混入重练（≤40%）、当天答对不销账', () => {
   reset();
   const rng = seededRng(91);
   const seeds = QZ.poolFor('chinese').slice(0, 3);
@@ -774,8 +781,9 @@ t('错题本：答错入本、混入重练（≤40%）、答对销账', () => {
   const quiz = QZ.buildQuiz('chinese', 10, rng);
   const mixed = quiz.cards.filter(c => seeds.find(s => s.id === c.id));
   assert.strictEqual(mixed.length, 3, '3 道错题应全部混入');
-  seeds.forEach(q => QZ.markResult(q, true));
-  assert.strictEqual(store.getQuizWrong().length, 0, '答对后应销账');
+  seeds.forEach(q => assert.strictEqual(QZ.markResult(q, true), 'early'));
+  assert.strictEqual(store.getQuizWrong().length, 3, '未到复习日答对不销账');
+  assert.strictEqual(QZ.markResult(seeds[0], true, D.addDays(D.todayStr(), 1)), 'promoted', '到期答对升级');
 });
 t('学科间错题互不混入', () => {
   reset();
@@ -1246,6 +1254,84 @@ t('云函数 lib：sync/lib/history-merge.js 与 utils/ 一致', () => {
   const lib = path.join(root, 'cloudfunctions/sync/lib/history-merge.js');
   assert(fs.existsSync(lib), '应由 scripts/sync-cloud-libs.js 复制到 sync 云函数');
   assert.strictEqual(fs.readFileSync(lib, 'utf8'), fs.readFileSync(path.join(root, 'utils/history-merge.js'), 'utf8'));
+});
+
+console.log('— 错题统一复习（间隔重复）—');
+const RV = require('../utils/review');
+t('apply：错 → 盒 0 明天到期；到期对升级 1/3/7 天；第 3 次对移出；错随时打回盒 0', () => {
+  const mk = () => ({ key: 'k1', payload: 1 });
+  let list = [];
+  let r = RV.apply(list, 'k1', false, '2026-10-05', mk);
+  assert.strictEqual(r.result, 'recorded');
+  assert.deepStrictEqual([r.list[0].box, r.list[0].due, r.list[0].wrongCount], [0, '2026-10-06', 1]);
+  assert.strictEqual(r.list[0].payload, 1, '保留业务字段');
+  r = RV.apply(r.list, 'k1', true, '2026-10-06', mk);
+  assert.deepStrictEqual([r.result, r.list[0].box, r.list[0].due], ['promoted', 1, '2026-10-09']);
+  r = RV.apply(r.list, 'k1', false, '2026-10-07', mk); // 中途答错
+  assert.deepStrictEqual([r.result, r.list[0].box, r.list[0].due, r.list[0].wrongCount], ['recorded', 0, '2026-10-08', 2]);
+  assert.strictEqual(RV.apply([], 'nope', true, '2026-10-05', mk).result, 'none', '不在本里的题答对无变化');
+});
+t('旧版错题（无 box/due）视为今天到期，首次答对升到盒 1', () => {
+  const legacy = [{ key: 'old', wrongCount: 3, lastWrongAt: 1 }];
+  assert(RV.isDue(legacy[0], '2026-10-05'));
+  const r = RV.apply(legacy, 'old', true, '2026-10-05', () => ({}));
+  assert.deepStrictEqual([r.result, r.list[0].box, r.list[0].due], ['promoted', 1, '2026-10-08']);
+});
+t('dailyQueue：合并口算+小卷，只取到期题，先到期先复习、同日错得多优先，最多 5 题', () => {
+  reset();
+  const today = '2026-10-10';
+  store.saveMathWrong([
+    { key: 'm-future', level: 'addsub10', problem: { id: 'm-future' }, wrongCount: 9, box: 1, due: '2026-10-12' },
+    { key: 'm1', level: 'addsub10', problem: { id: 'm1' }, wrongCount: 1, box: 0, due: '2026-10-10' },
+    { key: 'm2', level: 'addsub10', problem: { id: 'm2' }, wrongCount: 4, box: 0, due: '2026-10-10' },
+    { key: 'm-legacy', level: 'add5', problem: { id: 'm-legacy' }, wrongCount: 1 },
+  ]);
+  store.saveQuizWrong([
+    { key: 'q1', subject: 'math', question: { id: 'q1' }, wrongCount: 1, box: 1, due: '2026-10-08' },
+    { key: 'q2', subject: 'chinese', question: { id: 'q2' }, wrongCount: 1, box: 0, due: '2026-10-09' },
+    { key: 'q3', subject: 'chinese', question: { id: 'q3' }, wrongCount: 1, box: 0, due: '2026-10-10' },
+  ]);
+  assert.strictEqual(RV.dueCount(today), 6, '未到期的不算');
+  const q = RV.dailyQueue(today);
+  assert.strictEqual(q.length, RV.DAILY_N);
+  assert.deepStrictEqual(q.map(x => x.key), ['m-legacy', 'q1', 'q2', 'm2', 'm1']);
+  assert.strictEqual(q[0].source, 'math');
+  assert.strictEqual(q[1].source, 'quiz');
+  assert.strictEqual(q[0].level, 'add5', '口算题带级别（判分入本用）');
+});
+t('复习日志：同日多组累计，reviewedToday / reviewDays', () => {
+  reset();
+  RV.logSession('2026-10-05', 5, 4);
+  RV.logSession('2026-10-05', 2, 2);
+  RV.logSession('2026-10-06', 5, 5);
+  assert.deepStrictEqual(store.getReviewLog().find(x => x.date === '2026-10-05'), { date: '2026-10-05', total: 7, correct: 6 });
+  assert(RV.reviewedToday('2026-10-06'));
+  assert(!RV.reviewedToday('2026-10-07'));
+  assert.strictEqual(RV.reviewDays(), 2);
+});
+t('勋章「错题克星」：累计复习 7 天获得，+10⭐ 计入总星', () => {
+  reset();
+  const profile = { grade: 1 };
+  for (let i = 0; i < 6; i++) RV.logSession(D.addDays('2026-10-01', i), 5, 5);
+  assert(!B.evaluate([], profile).find(b => b.id === 'review_7'), '6 天不够');
+  RV.logSession('2026-10-07', 3, 2);
+  assert(B.evaluate([], profile).find(b => b.id === 'review_7'), '7 天获得');
+  assert.strictEqual(C.BADGE_BONUS.review_7, 10);
+  assert.strictEqual(C.totalStars([], 1, store.getBadges()), 10);
+  assert.strictEqual(B.BADGE_DEFS.length, 18);
+});
+t('备份包含复习日志；旧备份（无 reviewLog）仍可导入', () => {
+  reset();
+  RV.logSession('2026-10-05', 5, 4);
+  const text = JSON.stringify(BACKUP.serialize());
+  reset();
+  assert.strictEqual(BACKUP.restoreFromText(text).ok, true);
+  assert.strictEqual(store.getReviewLog().length, 1);
+  const old = JSON.parse(text);
+  delete old.data.reviewLog;
+  reset();
+  assert.strictEqual(BACKUP.restoreFromText(JSON.stringify(old)).ok, true);
+  assert.deepStrictEqual(store.getReviewLog(), []);
 });
 
 chain.then(() => {

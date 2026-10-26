@@ -1,0 +1,73 @@
+<view class="rv safe-bottom">
+  <view class="rv-head">
+    <view class="h1">🧠 错题复习</view>
+    <view class="muted">到期的口算和小卷错题 · 隔 1/3/7 天连对 3 次就移出错题本</view>
+  </view>
+
+  <block wx:if="{{phase === 'play'}}">
+    <view class="card rv-q">
+      <view class="muted rv-progress">第 {{idx + 1}}/{{total}} 题 · {{cards[idx].tag}}</view>
+      <block wx:if="{{cards[idx].source === 'math'}}">
+        <view class="rv-math {{feedback}}">{{feedback === 'wrong' ? wrongText : cards[idx].text}}</view>
+        <view class="rv-input">{{input || '_'}}</view>
+      </block>
+      <view wx:else class="rv-prompt">{{cards[idx].prompt}}</view>
+    </view>
+
+    <view class="rv-pad" wx:if="{{cards[idx].source === 'math'}}">
+      <view class="rv-row">
+        <view class="rv-key" data-d="1" bindtap="onKey">1</view>
+        <view class="rv-key" data-d="2" bindtap="onKey">2</view>
+        <view class="rv-key" data-d="3" bindtap="onKey">3</view>
+      </view>
+      <view class="rv-row">
+        <view class="rv-key" data-d="4" bindtap="onKey">4</view>
+        <view class="rv-key" data-d="5" bindtap="onKey">5</view>
+        <view class="rv-key" data-d="6" bindtap="onKey">6</view>
+      </view>
+      <view class="rv-row">
+        <view class="rv-key" data-d="7" bindtap="onKey">7</view>
+        <view class="rv-key" data-d="8" bindtap="onKey">8</view>
+        <view class="rv-key" data-d="9" bindtap="onKey">9</view>
+      </view>
+      <view class="rv-row">
+        <view class="rv-key fn" bindtap="onDel">⌫</view>
+        <view class="rv-key" data-d="0" bindtap="onKey">0</view>
+        <view class="rv-key ok" bindtap="onConfirm">✓</view>
+      </view>
+    </view>
+
+    <block wx:else>
+      <view class="rv-opts">
+        <view
+          wx:for="{{cards[idx].options}}"
+          wx:key="*this"
+          wx:for-index="optIdx"
+          class="rv-opt {{optStates[optIdx]}}"
+          data-index="{{optIdx}}"
+          bindtap="onOption"
+        >{{item}}</view>
+      </view>
+      <view class="btn-ghost rv-multi-submit" wx:if="{{cards[idx].type === 'multi' && !feedback}}" bindtap="onMultiSubmit">✅ 提交本题</view>
+      <view class="muted rv-foot">{{cards[idx].type === 'multi' ? '可多选，选完点提交' : '选出正确的一项'}}{{feedback === 'wrong' ? ' · 绿色是正确答案' : feedback === 'right' ? ' · 答对啦！' : ''}}</view>
+    </block>
+  </block>
+
+  <block wx:if="{{phase === 'done'}}">
+    <view class="card rv-done">
+      <view class="rv-done-emoji">{{correctCount === total ? '🎉' : '💪'}}</view>
+      <view class="h2">答对 {{correctCount}}/{{total}}</view>
+      <view class="muted">{{mastered ? '掌握移出 ' + mastered + ' 题 · ' : ''}}{{promoted ? '升级 ' + promoted + ' 题 · ' : ''}}答错的明天再复习</view>
+      <view class="rv-badge" wx:if="{{newBadge}}">获得新勋章 {{newBadge}}</view>
+      <view class="btn-primary" style="margin-top: 28rpx;" wx:if="{{remaining}}" bindtap="onMore">再复习一组（还有 {{remaining}} 题到期）</view>
+      <view class="btn-ghost" style="margin-top: 20rpx;" bindtap="onBack">返回</view>
+    </view>
+  </block>
+
+  <view class="card rv-done" wx:if="{{phase === 'empty'}}">
+    <view class="rv-done-emoji">✨</view>
+    <view class="h2">今天没有到期的错题</view>
+    <view class="muted">练口算、做小卷时答错的题，会按 1/3/7 天安排回来复习</view>
+    <view class="btn-ghost" style="margin-top: 28rpx;" bindtap="onBack">返回</view>
+  </view>
+</view>

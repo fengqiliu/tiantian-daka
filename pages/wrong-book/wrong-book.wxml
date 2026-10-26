@@ -1,8 +1,10 @@
 <view class="wb safe-bottom">
   <view class="wb-head">
     <view class="h1">❌ 错题本</view>
-    <view class="muted">错题会在练习时自动混入重练，答对自动销账</view>
+    <view class="muted">错题按 1/3/7 天间隔安排复习，连对 3 次自动移出；练习时也会混入重练</view>
   </view>
+
+  <view class="btn-primary wb-review" wx:if="{{dueCount}}" bindtap="goReview">🧠 去复习（{{dueCount}} 题到期）</view>
 
   <view class="card">
     <view class="row wb-sec">
@@ -13,7 +15,10 @@
       <view wx:for="{{mathGroups}}" wx:key="name" wx:for-item="grp">
         <view class="muted wb-group">{{grp.name}}</view>
         <view class="row wb-item" wx:for="{{grp.items}}" wx:key="key" wx:for-item="q">
-          <view class="flex1 wb-text">{{q.text}}</view>
+          <view class="flex1">
+            <view class="wb-text">{{q.text}}</view>
+            <view class="wb-due">{{q.schedule}}</view>
+          </view>
           <view class="wb-answer">答案 {{q.answer}}</view>
           <view class="wb-count">错 {{q.wrongCount}} 次</view>
         </view>
@@ -31,7 +36,10 @@
       <view wx:for="{{quizGroups}}" wx:key="name" wx:for-item="grp">
         <view class="muted wb-group">{{grp.name}}</view>
         <view class="row wb-item" wx:for="{{grp.items}}" wx:key="key" wx:for-item="q">
-          <view class="flex1 wb-text">{{q.text}}</view>
+          <view class="flex1">
+            <view class="wb-text">{{q.text}}</view>
+            <view class="wb-due">{{q.schedule}}</view>
+          </view>
           <view class="wb-answer">答案 {{q.answer}}</view>
           <view class="wb-count">错 {{q.wrongCount}} 次</view>
         </view>

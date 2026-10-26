@@ -95,6 +95,18 @@
       </view>
     </view>
 
+    <view wx:if="{{reviewDue > 0 || reviewDone}}" class="card task-card row {{reviewDue ? '' : 'task-done'}}" bindtap="goReview">
+      <view class="task-emoji" style="background: #FFF1DC;">🧠</view>
+      <view class="flex1 task-info">
+        <view class="task-name">今日错题复习</view>
+        <view class="muted">{{reviewDue ? reviewDue + ' 道错题到复习时间，每组 5 题' : '今天复习完成啦，明天继续'}}</view>
+      </view>
+      <view class="task-right">
+        <view wx:if="{{reviewDue}}" class="review-go">去复习</view>
+        <text wx:else class="task-stars">✓</text>
+      </view>
+    </view>
+
     <block wx:for="{{sections}}" wx:key="key" wx:for-item="sec">
       <view class="sec-header row">
         <view class="sec-dot" style="background: {{sec.color}};"></view>

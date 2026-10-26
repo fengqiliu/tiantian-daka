@@ -3,6 +3,8 @@
 // 5以内加减（U3 分与合）→ 10以内加减（U4）→ 10以内填空（U4 填一填）
 // → 20以内加减 → 表内乘除法（二上）→ 100以内加减（二下/三上）
 const store = require('./store');
+const D = require('./date');
+const REVIEW = require('./review');
 
 function randInt(rng, min, max) {
   return min + Math.floor(rng() * (max - min + 1));
@@ -101,22 +103,13 @@ function textOf(p) {
   return `${p.a} ${p.op} ${p.b} = ?`;
 }
 
-// 错题本：答错入本（累计次数），答对销账
-function markResult(problem, correct, level) {
-  const list = store.getMathWrong();
-  const i = list.findIndex(w => w.key === problem.id);
-  if (correct) {
-    if (i >= 0) { list.splice(i, 1); store.saveMathWrong(list); }
-    return 'mastered';
-  }
-  if (i >= 0) {
-    list[i].wrongCount += 1;
-    list[i].lastWrongAt = Date.now();
-  } else {
-    list.push({ key: problem.id, level, problem, wrongCount: 1, lastWrongAt: Date.now() });
-  }
-  store.saveMathWrong(list);
-  return 'recorded';
+// 错题本：答错入本（累计次数），到期答对按间隔升级，连对 3 次销账（排期见 utils/review.js）
+// today 可注入（测试用）；返回 recorded | promoted | mastered | early | none
+function markResult(problem, correct, level, today) {
+  const { list, result } = REVIEW.apply(store.getMathWrong(), problem.id, correct, today || D.todayStr(),
+    () => ({ level, problem }));
+  if (result !== 'none' && result !== 'early') store.saveMathWrong(list);
+  return result;
 }
 
 function shuffle(arr, rng) {
@@ -131,7 +124,9 @@ function shuffle(arr, rng) {
 // 组一组练习：错题优先混入（最多 40%），其余新题，整体打散
 function buildSession(level, n, rng) {
   rng = rng || Math.random;
-  const wrong = store.getMathWrong().filter(w => w.level === level);
+  // 到期的错题优先混入
+  const wrong = store.getMathWrong().filter(w => w.level === level)
+    .sort((a, b) => ((a.due || '') < (b.due || '') ? -1 : (a.due || '') > (b.due || '') ? 1 : 0));
   const take = Math.min(Math.ceil(n * 0.4), wrong.length);
   const wrongItems = wrong.slice(0, take).map(w => w.problem);
   const used = new Set(wrongItems.map(p => p.id));

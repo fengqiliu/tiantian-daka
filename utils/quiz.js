@@ -1,6 +1,8 @@
 // 每周一卷：组卷、判定、等第制评价、错题本与历史（纯逻辑，rng 可注入）
 // 等第制对齐上海评价要求：只给 优秀/良好/合格/继续加油，不打百分制分数、不排名。
 const store = require('./store');
+const D = require('./date');
+const REVIEW = require('./review');
 const BANK = require('./quiz-bank').bank;
 
 const GRADES = [
@@ -73,7 +75,9 @@ function shuffle(arr, rng) {
 function buildQuiz(subject, n, rng, unit) {
   rng = rng || Math.random;
   const u = unit ? Number(unit) : null;
-  const wrong = store.getQuizWrong().filter(w => w.subject === subject && (!u || w.question.unit === u));
+  // 到期的错题优先混入
+  const wrong = store.getQuizWrong().filter(w => w.subject === subject && (!u || w.question.unit === u))
+    .sort((a, b) => ((a.due || '') < (b.due || '') ? -1 : (a.due || '') > (b.due || '') ? 1 : 0));
   const take = Math.min(Math.ceil(n * 0.4), wrong.length);
   const wrongItems = wrong.slice(0, take).map(w => w.question);
   const used = new Set(wrongItems.map(q => q.id));
@@ -85,23 +89,14 @@ function buildQuiz(subject, n, rng, unit) {
   return { cards, total: cards.length };
 }
 
-// 错题本：答错入本累计，答对销账（始终存原始库题，不含会话期打乱的选项顺序）
-function markResult(question, correct) {
+// 错题本：答错入本累计，到期答对按间隔升级，连对 3 次销账（排期见 utils/review.js）
+// 始终存原始库题，不含会话期打乱的选项顺序；today 可注入（测试用）
+function markResult(question, correct, today) {
   const orig = BANK.find(b => b.id === question.id) || question;
-  const list = store.getQuizWrong();
-  const i = list.findIndex(w => w.key === orig.id);
-  if (correct) {
-    if (i >= 0) { list.splice(i, 1); store.saveQuizWrong(list); }
-    return 'mastered';
-  }
-  if (i >= 0) {
-    list[i].wrongCount += 1;
-    list[i].lastWrongAt = Date.now();
-  } else {
-    list.push({ key: orig.id, subject: orig.subject, question: orig, wrongCount: 1, lastWrongAt: Date.now() });
-  }
-  store.saveQuizWrong(list);
-  return 'recorded';
+  const { list, result } = REVIEW.apply(store.getQuizWrong(), orig.id, correct, today || D.todayStr(),
+    () => ({ subject: orig.subject, question: orig }));
+  if (result !== 'none' && result !== 'early') store.saveQuizWrong(list);
+  return result;
 }
 
 // 历史记录（最新在前，最多 50 条）
