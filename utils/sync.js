@@ -10,7 +10,7 @@ const store = require('./store');
 const HM = require('./history-merge');
 
 // 把一次拉取结果合并进本地（可独立测试的纯合并步骤）
-function mergePull({ records = [], profile = null, badges = [], overrides = null, shop = null, practice = null }) {
+function mergePull({ records = [], profile = null, badges = [], overrides = null, shop = null, practice = null, wrong = null }) {
   let maxPulled = 0;
   if (records.length) {
     const raw = store.getRecordsRaw();
@@ -51,6 +51,10 @@ function mergePull({ records = [], profile = null, badges = [], overrides = null
     store.saveQuizHistory(m.quiz);
     store.saveReviewLog(m.review);
   }
+  // 错题本（口算 + 小卷）：整体新者胜，不参与游标（本地较新时不覆盖，否则已掌握的题会复活）
+  if (wrong && typeof wrong === 'object' && (wrong.updatedAt || 0) > store.getWrongStamp()) {
+    store.saveWrongRaw(wrong.math, wrong.quiz, wrong.updatedAt);
+  }
   if (badges.length) {
     const cur = store.getBadges();
     const have = new Set(cur.map(b => b.id));
@@ -82,6 +86,11 @@ async function push(api) {
   const quiz = store.getQuizHistory();
   const review = store.getReviewLog();
   const practice = (drill.length || quiz.length || review.length) ? { drill, quiz, review } : null;
+  // 错题本：有改动（盖过章）才上传；旧版数据有错题但没章时以 1 上传一次，任何真实写入都比它新
+  const math = store.getMathWrong();
+  const quizWrong = store.getQuizWrong();
+  const wrongStamp = store.getWrongStamp() || ((math.length || quizWrong.length) ? 1 : 0);
+  const wrong = wrongStamp ? { math, quiz: quizWrong, updatedAt: wrongStamp } : null;
   const payload = {
     records,
     profile: store.getProfile(),
@@ -89,6 +98,7 @@ async function push(api) {
     overrides,
     shop,
     practice,
+    wrong,
   };
   const res = await api.pushData(payload);
   if (!res || res.ok === false) return false; // 失败不推进游标，下次重试

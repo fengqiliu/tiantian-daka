@@ -215,6 +215,7 @@ function mockCloud() {
       if (p.overrides && (!server.overrides || (server.overrides.updatedAt || 0) < (p.overrides.updatedAt || 0))) server.overrides = p.overrides;
       if (p.shop && (!server.shop || (server.shop.updatedAt || 0) < (p.shop.updatedAt || 0))) server.shop = p.shop;
       if (p.practice) server.practice = HM.mergePractice(server.practice, p.practice);
+      if (p.wrong && (!server.wrong || (server.wrong.updatedAt || 0) < (p.wrong.updatedAt || 0))) server.wrong = p.wrong;
       p.badges.forEach(b => { if (!server.badges.find(x => x.id === b.id)) server.badges.push(b); });
       return { ok: true, serverTime: server.now || Date.now() };
     },
@@ -225,6 +226,7 @@ function mockCloud() {
       overrides: server.overrides,
       shop: server.shop,
       practice: server.practice || null,
+      wrong: server.wrong || null,
       badges: server.badges,
       serverTime: server.now || Date.now(),
     }),
@@ -1448,6 +1450,91 @@ t('复习日志随同步往返，家长端缓存并经 scope 读取', async () =
   assert.strictEqual(CTX.scope().reviewLog.length, 1, '家长 scope 读孩子复习缓存');
   store.saveProfile({ role: 'child', grade: 1 });
   assert.strictEqual(CTX.scope().reviewLog.length, 0, '孩子 scope 读本机');
+});
+
+console.log('— 错题本上云 + 家长端错题本 —');
+const mw = (key, extra) => ({ key, level: 'addsub20', problem: { id: key, kind: 'result', a: 1, op: '+', b: 1, c: null, answer: 2 }, wrongCount: 1, box: 0, due: '2026-10-06', ...extra });
+const qw = (key, extra) => ({ key, subject: 'math', question: { id: key, unit: 2, prompt: key }, wrongCount: 1, box: 0, due: '2026-10-06', ...extra });
+t('错题本时间戳：每次保存严格递增，Raw 写入保留远端时间戳', () => {
+  reset();
+  assert.strictEqual(store.getWrongStamp(), 0);
+  store.saveMathWrong([mw('a')]);
+  const s1 = store.getWrongStamp();
+  assert(s1 > 0);
+  store.saveQuizWrong([qw('q')]);
+  assert(store.getWrongStamp() > s1, '两本共用一个时间戳且严格递增');
+  store.saveWrongRaw([mw('x')], [], 12345);
+  assert.strictEqual(store.getWrongStamp(), 12345);
+  assert.strictEqual(store.getMathWrong()[0].key, 'x');
+  assert.deepStrictEqual(store.getQuizWrong(), []);
+});
+t('错题本同步：空本不传、旧版无戳也上传一次、远端较新才覆盖、销账能传播', async () => {
+  reset();
+  const api = mockCloud();
+  await S.push(api);
+  assert.strictEqual(api.server.wrong, undefined, '空错题本不上传');
+
+  // 旧版数据：有错题但没有时间戳 → 以 1 上传（任何真实写入都比它新）
+  store.saveWrongRaw([mw('legacy')], [], 0);
+  await S.push(api);
+  assert.strictEqual(api.server.wrong.updatedAt, 1);
+  assert.strictEqual(api.server.wrong.math.length, 1);
+
+  // 设备 A 新增错题 → 覆盖云端
+  store.saveQuizWrong([qw('q1')]);
+  await S.push(api);
+  assert.strictEqual(api.server.wrong.quiz.length, 1);
+  const stampA = api.server.wrong.updatedAt;
+
+  // 新设备拉取：得到两本 + 远端时间戳
+  reset();
+  await S.pull(api);
+  assert.strictEqual(store.getMathWrong()[0].key, 'legacy');
+  assert.strictEqual(store.getQuizWrong()[0].key, 'q1');
+  assert.strictEqual(store.getWrongStamp(), stampA);
+
+  // 在新设备上销账（本地较新）→ 再拉取不被旧云端覆盖；推送后云端也少一题
+  store.saveMathWrong([]);
+  await S.pull(api);
+  assert.strictEqual(store.getMathWrong().length, 0, '本地较新不应被覆盖（否则已掌握的题会复活）');
+  await S.push(api);
+  assert.strictEqual(api.server.wrong.math.length, 0, '销账传播到云端');
+});
+t('家长端：familyRefresh 缓存孩子错题本，scope 读取；缺字段保留旧缓存', async () => {
+  reset();
+  const wrongBook = { math: [mw('m1')], quiz: [qw('q1'), qw('q2')], updatedAt: 99 };
+  let cloud = reloadCloud({ call: () => Promise.resolve({ result: { ok: true, profile: null, records: [], badges: [], wrongBook } }) });
+  cloud.init('prod-test');
+  await cloud.familyRefresh();
+  unloadCloud();
+  store.saveProfile({ role: 'parent' });
+  let s = CTX.scope();
+  assert.deepStrictEqual([s.mathWrong.length, s.quizWrong.length], [1, 2], '家长 scope 读孩子错题缓存');
+  cloud = reloadCloud({ call: () => Promise.resolve({ result: { ok: true, profile: null, records: [], badges: [] } }) });
+  cloud.init('prod-test');
+  await cloud.familyRefresh();
+  unloadCloud();
+  assert.strictEqual(CTX.scope().quizWrong.length, 2, '旧版云函数不返回 wrongBook 时保留缓存');
+  store.saveProfile({ role: 'child', grade: 1 });
+  store.saveMathWrong([mw('local')]);
+  s = CTX.scope();
+  assert.deepStrictEqual([s.mathWrong.length, s.quizWrong.length], [1, 0], '孩子 scope 读本机');
+});
+t('周报需关注：反复错（≥3 次）的题型按口算级别 / 小卷科目单元归类，取最多的一类', () => {
+  reset();
+  seedDay('2026-10-19', 1, mustIds('2026-10-19')(1));
+  const g = REPORT.weeklyDigest({
+    records: store.getRecords(), grade: 1,
+    mathWrong: [mw('a', { wrongCount: 3 }), mw('b', { wrongCount: 5 }), mw('c', { wrongCount: 1 }), mw('d', { level: 'add5', wrongCount: 4 })],
+    quizWrong: [qw('q1', { wrongCount: 3 })],
+  }, W0);
+  const line = g.attention.find(a => a.includes('反复错'));
+  assert(line, '应提示反复错的题型：' + JSON.stringify(g.attention));
+  assert(line.includes(AR.LEVELS.addsub20.name) && line.includes('2 道'), line);
+  const g2 = REPORT.weeklyDigest({ records: store.getRecords(), grade: 1, mathWrong: [], quizWrong: [qw('q1', { wrongCount: 3 }), qw('q2', { wrongCount: 4 })] }, W0);
+  assert(g2.attention.some(a => a.includes('数学第2单元') && a.includes('2 道')), JSON.stringify(g2.attention));
+  const g3 = REPORT.weeklyDigest({ records: store.getRecords(), grade: 1, mathWrong: [mw('a', { wrongCount: 2 })] }, W0);
+  assert(!g3.attention.some(a => a.includes('反复错')), '错不到 3 次不提示');
 });
 
 chain.then(() => {

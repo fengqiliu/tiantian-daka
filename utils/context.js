@@ -15,6 +15,8 @@ function scope() {
       drillSessions: store.getDrillHistory(),
       quizHistory: store.getQuizHistory(),
       reviewLog: store.getReviewLog(),
+      mathWrong: store.getMathWrong(),
+      quizWrong: store.getQuizWrong(),
       readOnly: false,
       bound: true,
     };
@@ -30,6 +32,8 @@ function scope() {
     drillSessions: store.getChildDrillHistory(),
     quizHistory: store.getChildQuizHistory(),
     reviewLog: store.getChildReviewLog(),
+    mathWrong: store.getChildMathWrong(),
+    quizWrong: store.getChildQuizWrong(),
     readOnly: true,
     bound: !!child,
   };

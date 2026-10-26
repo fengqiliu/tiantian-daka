@@ -97,6 +97,18 @@ exports.main = async (event) => {
         await users.doc(u._id).update({ data: { practice: _.set(merged) } });
       }
     }
+    // 错题本（口算 + 小卷）：整体新者胜；_.set 整体替换，避免数组残留已销账的题
+    if (event.wrong && typeof event.wrong === 'object') {
+      const { wrong: incoming } = event;
+      const users = db.collection('users');
+      const u = (await users.where({ openid: OPENID }).limit(1).get()).data[0];
+      if (u) {
+        const cur = u.wrongBook || {};
+        if (!cur.updatedAt || (cur.updatedAt || 0) < (incoming.updatedAt || 0)) {
+          await users.doc(u._id).update({ data: { wrongBook: _.set(incoming) } });
+        }
+      }
+    }
     // 勋章：并集
     for (const b of event.badges || []) {
       if (!b || !b.id) continue;
@@ -112,7 +124,7 @@ exports.main = async (event) => {
     const u = (await db.collection('users').where({ openid: OPENID }).limit(1).get()).data[0];
     const badges = (await db.collection('badges').where({ openid: OPENID }).limit(1000).get()).data
       .map(b => ({ id: b.id, earnedAt: b.earnedAt }));
-    return { ok: true, records, profile: (u && u.profile) || null, overrides: (u && u.taskOverrides) || null, shop: (u && u.shop) || null, practice: (u && u.practice) || null, badges, serverTime: Date.now() };
+    return { ok: true, records, profile: (u && u.profile) || null, overrides: (u && u.taskOverrides) || null, shop: (u && u.shop) || null, practice: (u && u.practice) || null, wrong: (u && u.wrongBook) || null, badges, serverTime: Date.now() };
   }
 
   return { ok: false, error: 'unknown action' };

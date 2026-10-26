@@ -1,5 +1,6 @@
 const store = require('../../utils/store');
 const AR = require('../../utils/arithmetic');
+const CTX = require('../../utils/context');
 const D = require('../../utils/date');
 const RV = require('../../utils/review');
 
@@ -14,6 +15,7 @@ Page({
     mathCount: 0,
     quizCount: 0,
     dueCount: 0,
+    readOnly: false,
   },
 
   onShow() { this.refresh(); },
@@ -26,8 +28,10 @@ Page({
 
   refresh() {
     const today = D.todayStr();
+    // 数据作用域：孩子端读本机，家长端只读孩子缓存（随家人同步更新）
+    const s = CTX.scope();
     // 口算错题：按级别分组
-    const mathWrong = store.getMathWrong();
+    const mathWrong = s.mathWrong;
     const byLevel = {};
     mathWrong.forEach(w => {
       const name = LEVEL_NAME[w.level] || w.level;
@@ -42,7 +46,7 @@ Page({
     const mathGroups = Object.keys(byLevel).map(name => ({ name, items: byLevel[name] }));
 
     // 小卷错题：按科目分组
-    const quizWrong = store.getQuizWrong();
+    const quizWrong = s.quizWrong;
     const bySubject = {};
     quizWrong.forEach(w => {
       const name = SUBJECT_NAME[w.subject] || w.subject;
@@ -61,7 +65,8 @@ Page({
       quizGroups,
       mathCount: mathWrong.length,
       quizCount: quizWrong.length,
-      dueCount: RV.dueCount(today),
+      dueCount: s.readOnly ? 0 : RV.dueCount(today),
+      readOnly: s.readOnly,
     });
   },
 
@@ -84,7 +89,7 @@ Page({
   },
 
   _confirmClear(name, count, cb) {
-    if (!count) return;
+    if (!count || this.data.readOnly) return;
     wx.showModal({
       title: '清空' + name,
       content: '共 ' + count + ' 题。清空后这些题不再自动重练（建议先让孩子练一遍）。确定清空吗？',

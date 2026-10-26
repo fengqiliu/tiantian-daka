@@ -11,6 +11,7 @@ const KEYS = {
   MATH_WRONG: 'math_wrong',          // 口算错题本（本地）
   QUIZ_WRONG: 'quiz_wrong',          // 每周一卷错题本（本地）
   QUIZ_HISTORY: 'quiz_history',      // 每周一卷历史（本地）
+  WRONG_STAMP: 'wrong_stamp',        // 两本错题本的整体时间戳（同步冲突以新者为准）
   TASK_OVERRIDES: 'task_overrides',  // 家长任务管理：目标覆盖 + 自定义任务
   REWARDS: 'rewards',                // 奖励小铺：奖品架（家长维护）
   REDEMPTIONS: 'redemptions',        // 奖励小铺：兑换账本（只追加）
@@ -23,6 +24,8 @@ const KEYS = {
   CHILD_DRILL: 'child_drill',        // 家长端缓存：孩子口算会话
   CHILD_QUIZ: 'child_quiz',          // 家长端缓存：孩子小卷历史
   CHILD_REVIEW: 'child_review',      // 家长端缓存：孩子错题复习日志
+  CHILD_MATH_WRONG: 'child_math_wrong', // 家长端缓存：孩子口算错题本
+  CHILD_QUIZ_WRONG: 'child_quiz_wrong', // 家长端缓存：孩子小卷错题本
 };
 
 let memory = {};
@@ -79,13 +82,27 @@ function saveSettings(s) { backend.set(KEYS.SETTINGS, s); }
 function getReadings() { return _get(KEYS.READINGS, []); }
 function saveReadings(list) { backend.set(KEYS.READINGS, list); }
 
-// ── 口算错题本（本地）──
+// ── 错题本（口算 + 小卷）──
+// 条目会升盒、销账（原地修改），不能并集合并：两本共用一个整体时间戳，同步时新者胜
 function getMathWrong() { return _get(KEYS.MATH_WRONG, []); }
-function saveMathWrong(list) { backend.set(KEYS.MATH_WRONG, list); }
-
-// ── 每周一卷（错题本与历史，本地）──
+function saveMathWrong(list) {
+  backend.set(KEYS.MATH_WRONG, list);
+  _bumpStamp(KEYS.WRONG_STAMP);
+}
 function getQuizWrong() { return _get(KEYS.QUIZ_WRONG, []); }
-function saveQuizWrong(list) { backend.set(KEYS.QUIZ_WRONG, list); }
+function saveQuizWrong(list) {
+  backend.set(KEYS.QUIZ_WRONG, list);
+  _bumpStamp(KEYS.WRONG_STAMP);
+}
+function getWrongStamp() { return _get(KEYS.WRONG_STAMP, 0); }
+// 同步合并专用：保留远端时间戳，不重新盖章
+function saveWrongRaw(math, quiz, stamp) {
+  backend.set(KEYS.MATH_WRONG, math || []);
+  backend.set(KEYS.QUIZ_WRONG, quiz || []);
+  backend.set(KEYS.WRONG_STAMP, stamp || 0);
+}
+
+// ── 每周一卷历史（本地）──
 function getQuizHistory() { return _get(KEYS.QUIZ_HISTORY, []); }
 function saveQuizHistory(list) { backend.set(KEYS.QUIZ_HISTORY, list); }
 
@@ -150,8 +167,14 @@ function getChildBadges() { return _get(KEYS.CHILD_BADGES, []); }
 function getChildDrillHistory() { return _get(KEYS.CHILD_DRILL, []); }
 function getChildQuizHistory() { return _get(KEYS.CHILD_QUIZ, []); }
 function getChildReviewLog() { return _get(KEYS.CHILD_REVIEW, []); }
-// practice 缺省（旧版云函数不返回）时保留已有缓存
-function saveChildData(profile, records, badges, practice) {
+function getChildMathWrong() { return _get(KEYS.CHILD_MATH_WRONG, []); }
+function getChildQuizWrong() { return _get(KEYS.CHILD_QUIZ_WRONG, []); }
+// practice / wrongBook 缺省（旧版云函数不返回）时保留已有缓存
+function saveChildData(profile, records, badges, practice, wrongBook) {
+  if (wrongBook) {
+    backend.set(KEYS.CHILD_MATH_WRONG, wrongBook.math || []);
+    backend.set(KEYS.CHILD_QUIZ_WRONG, wrongBook.quiz || []);
+  }
   if (profile) backend.set(KEYS.CHILD_PROFILE, profile);
   if (records) backend.set(KEYS.CHILD_RECORDS, records);
   if (badges) backend.set(KEYS.CHILD_BADGES, badges);
@@ -169,6 +192,8 @@ function clearChildData() {
   backend.remove(KEYS.CHILD_DRILL);
   backend.remove(KEYS.CHILD_QUIZ);
   backend.remove(KEYS.CHILD_REVIEW);
+  backend.remove(KEYS.CHILD_MATH_WRONG);
+  backend.remove(KEYS.CHILD_QUIZ_WRONG);
 }
 
 function clearAll() { Object.keys(KEYS).forEach(k => backend.remove(KEYS[k])); }
@@ -180,7 +205,7 @@ module.exports = {
   getBadges, saveBadges,
   getSettings, saveSettings,
   getReadings, saveReadings,
-  getMathWrong, saveMathWrong,
+  getMathWrong, saveMathWrong, getWrongStamp, saveWrongRaw,
   getQuizWrong, saveQuizWrong,
   getQuizHistory, saveQuizHistory,
   getTaskOverrides, saveTaskOverrides, saveTaskOverridesRaw,
@@ -191,6 +216,7 @@ module.exports = {
   getReviewLog, saveReviewLog,
   getSyncState, saveSyncState,
   getChildProfile, getChildRecords, getChildBadges, getChildDrillHistory, getChildQuizHistory, getChildReviewLog,
+  getChildMathWrong, getChildQuizWrong,
   saveChildData, clearChildData,
   clearAll,
 };

@@ -255,6 +255,26 @@ t('复习日志：push 按日期合并（同日取次数多的），pull 取回'
   const p = await sync.main({ action: 'pull', since: 0 });
   assert.deepStrictEqual(p.practice.review.map(x => [x.date, x.total]), [['2026-10-06', 5], ['2026-10-05', 5]]);
 });
+t('错题本：push 云端较旧才覆盖，pull 取回；家长 summary 返回孩子错题本', async () => {
+  reset();
+  const family = CM.load('family');
+  const sync = CM.load('sync');
+  CM.setOpenid('kid1');
+  await CM.load('login').main({});
+  const code = (await family.main({ action: 'create' })).code;
+  await sync.main({ action: 'push', wrong: { math: [{ key: 'a' }, { key: 'b' }], quiz: [], updatedAt: 200 } });
+  await sync.main({ action: 'push', wrong: { math: [], quiz: [], updatedAt: 100 } }); // 旧数据不覆盖
+  let p = await sync.main({ action: 'pull', since: 0 });
+  assert.strictEqual(p.wrong.math.length, 2, '旧时间戳不应覆盖');
+  await sync.main({ action: 'push', wrong: { math: [{ key: 'b' }], quiz: [], updatedAt: 300 } }); // 销账一题
+  p = await sync.main({ action: 'pull', since: 0 });
+  assert.deepStrictEqual(p.wrong.math.map(x => x.key), ['b'], '新数据整体替换（数组不残留旧元素）');
+
+  CM.setOpenid('parent1');
+  await family.main({ action: 'join', code });
+  const s = await family.main({ action: 'summary', since: 0 });
+  assert.strictEqual(s.wrongBook.math.length, 1, '家长拿到孩子错题本');
+});
 t('练习记录 openid 隔离：B 拉不到 A 的练习', async () => {
   reset();
   const sync = CM.load('sync');

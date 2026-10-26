@@ -2,6 +2,10 @@
 const D = require('./date');
 const T = require('./tasks');
 const B = require('./badges');
+const AR = require('./arithmetic');
+
+const SUBJECT_NAME = { math: '数学', chinese: '语文', english: '英语' };
+const STUBBORN_MIN = 3; // 错满 3 次算"反复错"
 
 // 近 days 天逐个任务的出现/完成次数与完成率（升序，最常被跳过的排最前）
 function taskRates(records, grade, days, today) {
@@ -89,7 +93,23 @@ function _mustRates(records, grade, monday, span) {
   return Object.values(agg).map(a => ({ ...a, rate: Math.round((a.done / a.appeared) * 100) }));
 }
 
-// 周报：data = { records, grade, badges, drillSessions, quizHistory, reviewLog, today? }（来自 CTX.scope()）
+// 反复错的题型：口算按级别、小卷按"科目第 N 单元"归类，返回题数最多的一类 { name, count } 或 null
+function stubbornGroup(mathWrong, quizWrong) {
+  const groups = {};
+  (mathWrong || []).filter(w => (w.wrongCount || 0) >= STUBBORN_MIN).forEach(w => {
+    const name = (AR.LEVELS[w.level] || {}).name || w.level;
+    groups[name] = (groups[name] || 0) + 1;
+  });
+  (quizWrong || []).filter(w => (w.wrongCount || 0) >= STUBBORN_MIN).forEach(w => {
+    const q = w.question || {};
+    const name = (SUBJECT_NAME[w.subject] || w.subject) + (q.unit ? '第' + q.unit + '单元' : '');
+    groups[name] = (groups[name] || 0) + 1;
+  });
+  const best = Object.keys(groups).sort((a, b) => groups[b] - groups[a])[0];
+  return best ? { name: best, count: groups[best] } : null;
+}
+
+// 周报：data = { records, grade, badges, drillSessions, quizHistory, reviewLog, mathWrong, quizWrong, today? }（来自 CTX.scope()）
 // today 落在本周内时（本周进行中），任务完成率只算到今天，未来的日子不算漏做
 // 亮点/需关注按固定规则挑选，各最多 3 条；只陈述事实并给温和建议，不和别人比
 function weeklyDigest(data, monday) {
@@ -151,6 +171,9 @@ function weeklyDigest(data, monday) {
       .sort((x, y) => x.rate - y.rate)
       .slice(0, 2)
       .forEach(a => attention.push('必做「' + a.name + '」只完成 ' + a.done + '/' + a.appeared + ' 天'));
+    // 错题本是当前状态（不限本周）：提示最集中的薄弱题型
+    const sg = stubbornGroup(data.mathWrong, data.quizWrong);
+    if (sg) attention.push('「' + sg.name + '」有 ' + sg.count + ' 道题反复错，可以一起看看错题本');
     if (drill.count && drill.accuracy < 70) attention.push('口算正确率 ' + drill.accuracy + '%，可以先回到低一级巩固');
     if (vsPrev <= -2) attention.push('达成天数比前一周少 ' + (-vsPrev) + ' 天');
   }
@@ -168,4 +191,4 @@ function weeklyDigest(data, monday) {
   };
 }
 
-module.exports = { taskRates, overview, drillSummary, lastWeekMonday, weekLabel, weeklyDigest };
+module.exports = { taskRates, overview, drillSummary, lastWeekMonday, weekLabel, stubbornGroup, weeklyDigest };

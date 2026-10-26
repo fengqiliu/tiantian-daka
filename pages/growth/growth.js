@@ -56,11 +56,11 @@ Page({
         + (quizWrong.length ? ' · 错题 ' + quizWrong.length + ' 题' : '')
       : (quizWrong.length ? '错题 ' + quizWrong.length + ' 题，来练一练' : '判断选择小卷，做完给等第');
 
-    // 错题本入口文案
-    const mathWrong = store.getMathWrong().length;
-    const quizWrongN = store.getQuizWrong().length;
+    // 错题本入口文案（家长端读孩子缓存）
+    const mathWrong = s.mathWrong.length;
+    const quizWrongN = s.quizWrong.length;
     const wrongHint = (mathWrong + quizWrongN)
-      ? '口算 ' + mathWrong + ' 题 · 小卷 ' + quizWrongN + ' 题，练对自动销账'
+      ? '口算 ' + mathWrong + ' 题 · 小卷 ' + quizWrongN + ' 题，间隔复习连对 3 次移出'
       : '暂无错题，练一练看看';
 
     // 奖励小铺（仅孩子端；积分 = 累计星数 − 已兑换）
