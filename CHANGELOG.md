@@ -5,6 +5,26 @@
 > 项目：天天小达人 —— 上海小学 1-5 年级每日学习 / 运动 / 娱乐打卡微信小程序
 > 仓库：https://github.com/fengqiliu/tiantian-daka
 
+## [0.13.0] - 2026-10-26
+
+### 新增
+
+- **练习记录上云**：口算会话历史与每周一卷历史随同步走（`users.practice`），补齐 0.10.0 记下的已知缺口——家长手机上的「家长报告」现在能看到孩子的口算正确率趋势与小卷记录，不再提示"保存在孩子设备上"
+  - 合并规则：两份历史都是只追加列表，按完成时间 `at` **取并集**（同 `at` 去重、最新在前、口算 ≤100 / 小卷 ≤50），而非"整体新者胜"——孩子在两台设备上各练一次，两条都保留
+  - 合并逻辑抽为无依赖的 `utils/history-merge.js`，由 `scripts/sync-cloud-libs.js` 复制到 `cloudfunctions/sync/lib/`，客户端与云端同源；上限常量 `arithmetic.js` / `quiz.js` 直接引用，单一来源
+  - `family` 云函数 `summary` 返回孩子的 `practice`；家长端缓存为 `child_drill` / `child_quiz`，旧版云函数不返回该字段时保留已有缓存
+  - `CTX.scope()` 新增 `drillSessions` / `quizHistory`，报告页统一从作用域取数（孩子端读本机，家长端读孩子缓存）
+  - 小卷完成后触发同步（此前只有口算会触发）
+
+### 变更
+
+- `scripts/sync-cloud-libs.js` 改为按云函数配置所需文件（dailyRemind：tasks/date/calendar-config；sync：history-merge）
+- 测试规模：客户端 90 → 96 项、云函数 31 → 34 项（TDD：先写失败用例再实现）
+
+### 部署提示
+
+- 需重新上传 `sync` 与 `family` 两个云函数（`sync` 新增 `lib/history-merge.js`）
+
 ## [0.12.0] - 2026-10-02
 
 ### 新增

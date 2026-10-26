@@ -1,6 +1,7 @@
 const store = require('../../utils/store');
 const D = require('../../utils/date');
 const QZ = require('../../utils/quiz');
+const cloud = require('../../utils/cloud');
 
 const SUBJECT_META = {
   math: { name: '数学', emoji: '🧮' },
@@ -158,6 +159,7 @@ Page({
         subject: this.data.selected, total: this.data.total,
         correct: this.data.correctCount, label: v.label,
       });
+      cloud.syncAll(); // 小卷历史上云，家长报告可见（节流 1 分钟，静默失败）
       this.setData({ phase: 'done', verdict: v });
       this.refreshMeta();
     } else {

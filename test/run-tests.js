@@ -193,6 +193,7 @@ t('称号进度：0 星见习、150 星银星', () => {
 console.log('— 同步引擎 —');
 const S = require('../utils/sync');
 const CTX = require('../utils/context');
+const HM = require('../utils/history-merge');
 const T0 = 1727740800000;
 
 function seedRaw(records) { store.saveRecords(records); }
@@ -213,6 +214,7 @@ function mockCloud() {
       if (p.profile && (!server.profile || (server.profile.updatedAt || 0) < (p.profile.updatedAt || 0))) server.profile = p.profile;
       if (p.overrides && (!server.overrides || (server.overrides.updatedAt || 0) < (p.overrides.updatedAt || 0))) server.overrides = p.overrides;
       if (p.shop && (!server.shop || (server.shop.updatedAt || 0) < (p.shop.updatedAt || 0))) server.shop = p.shop;
+      if (p.practice) server.practice = HM.mergePractice(server.practice, p.practice);
       p.badges.forEach(b => { if (!server.badges.find(x => x.id === b.id)) server.badges.push(b); });
       return { ok: true, serverTime: server.now || Date.now() };
     },
@@ -222,6 +224,7 @@ function mockCloud() {
       profile: server.profile,
       overrides: server.overrides,
       shop: server.shop,
+      practice: server.practice || null,
       badges: server.badges,
       serverTime: server.now || Date.now(),
     }),
@@ -1154,6 +1157,95 @@ t('口算会话历史：最新在前且最多 100 条', () => {
   const list = AR.getSessions();
   assert.strictEqual(list.length, 100);
   assert.strictEqual(list[0].correct, 104, '最新的在前');
+});
+
+console.log('— 练习记录上云（口算会话 + 小卷历史）—');
+t('mergeHistory：按 at 并集去重、最新在前、按上限截断、丢弃无 at 条目', () => {
+  const a = [{ at: 30, n: 'a3' }, { at: 10, n: 'a1' }];
+  const b = [{ at: 20, n: 'b2' }, { at: 10, n: 'b1-dup' }, { n: 'no-at' }, null];
+  const m = HM.mergeHistory(a, b, 100);
+  assert.deepStrictEqual(m.map(x => x.at), [30, 20, 10]);
+  assert.strictEqual(m.find(x => x.at === 10).n, 'a1', '同 at 保留第一方（本地）条目');
+  assert.deepStrictEqual(HM.mergeHistory(a, b, 2).map(x => x.at), [30, 20], '超上限丢最旧');
+  assert.deepStrictEqual(HM.mergeHistory(null, undefined, 5), [], '空输入安全');
+});
+t('mergePractice：口算 100 / 小卷 50 分别截断', () => {
+  const drill = Array.from({ length: 120 }, (_, i) => ({ at: i + 1 }));
+  const quiz = Array.from({ length: 60 }, (_, i) => ({ at: i + 1 }));
+  const m = HM.mergePractice({ drill, quiz: [] }, { drill: [], quiz });
+  assert.strictEqual(m.drill.length, HM.DRILL_CAP);
+  assert.strictEqual(m.quiz.length, HM.QUIZ_CAP);
+  assert.strictEqual(m.drill[0].at, 120, '保留最新');
+  assert.deepStrictEqual(HM.mergePractice(null, null), { drill: [], quiz: [] });
+});
+t('练习记录同步往返：推送全量，拉取按并集合并（两台设备各自的练习都保留）', async () => {
+  reset();
+  const api = mockCloud();
+  // 无练习记录 → 不上传
+  await S.push(api);
+  assert.strictEqual(api.server.practice, undefined, '空历史不应上传');
+
+  // 设备 A：一次口算 + 一次小卷
+  store.saveDrillHistory([{ date: '2026-10-05', level: 'addsub10', total: 10, correct: 9, at: T0 + 1 }]);
+  store.saveQuizHistory([{ subject: 'math', total: 10, correct: 10, label: '优秀', at: T0 + 2 }]);
+  await S.push(api);
+  assert.strictEqual(api.server.practice.drill.length, 1);
+  assert.strictEqual(api.server.practice.quiz.length, 1);
+
+  // 设备 B：本机已有另一次口算；拉取后两条都在
+  reset();
+  store.saveDrillHistory([{ date: '2026-10-06', level: 'addsub20', total: 10, correct: 7, at: T0 + 5 }]);
+  await S.pull(api);
+  assert.deepStrictEqual(store.getDrillHistory().map(x => x.at), [T0 + 5, T0 + 1], '并集合并，最新在前');
+  assert.strictEqual(store.getQuizHistory().length, 1, '远端小卷历史写入本地');
+
+  // B 回推后云端也收敛为并集
+  await S.push(api);
+  assert.strictEqual(api.server.practice.drill.length, 2, '云端收敛为两台设备的并集');
+});
+t('家长端：familyRefresh 缓存孩子练习记录，scope 读取它', async () => {
+  reset();
+  const practice = {
+    drill: [{ date: '2026-10-05', level: 'addsub10', total: 10, correct: 8, at: T0 }],
+    quiz: [{ subject: 'math', total: 10, correct: 9, label: '良好', at: T0 }],
+  };
+  const cloud = reloadCloud({
+    call: () => Promise.resolve({ result: { ok: true, profile: { nickname: '小豆', grade: 1 }, records: [], badges: [], practice } }),
+  });
+  cloud.init('prod-test');
+  await cloud.familyRefresh();
+  unloadCloud();
+  assert.deepStrictEqual(store.getChildDrillHistory(), practice.drill, '口算会话写入孩子缓存');
+  assert.deepStrictEqual(store.getChildQuizHistory(), practice.quiz, '小卷历史写入孩子缓存');
+
+  store.saveProfile({ role: 'parent' });
+  const s = CTX.scope();
+  assert.strictEqual(s.drillSessions.length, 1, '家长 scope 读孩子口算缓存');
+  assert.strictEqual(s.quizHistory.length, 1, '家长 scope 读孩子小卷缓存');
+
+  // 旧版云函数不返回 practice：不应清掉已有缓存
+  const cloud2 = reloadCloud({ call: () => Promise.resolve({ result: { ok: true, profile: null, records: [], badges: [] } }) });
+  cloud2.init('prod-test');
+  await cloud2.familyRefresh();
+  unloadCloud();
+  assert.strictEqual(store.getChildDrillHistory().length, 1, '缺 practice 字段时保留旧缓存');
+});
+t('孩子端 scope 读本机练习记录', () => {
+  reset();
+  store.saveProfile({ role: 'child', grade: 1 });
+  AR.saveSession({ date: '2026-10-05', level: 'addsub10', total: 10, correct: 10 });
+  QZ.saveHistory({ subject: 'math', total: 10, correct: 10, label: '优秀' });
+  const s = CTX.scope();
+  assert.strictEqual(s.drillSessions.length, 1);
+  assert.strictEqual(s.quizHistory.length, 1);
+});
+t('云函数 lib：sync/lib/history-merge.js 与 utils/ 一致', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const root = path.join(__dirname, '..');
+  const lib = path.join(root, 'cloudfunctions/sync/lib/history-merge.js');
+  assert(fs.existsSync(lib), '应由 scripts/sync-cloud-libs.js 复制到 sync 云函数');
+  assert.strictEqual(fs.readFileSync(lib, 'utf8'), fs.readFileSync(path.join(root, 'utils/history-merge.js'), 'utf8'));
 });
 
 chain.then(() => {

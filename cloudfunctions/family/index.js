@@ -64,7 +64,7 @@ exports.main = async (event) => {
     return { ok: true, profile: (owner && owner.profile) || null };
   }
 
-  // 家长端：拉取孩子摘要（资料 + 记录 + 勋章）
+  // 家长端：拉取孩子摘要（资料 + 记录 + 勋章 + 练习历史）
   if (action === 'summary') {
     const fam = await findMyFamily(OPENID);
     if (!fam) return { ok: false, error: '尚未绑定' };
@@ -75,7 +75,9 @@ exports.main = async (event) => {
       .orderBy('updatedAt', 'asc')
       .limit(1000)
       .get();
-    const profile = ((await db.collection('users').where({ openid: owner }).limit(1).get()).data[0] || {}).profile || null;
+    const ownerDoc = (await db.collection('users').where({ openid: owner }).limit(1).get()).data[0] || {};
+    const profile = ownerDoc.profile || null;
+    const practice = ownerDoc.practice || null; // 口算会话 + 小卷历史（家长报告用）
     const badges = (await db.collection('badges').where({ openid: owner }).limit(1000).get()).data
       .map(b => ({ id: b.id, earnedAt: b.earnedAt }));
     return {
@@ -83,6 +85,7 @@ exports.main = async (event) => {
       code: fam.code,
       profile,
       badges,
+      practice,
       records: recDocs.data.map(d => ({
         id: d.id, date: d.date, taskId: d.taskId, value: d.value,
         stars: d.stars, note: d.note, deleted: !!d.deleted, updatedAt: d.updatedAt,

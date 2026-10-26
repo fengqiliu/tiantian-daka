@@ -108,7 +108,7 @@ function markResult(question, correct) {
 function saveHistory(entry) {
   const list = store.getQuizHistory();
   list.unshift({ ...entry, at: Date.now() });
-  store.saveQuizHistory(list.slice(0, 50));
+  store.saveQuizHistory(list.slice(0, require('./history-merge').QUIZ_CAP));
 }
 
 function getHistory() { return store.getQuizHistory(); }

@@ -4,7 +4,6 @@ const D = require('../../utils/date');
 const T = require('../../utils/tasks');
 const AR = require('../../utils/arithmetic');
 const SHOP = require('../../utils/shop');
-const QZ = require('../../utils/quiz');
 const REPORT = require('../../utils/report');
 const CTX = require('../../utils/context');
 
@@ -55,7 +54,7 @@ Page({
     }));
     const lowCount = rates.filter(a => a.rate < 50 && a.appeared >= 2).length;
 
-    const drill = REPORT.drillSummary(AR.getSessions(), days, today);
+    const drill = REPORT.drillSummary(s.drillSessions, days, today);
     const drillRows = drill.sessions.slice(0, 5).map(x => ({
       ...x,
       levelName: LEVEL_NAME[x.level] || x.level,
@@ -63,7 +62,7 @@ Page({
     }));
 
     const startTs = new Date(D.addDays(today, -(days - 1)) + 'T00:00:00').getTime();
-    const quizRows = QZ.getHistory()
+    const quizRows = s.quizHistory
       .filter(h => h.at >= startTs)
       .slice(0, 5)
       .map(h => ({

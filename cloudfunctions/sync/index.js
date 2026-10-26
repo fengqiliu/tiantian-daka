@@ -1,10 +1,11 @@
 // 数据同步：push（本地→云端）/ pull（云端→本地）
-// 冲突规则与 utils/sync.js 一致：记录/资料按 updatedAt 新者胜，勋章并集，删除走墓碑。
+// 冲突规则与 utils/sync.js 一致：记录/资料按 updatedAt 新者胜，勋章与练习历史并集，删除走墓碑。
 // 安全：openid 一律取自调用上下文，绝不信任前端传入。
 const cloud = require('wx-server-sdk');
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
 const _ = db.command;
+const HM = require('./lib/history-merge.js');
 
 const MAX_PULL = 3000; // 拉取上限（约一年记录量）
 
@@ -87,6 +88,15 @@ exports.main = async (event) => {
         }
       }
     }
+    // 练习历史（口算会话 + 小卷）：按 at 并集合并，多设备各自新增都保留
+    if (event.practice && typeof event.practice === 'object') {
+      const users = db.collection('users');
+      const u = (await users.where({ openid: OPENID }).limit(1).get()).data[0];
+      if (u) {
+        const merged = HM.mergePractice(u.practice, event.practice);
+        await users.doc(u._id).update({ data: { practice: _.set(merged) } });
+      }
+    }
     // 勋章：并集
     for (const b of event.badges || []) {
       if (!b || !b.id) continue;
@@ -102,7 +112,7 @@ exports.main = async (event) => {
     const u = (await db.collection('users').where({ openid: OPENID }).limit(1).get()).data[0];
     const badges = (await db.collection('badges').where({ openid: OPENID }).limit(1000).get()).data
       .map(b => ({ id: b.id, earnedAt: b.earnedAt }));
-    return { ok: true, records, profile: (u && u.profile) || null, overrides: (u && u.taskOverrides) || null, shop: (u && u.shop) || null, badges, serverTime: Date.now() };
+    return { ok: true, records, profile: (u && u.profile) || null, overrides: (u && u.taskOverrides) || null, shop: (u && u.shop) || null, practice: (u && u.practice) || null, badges, serverTime: Date.now() };
   }
 
   return { ok: false, error: 'unknown action' };

@@ -1,5 +1,5 @@
 // 数据作用域：孩子端读写本机数据；家长端只读"孩子数据缓存"
-// 页面统一从 scope() 取 records/grade/badges，家长模式自动切换数据源。
+// 页面统一从 scope() 取 records/grade/badges/练习历史，家长模式自动切换数据源。
 const store = require('./store');
 
 function scope() {
@@ -12,6 +12,8 @@ function scope() {
       grade: Number(profile.grade) || 3,
       records: store.getRecords(),
       badges: store.getBadges(),
+      drillSessions: store.getDrillHistory(),
+      quizHistory: store.getQuizHistory(),
       readOnly: false,
       bound: true,
     };
@@ -24,6 +26,8 @@ function scope() {
     grade: Number(child && child.grade) || 3,
     records: store.getChildRecords(),
     badges: store.getChildBadges(),
+    drillSessions: store.getChildDrillHistory(),
+    quizHistory: store.getChildQuizHistory(),
     readOnly: true,
     bound: !!child,
   };

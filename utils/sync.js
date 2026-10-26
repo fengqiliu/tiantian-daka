@@ -3,13 +3,14 @@
 // 协议（与云函数 cloudfunctions/sync 对应）：
 // - 推送 pushData：本地 updatedAt > lastPushAt 的记录（含墓碑）+ 全量 profile / badges
 // - 拉取 pullData：云端 updatedAt > lastPullAt 的记录（含墓碑）+ profile + badges
-// - 冲突规则：记录/资料按 updatedAt 新者胜；勋章只增不删，取并集
+// - 冲突规则：记录/资料按 updatedAt 新者胜；勋章只增不删，取并集；练习历史按 at 取并集
 // - 删除：墓碑（deleted: true）双向传播
 // - 游标取本次传输的最大 updatedAt，避免测试/时钟回拨下的丢包
 const store = require('./store');
+const HM = require('./history-merge');
 
 // 把一次拉取结果合并进本地（可独立测试的纯合并步骤）
-function mergePull({ records = [], profile = null, badges = [], overrides = null, shop = null }) {
+function mergePull({ records = [], profile = null, badges = [], overrides = null, shop = null, practice = null }) {
   let maxPulled = 0;
   if (records.length) {
     const raw = store.getRecordsRaw();
@@ -43,6 +44,12 @@ function mergePull({ records = [], profile = null, badges = [], overrides = null
       store.saveShopRaw(shop.rewards, shop.redemptions, shop.updatedAt || 0);
     }
   }
+  // 练习历史（口算会话 + 小卷）：只追加列表，按 at 并集合并，不参与游标
+  if (practice && typeof practice === 'object') {
+    const m = HM.mergePractice({ drill: store.getDrillHistory(), quiz: store.getQuizHistory() }, practice);
+    store.saveDrillHistory(m.drill);
+    store.saveQuizHistory(m.quiz);
+  }
   if (badges.length) {
     const cur = store.getBadges();
     const have = new Set(cur.map(b => b.id));
@@ -69,12 +76,17 @@ async function push(api) {
     redemptions: store.getRedemptions(),
     updatedAt: shopStamp,
   } : null;
+  // 练习历史：有记录才上传（云端并集合并，重复上传幂等）
+  const drill = store.getDrillHistory();
+  const quiz = store.getQuizHistory();
+  const practice = (drill.length || quiz.length) ? { drill, quiz } : null;
   const payload = {
     records,
     profile: store.getProfile(),
     badges: store.getBadges(),
     overrides,
     shop,
+    practice,
   };
   const res = await api.pushData(payload);
   if (!res || res.ok === false) return false; // 失败不推进游标，下次重试

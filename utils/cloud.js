@@ -67,7 +67,7 @@ function familyLeave() { return call('family', { action: 'leave' }); }
 function familyRefresh() {
   return call('family', { action: 'summary', since: 0 }).then(res => {
     if (res && res.ok) {
-      store.saveChildData(res.profile, res.records, res.badges);
+      store.saveChildData(res.profile, res.records, res.badges, res.practice);
     }
     return res;
   });

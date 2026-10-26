@@ -225,6 +225,38 @@ t('未建档用户 grant 时报错而非静默丢失', async () => {
   assert.strictEqual(r.ok, false);
 });
 
+t('练习记录：push 按 at 并集合并入 users.practice，pull 取回，并按上限截断', async () => {
+  reset();
+  CM.setOpenid('kid1');
+  await CM.load('login').main({});
+  const sync = CM.load('sync');
+  // 设备 A
+  await sync.main({ action: 'push', practice: { drill: [{ at: 100, correct: 8 }], quiz: [{ at: 150 }] } });
+  // 设备 B（含一条重复 + 一条新的）：不应覆盖 A 的记录
+  await sync.main({ action: 'push', practice: { drill: [{ at: 100, correct: 8 }, { at: 300, correct: 10 }], quiz: [] } });
+  const p = await sync.main({ action: 'pull', since: 0 });
+  assert.deepStrictEqual(p.practice.drill.map(x => x.at), [300, 100], '并集去重、最新在前');
+  assert.strictEqual(p.practice.quiz.length, 1, '另一台设备没带的小卷记录不丢');
+
+  // 上限：口算最多 100 条
+  const many = Array.from({ length: 120 }, (_, i) => ({ at: 1000 + i }));
+  await sync.main({ action: 'push', practice: { drill: many, quiz: [] } });
+  const p2 = await sync.main({ action: 'pull', since: 0 });
+  assert.strictEqual(p2.practice.drill.length, 100);
+  assert.strictEqual(p2.practice.drill[0].at, 1119, '保留最新');
+});
+t('练习记录 openid 隔离：B 拉不到 A 的练习', async () => {
+  reset();
+  const sync = CM.load('sync');
+  CM.setOpenid('kidA');
+  await CM.load('login').main({});
+  await sync.main({ action: 'push', practice: { drill: [{ at: 1 }], quiz: [] } });
+  CM.setOpenid('kidB');
+  await CM.load('login').main({});
+  const pb = await sync.main({ action: 'pull', since: 0 });
+  assert.strictEqual(pb.practice, null, 'B 不应看到 A 的练习记录');
+});
+
 console.log('— 家人绑定 family —');
 t('孩子创建邀请码幂等；家长凭码加入', async () => {
   reset();
@@ -278,6 +310,23 @@ t('summary 只返回 owner 的数据；未绑定者被拒', async () => {
   CM.setOpenid('stranger');
   const denied = await family.main({ action: 'summary', since: 0 });
   assert.strictEqual(denied.ok, false, '未绑定者不应拿到孩子数据');
+});
+t('summary 返回孩子的练习记录（口算会话 + 小卷历史）', async () => {
+  reset();
+  const family = CM.load('family');
+  CM.setOpenid('kid1');
+  await CM.load('login').main({});
+  const code = (await family.main({ action: 'create' })).code;
+  await CM.load('sync').main({
+    action: 'push',
+    practice: { drill: [{ level: 'addsub10', total: 10, correct: 8, at: 100 }], quiz: [{ subject: 'math', total: 10, correct: 9, at: 200 }] },
+  });
+
+  CM.setOpenid('parent1');
+  await family.main({ action: 'join', code });
+  const s = await family.main({ action: 'summary', since: 0 });
+  assert.strictEqual(s.practice.drill.length, 1, '家长应拿到孩子口算会话');
+  assert.strictEqual(s.practice.quiz.length, 1, '家长应拿到孩子小卷历史');
 });
 t('leave 移除家长成员；孩子端 leave 不影响家庭', async () => {
   reset();

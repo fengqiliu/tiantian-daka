@@ -19,6 +19,8 @@ const KEYS = {
   CHILD_PROFILE: 'child_profile',    // 家长端缓存：孩子资料
   CHILD_RECORDS: 'child_records',    // 家长端缓存：孩子打卡记录
   CHILD_BADGES: 'child_badges',      // 家长端缓存：孩子勋章
+  CHILD_DRILL: 'child_drill',        // 家长端缓存：孩子口算会话
+  CHILD_QUIZ: 'child_quiz',          // 家长端缓存：孩子小卷历史
 };
 
 let memory = {};
@@ -139,16 +141,25 @@ function saveSyncState(s) { backend.set(KEYS.SYNC, s); }
 function getChildProfile() { return _get(KEYS.CHILD_PROFILE, null); }
 function getChildRecords() { return _get(KEYS.CHILD_RECORDS, []).filter(r => !r.deleted); }
 function getChildBadges() { return _get(KEYS.CHILD_BADGES, []); }
-function saveChildData(profile, records, badges) {
+function getChildDrillHistory() { return _get(KEYS.CHILD_DRILL, []); }
+function getChildQuizHistory() { return _get(KEYS.CHILD_QUIZ, []); }
+// practice 缺省（旧版云函数不返回）时保留已有缓存
+function saveChildData(profile, records, badges, practice) {
   if (profile) backend.set(KEYS.CHILD_PROFILE, profile);
   if (records) backend.set(KEYS.CHILD_RECORDS, records);
   if (badges) backend.set(KEYS.CHILD_BADGES, badges);
+  if (practice) {
+    backend.set(KEYS.CHILD_DRILL, practice.drill || []);
+    backend.set(KEYS.CHILD_QUIZ, practice.quiz || []);
+  }
 }
 
 function clearChildData() {
   backend.remove(KEYS.CHILD_PROFILE);
   backend.remove(KEYS.CHILD_RECORDS);
   backend.remove(KEYS.CHILD_BADGES);
+  backend.remove(KEYS.CHILD_DRILL);
+  backend.remove(KEYS.CHILD_QUIZ);
 }
 
 function clearAll() { Object.keys(KEYS).forEach(k => backend.remove(KEYS[k])); }
@@ -169,6 +180,7 @@ module.exports = {
   getShopStamp, saveShopRaw,
   getDrillHistory, saveDrillHistory,
   getSyncState, saveSyncState,
-  getChildProfile, getChildRecords, getChildBadges, saveChildData, clearChildData,
+  getChildProfile, getChildRecords, getChildBadges, getChildDrillHistory, getChildQuizHistory,
+  saveChildData, clearChildData,
   clearAll,
 };

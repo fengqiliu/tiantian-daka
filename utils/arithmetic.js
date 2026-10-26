@@ -148,7 +148,7 @@ function recommendByGrade(grade) {
 }
 
 // ── 练习会话历史（供家长报告看正确率趋势）──
-const SESSION_CAP = 100;
+const SESSION_CAP = require('./history-merge').DRILL_CAP; // 100，与云端合并上限同源
 
 function saveSession(session) {
   const list = store.getDrillHistory();
