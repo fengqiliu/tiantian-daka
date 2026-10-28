@@ -28,6 +28,7 @@
       </view>
     </view>
     <view class="rp-week-line muted">{{week.practiceLine}}</view>
+    <view class="rp-week-line" wx:if="{{week.goal}}">🎯 孩子的目标：{{week.goal.emoji}} {{week.goal.label}} · {{week.goal.current}}/{{week.goal.target}}{{week.goal.done ? ' ✅' : ''}}</view>
     <view wx:if="{{week.highlights.length}}" class="rp-week-block">
       <view class="rp-week-tag good">亮点</view>
       <view class="rp-week-item" wx:for="{{week.highlights}}" wx:key="*this">🌟 {{item}}</view>

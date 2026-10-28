@@ -83,11 +83,14 @@ const BADGE_BONUS = {
   first_redeem: 0, quiz_fan: 5, quiz_perfect: 10, poem_6: 10, drill_perfect_3: 10,
   review_7: 10,
 };
+// 每达成一个每周小目标的奖励星（utils/goals.js 单向读取）
+const GOAL_BONUS = 5;
 
-// 总星星 = Σ任务星 + 每日全必做加成1星 + Σ已获勋章奖励
+// 总星星 = Σ任务星 + 每日全必做加成1星 + Σ已获勋章奖励 + 达成的周目标 × GOAL_BONUS
+// goals 为 { [周一]: goal } 映射（可省略；页面统一传 CTX.scope().goals）
 // badges 为已获勋章数组（utils/badges.js 的 evaluate/badgeWall 传同一份 store.getBadges()）；
 // 动态计算，不冗余存储，避免与勋章列表不一致。
-function totalStars(records, grade, badges) {
+function totalStars(records, grade, badges, goals) {
   const byDate = groupByDate(records);
   let total = 0;
   const cache = {};
@@ -98,6 +101,7 @@ function totalStars(records, grade, badges) {
     if (dayCompletion(cache[date], recs).allMustDone) total += 1;
   });
   (badges || []).forEach(b => { total += BADGE_BONUS[b.id] || 0; });
+  Object.keys(goals || {}).forEach(k => { if (goals[k] && goals[k].achievedAt) total += GOAL_BONUS; });
   return total;
 }
 
@@ -180,5 +184,5 @@ function hasFullWeek(records, grade, today) {
 module.exports = {
   recordId, upsertRecord, removeRecord, getDayRecords, dayCompletion,
   groupByDate, streaks, totalStars, weeklyStats, monthStats,
-  aggregateSum, hasPerfectDay, hasFullWeek, BADGE_BONUS,
+  aggregateSum, hasPerfectDay, hasFullWeek, BADGE_BONUS, GOAL_BONUS,
 };

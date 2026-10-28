@@ -6,7 +6,7 @@ const BACKUP = require('../../utils/backup');
 const RESET = require('../../utils/reset');
 
 const AVATARS = ['🐱', '🦊', '🐰', '🐻', '🐸', '🦁', '🐼', '🐷'];
-const APP_VERSION = '0.18.0';
+const APP_VERSION = '0.19.0';
 
 Page({
   data: {
@@ -54,7 +54,7 @@ Page({
       avatar: profile.avatar,
       grade: Number(profile.grade) || 0,
       school: profile.school || '',
-      totalStars: C.totalStars(records, grade, s.badges),
+      totalStars: C.totalStars(records, grade, s.badges, s.goals),
       streak: C.streaks(records).current,
       checkinDays: new Set(records.map(r => r.date)).size,
       cloudOn: cloud.isAvailable(),

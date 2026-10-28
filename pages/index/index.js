@@ -8,6 +8,7 @@ const CAL = require('../../utils/calendar-config');
 const RV = require('../../utils/review');
 const REPORT = require('../../utils/report');
 const CHEER = require('../../utils/cheer');
+const GOALS = require('../../utils/goals');
 
 Page({
   data: {
@@ -29,6 +30,8 @@ Page({
     reviewDue: 0,
     reviewDone: false,
     cheer: null, // { cheer, unread }：家长留言横幅
+    goal: null,  // 本周小目标 { label, emoji, current, target, pct, done }；null = 还没定
+    // 家长端同字段 childGoal
     // 家长模式
     bound: false,
     bindCode: '',
@@ -42,6 +45,7 @@ Page({
     childPct: 0,
     weekStrip: [],
     weekly: null,
+    childGoal: null,
     cloudOff: false,
   },
 
@@ -74,6 +78,13 @@ Page({
     const records = C.getDayRecords(today);
     const comp = C.dayCompletion(tasks, records);
     const all = store.getRecords();
+    // 周目标：先检查新达成（盖章 +5⭐），再算总星数
+    const goalData = { records: all, grade, reviewLog: store.getReviewLog() };
+    const fresh = GOALS.checkAchievements(goalData, today);
+    if (fresh.length) {
+      wx.showToast({ title: '🎯 周目标达成 +' + C.GOAL_BONUS + ' ⭐', icon: 'none' });
+      cloud.syncAll();
+    }
 
     this.setData({
       dateLabel: D.dateLabel(today),
@@ -86,11 +97,43 @@ Page({
       total: comp.total,
       pct: comp.total ? Math.round((comp.done / comp.total) * 100) : 0,
       starsToday: comp.stars + (comp.allMustDone ? 1 : 0),
-      totalStars: C.totalStars(all, grade, store.getBadges()),
+      totalStars: C.totalStars(all, grade, store.getBadges(), store.getGoals()),
       streak: C.streaks(all).current,
       reviewDue: RV.dueCount(today),
       reviewDone: RV.reviewedToday(today),
       cheer: CHEER.banner(store.getCheers()),
+      goal: this.goalView(store.getGoals(), goalData, today),
+    });
+  },
+
+  // 本周目标视图（孩子 / 家长共用）；没定目标返回 null
+  goalView(goals, data, today) {
+    const monday = D.mondayOf(today);
+    const g = goals[monday];
+    if (!g) return null;
+    const p = GOALS.progress(g, data, monday, today);
+    return { label: g.label, emoji: g.emoji, current: p.current, target: p.target, pct: p.pct, done: p.done || !!g.achievedAt };
+  },
+
+  // 定 / 换本周目标（达成后锁定）
+  onGoalTap() {
+    const today = D.todayStr();
+    const monday = D.mondayOf(today);
+    const cur = GOALS.getGoal(monday);
+    if (cur && cur.achievedAt) {
+      wx.showToast({ title: '本周目标已达成，下周再定新的吧', icon: 'none' });
+      return;
+    }
+    const profile = store.getProfile() || {};
+    const list = GOALS.presets(profile.grade);
+    wx.showActionSheet({
+      itemList: list.map(g => g.emoji + ' ' + g.label),
+      success: res => {
+        const picked = list[res.tapIndex];
+        if (!picked || !GOALS.setGoal(monday, picked)) return;
+        cloud.syncAll();
+        this.refreshChild(store.getProfile());
+      },
     });
   },
 
@@ -198,10 +241,11 @@ Page({
       childDone: comp.done,
       childTotal: comp.total,
       childPct: comp.total ? Math.round((comp.done / comp.total) * 100) : 0,
-      childStars: C.totalStars(records, grade, s.badges),
+      childStars: C.totalStars(records, grade, s.badges, s.goals),
       childStreak: C.streaks(records, today).current,
       weekStrip,
       weekly: this.buildWeekly(s, today),
+      childGoal: this.goalView(s.goals, { records, grade, reviewLog: s.reviewLog }, today),
     });
 
     // 后台刷新最新数据（节流由 syncAt 控制）

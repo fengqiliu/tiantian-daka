@@ -1186,7 +1186,7 @@ t('mergePractice：口算 100 / 小卷 50 分别截断', () => {
   assert.strictEqual(m.drill.length, HM.DRILL_CAP);
   assert.strictEqual(m.quiz.length, HM.QUIZ_CAP);
   assert.strictEqual(m.drill[0].at, 120, '保留最新');
-  assert.deepStrictEqual(HM.mergePractice(null, null), { drill: [], quiz: [], review: [] });
+  assert.deepStrictEqual(HM.mergePractice(null, null), { drill: [], quiz: [], review: [], goals: {} });
 });
 t('练习记录同步往返：推送全量，拉取按并集合并（两台设备各自的练习都保留）', async () => {
   reset();
@@ -1667,6 +1667,109 @@ t('cheerList 失败时保留旧缓存', async () => {
   await cloud.cheerList();
   unloadCloud();
   assert.strictEqual(store.getCheers()[0].id, 'old');
+});
+
+console.log('— 每周小目标 —');
+const GOALS = require('../utils/goals');
+const GW = '2026-10-19'; // 周一
+const goalData = extra => ({ records: store.getRecords(), grade: 1, reviewLog: store.getReviewLog(), ...extra });
+t('presets：按年级给出 4 个目标，任务累计量随年级的每日目标放大', () => {
+  const p3 = GOALS.presets(3);
+  assert.strictEqual(p3.length, 4);
+  assert.deepStrictEqual(p3.map(g => g.type), ['achieve_days', 'task_sum', 'task_sum', 'review_days']);
+  const rope = p3.find(g => g.taskId === 'pe_rope');
+  assert.strictEqual(rope.target, T.buildTask('pe_rope', 3, false).target * 5);
+  assert(rope.label.includes(String(rope.target)), rope.label);
+  assert(GOALS.presets(5).find(g => g.taskId === 'pe_rope').target > GOALS.presets(1).find(g => g.taskId === 'pe_rope').target);
+  p3.forEach(g => assert(g.id && g.emoji && g.label));
+});
+t('setGoal：可更换；达成后锁定；读取按周', () => {
+  reset();
+  const [a, b] = GOALS.presets(1);
+  assert.strictEqual(GOALS.setGoal(GW, a), true);
+  assert.strictEqual(GOALS.getGoal(GW).id, a.id);
+  assert.strictEqual(GOALS.setGoal(GW, b), true, '未达成前可以换');
+  assert.strictEqual(GOALS.getGoal(GW).id, b.id);
+  assert(GOALS.getGoal(GW).setAt > 0);
+  assert.strictEqual(GOALS.getGoal('2026-10-26'), null, '别的周没有');
+  store.saveGoals({ ...store.getGoals(), [GW]: { ...GOALS.getGoal(GW), achievedAt: 123 } });
+  assert.strictEqual(GOALS.setGoal(GW, a), false, '达成后不能换');
+  assert.strictEqual(GOALS.getGoal(GW).id, b.id);
+});
+t('progress：达成天数 / 任务累计 / 复习天数只算本周（且只到今天）', () => {
+  reset();
+  weekDates(GW).slice(0, 3).forEach(d => seedDay(d, 1, mustIds(d)(1)));          // 周一到周三达成
+  seedDay('2026-10-12', 1, mustIds('2026-10-12')(1));                             // 上周不算
+  store.saveReviewLog([{ date: '2026-10-20', total: 5, correct: 5 }, { date: '2026-10-13', total: 5, correct: 5 }]);
+  const days = GOALS.progress({ type: 'achieve_days', target: 5 }, goalData(), GW, '2026-10-25');
+  assert.deepStrictEqual([days.current, days.target, days.done, days.pct], [3, 5, false, 60]);
+  const rope = GOALS.progress({ type: 'task_sum', taskId: 'pe_rope', target: 250 }, goalData(), GW, '2026-10-25');
+  assert.deepStrictEqual([rope.current, rope.done], [300, true], '3 天 × 100 个');
+  assert.strictEqual(rope.pct, 100, '超过目标封顶 100%');
+  const rv = GOALS.progress({ type: 'review_days', target: 3 }, goalData(), GW, '2026-10-25');
+  assert.strictEqual(rv.current, 1);
+  const early = GOALS.progress({ type: 'achieve_days', target: 5 }, goalData(), GW, '2026-10-20');
+  assert.strictEqual(early.current, 2, '只算到今天（周二）');
+});
+t('checkAchievements：本周与上周达成时盖章一次，返回新达成的', () => {
+  reset();
+  const days = GOALS.presets(1)[0]; // 达成 5 天
+  GOALS.setGoal(GW, { ...days, target: 2 });
+  GOALS.setGoal('2026-10-26', { ...days, target: 7 });
+  weekDates(GW).slice(0, 2).forEach(d => seedDay(d, 1, mustIds(d)(1)));
+  const fresh = GOALS.checkAchievements(goalData(), '2026-10-27'); // 周二看：上周已达成
+  assert.deepStrictEqual(fresh.map(f => f.monday), [GW]);
+  assert(GOALS.getGoal(GW).achievedAt > 0);
+  assert.deepStrictEqual(GOALS.checkAchievements(goalData(), '2026-10-27'), [], '不重复盖章');
+  assert(!GOALS.getGoal('2026-10-26').achievedAt, '本周没达成不盖章');
+});
+t('总星数：每个达成的周目标 +5⭐；不传 goals 时与原来一致', () => {
+  reset();
+  assert.strictEqual(C.GOAL_BONUS, 5);
+  const goals = { [GW]: { id: 'x', achievedAt: 1 }, '2026-10-26': { id: 'y', achievedAt: 0 }, '2026-10-12': { id: 'z', achievedAt: 9 } };
+  assert.strictEqual(C.totalStars([], 1, [], goals), 10);
+  assert.strictEqual(C.totalStars([], 1, []), 0);
+});
+t('mergeGoals：按周合并——已达成优先（都达成取更早），否则后设置的胜', () => {
+  const a = { w1: { id: 'a', setAt: 10, achievedAt: 0 }, w2: { id: 'a2', setAt: 10, achievedAt: 50 }, w3: { id: 'a3', setAt: 10, achievedAt: 30 } };
+  const b = { w1: { id: 'b', setAt: 20, achievedAt: 0 }, w2: { id: 'b2', setAt: 30, achievedAt: 0 }, w3: { id: 'b3', setAt: 20, achievedAt: 20 }, w4: { id: 'b4', setAt: 5 } };
+  const m = HM.mergeGoals(a, b);
+  assert.deepStrictEqual([m.w1.id, m.w2.id, m.w3.id, m.w4.id], ['b', 'a2', 'b3', 'b4']);
+  assert.deepStrictEqual(HM.mergeGoals(null, undefined), {});
+  assert.deepStrictEqual(Object.keys(HM.mergePractice({ goals: a }, null).goals).sort(), ['w1', 'w2', 'w3']);
+});
+t('周目标随同步往返，家长端缓存并经 scope 读取', async () => {
+  reset();
+  const api = mockCloud();
+  GOALS.setGoal(GW, GOALS.presets(1)[3]);
+  await S.push(api);
+  assert.strictEqual(api.server.practice.goals[GW].type, 'review_days', '只有目标也应上传');
+  reset();
+  GOALS.setGoal('2026-10-26', GOALS.presets(1)[0]);
+  await S.pull(api);
+  assert.deepStrictEqual(Object.keys(store.getGoals()).sort(), [GW, '2026-10-26'], '两台设备的周目标合并');
+
+  reset();
+  const cloud = reloadCloud({
+    call: () => Promise.resolve({ result: { ok: true, profile: null, records: [], badges: [], practice: { drill: [], quiz: [], review: [], goals: { [GW]: { id: 'x', type: 'achieve_days', target: 5, setAt: 1 } } } } }),
+  });
+  cloud.init('prod-test');
+  await cloud.familyRefresh();
+  unloadCloud();
+  store.saveProfile({ role: 'parent' });
+  assert.strictEqual(CTX.scope().goals[GW].id, 'x', '家长 scope 读孩子周目标');
+  store.saveProfile({ role: 'child', grade: 1 });
+  assert.deepStrictEqual(CTX.scope().goals, {}, '孩子 scope 读本机');
+});
+t('周报：展示本周目标进度，达成时进亮点', () => {
+  reset();
+  weekDates(GW).forEach(d => seedDay(d, 1, mustIds(d)(1)));
+  const goals = { [GW]: { id: 'g', type: 'achieve_days', target: 5, label: '5 天完成全部必做', emoji: '✅', setAt: 1 } };
+  const g = REPORT.weeklyDigest({ records: store.getRecords(), grade: 1, goals }, GW);
+  assert.deepStrictEqual([g.goal.label, g.goal.current, g.goal.target, g.goal.done], ['5 天完成全部必做', 7, 5, true]);
+  assert(g.highlights.some(h => h.includes('本周目标')), JSON.stringify(g.highlights));
+  const none = REPORT.weeklyDigest({ records: store.getRecords(), grade: 1 }, GW);
+  assert.strictEqual(none.goal, null);
 });
 
 chain.then(() => {

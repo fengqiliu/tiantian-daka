@@ -44,6 +44,15 @@
         <view class="task-right"><text class="muted">›</text></view>
       </view>
 
+      <view class="card goal-card" wx:if="{{childGoal}}">
+        <view class="row">
+          <view class="h2 flex1">🎯 孩子的本周目标 · {{childGoal.emoji}} {{childGoal.label}}</view>
+          <text wx:if="{{childGoal.done}}" class="goal-done">已达成 🎉</text>
+        </view>
+        <view class="goal-track"><view class="goal-in {{childGoal.done ? 'done' : ''}}" style="width: {{childGoal.pct}}%;"></view></view>
+        <view class="muted">{{childGoal.current}} / {{childGoal.target}}</view>
+      </view>
+
       <view class="card weekly-card" wx:if="{{weekly}}" bindtap="goReport">
         <view class="row">
           <view class="h2 flex1">📬 上周周报</view>
@@ -114,6 +123,26 @@
         <view class="h2">{{done === total && total > 0 ? '全部完成，太棒啦！🎉' : '完成必做任务，达成今日目标'}}</view>
         <view class="muted">今日已获得 {{starsToday}} ⭐ · 连续打卡 {{streak}} 天 🔥</view>
       </view>
+    </view>
+
+    <view class="card goal-card" bindtap="onGoalTap">
+      <block wx:if="{{goal}}">
+        <view class="row">
+          <view class="h2 flex1">🎯 本周目标 · {{goal.emoji}} {{goal.label}}</view>
+          <text wx:if="{{goal.done}}" class="goal-done">已达成 🎉</text>
+        </view>
+        <view class="goal-track"><view class="goal-in {{goal.done ? 'done' : ''}}" style="width: {{goal.pct}}%;"></view></view>
+        <view class="muted">{{goal.current}} / {{goal.target}}{{goal.done ? '' : ' · 达成得 5 ⭐，点这里可以换目标'}}</view>
+      </block>
+      <block wx:else>
+        <view class="row">
+          <view class="flex1">
+            <view class="h2">🎯 定一个本周小目标</view>
+            <view class="muted">自己选，达成得 5 ⭐</view>
+          </view>
+          <view class="review-go">去选择</view>
+        </view>
+      </block>
     </view>
 
     <view wx:if="{{cheer}}" class="card cheer-card">

@@ -19,6 +19,7 @@ const KEYS = {
   DRILL_HISTORY: 'drill_history',    // 口算挑战会话历史（家长报告用）
   REVIEW_LOG: 'review_log',          // 错题复习日志：每天一条 { date, total, correct }
   CHEERS: 'cheers',                  // 孩子端：收到的家长留言缓存（云端为准，离线可看）
+  GOALS: 'goals',                    // 每周小目标：{ [周一日期]: goal }
   CHILD_PROFILE: 'child_profile',    // 家长端缓存：孩子资料
   CHILD_RECORDS: 'child_records',    // 家长端缓存：孩子打卡记录
   CHILD_BADGES: 'child_badges',      // 家长端缓存：孩子勋章
@@ -27,6 +28,7 @@ const KEYS = {
   CHILD_REVIEW: 'child_review',      // 家长端缓存：孩子错题复习日志
   CHILD_MATH_WRONG: 'child_math_wrong', // 家长端缓存：孩子口算错题本
   CHILD_QUIZ_WRONG: 'child_quiz_wrong', // 家长端缓存：孩子小卷错题本
+  CHILD_GOALS: 'child_goals',        // 家长端缓存：孩子每周小目标
 };
 
 let memory = {};
@@ -155,6 +157,10 @@ function saveDrillHistory(list) { backend.set(KEYS.DRILL_HISTORY, list); }
 function getReviewLog() { return _get(KEYS.REVIEW_LOG, []); }
 function saveReviewLog(list) { backend.set(KEYS.REVIEW_LOG, list); }
 
+// ── 每周小目标 ──
+function getGoals() { return _get(KEYS.GOALS, {}); }
+function saveGoals(map) { backend.set(KEYS.GOALS, map); }
+
 // ── 家长留言（孩子端缓存）──
 function getCheers() { return _get(KEYS.CHEERS, []); }
 function saveCheers(list) { backend.set(KEYS.CHEERS, list); }
@@ -179,6 +185,7 @@ function getChildQuizHistory() { return _get(KEYS.CHILD_QUIZ, []); }
 function getChildReviewLog() { return _get(KEYS.CHILD_REVIEW, []); }
 function getChildMathWrong() { return _get(KEYS.CHILD_MATH_WRONG, []); }
 function getChildQuizWrong() { return _get(KEYS.CHILD_QUIZ_WRONG, []); }
+function getChildGoals() { return _get(KEYS.CHILD_GOALS, {}); }
 // practice / wrongBook 缺省（旧版云函数不返回）时保留已有缓存
 function saveChildData(profile, records, badges, practice, wrongBook) {
   if (wrongBook) {
@@ -192,6 +199,7 @@ function saveChildData(profile, records, badges, practice, wrongBook) {
     backend.set(KEYS.CHILD_DRILL, practice.drill || []);
     backend.set(KEYS.CHILD_QUIZ, practice.quiz || []);
     backend.set(KEYS.CHILD_REVIEW, practice.review || []);
+    backend.set(KEYS.CHILD_GOALS, practice.goals || {});
   }
 }
 
@@ -204,6 +212,7 @@ function clearChildData() {
   backend.remove(KEYS.CHILD_REVIEW);
   backend.remove(KEYS.CHILD_MATH_WRONG);
   backend.remove(KEYS.CHILD_QUIZ_WRONG);
+  backend.remove(KEYS.CHILD_GOALS);
 }
 
 function clearAll() { Object.keys(KEYS).forEach(k => backend.remove(KEYS[k])); }
@@ -225,9 +234,10 @@ module.exports = {
   getDrillHistory, saveDrillHistory,
   getReviewLog, saveReviewLog,
   getCheers, saveCheers, markCheersRead,
+  getGoals, saveGoals,
   getSyncState, saveSyncState,
   getChildProfile, getChildRecords, getChildBadges, getChildDrillHistory, getChildQuizHistory, getChildReviewLog,
-  getChildMathWrong, getChildQuizWrong,
+  getChildMathWrong, getChildQuizWrong, getChildGoals,
   saveChildData, clearChildData,
   clearAll,
 };

@@ -323,6 +323,16 @@ t('reset：无 openid 拒绝', async () => {
   const r = await CM.load('sync').main({ action: 'reset' });
   assert.strictEqual(r.ok, false);
 });
+t('周目标：push 按周合并（已达成优先），pull 取回', async () => {
+  reset();
+  CM.setOpenid('kid1');
+  await CM.load('login').main({});
+  const sync = CM.load('sync');
+  await sync.main({ action: 'push', practice: { goals: { w1: { id: 'a', setAt: 10, achievedAt: 40 } } } });
+  await sync.main({ action: 'push', practice: { goals: { w1: { id: 'b', setAt: 99, achievedAt: 0 }, w2: { id: 'c', setAt: 5 } } } });
+  const p = await sync.main({ action: 'pull', since: 0 });
+  assert.deepStrictEqual([p.practice.goals.w1.id, p.practice.goals.w2.id], ['a', 'c'], '已达成的不被后设置的未达成目标覆盖');
+});
 t('练习记录 openid 隔离：B 拉不到 A 的练习', async () => {
   reset();
   const sync = CM.load('sync');

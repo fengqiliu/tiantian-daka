@@ -17,6 +17,7 @@ function scope() {
       reviewLog: store.getReviewLog(),
       mathWrong: store.getMathWrong(),
       quizWrong: store.getQuizWrong(),
+      goals: store.getGoals(),
       readOnly: false,
       bound: true,
     };
@@ -34,6 +35,7 @@ function scope() {
     reviewLog: store.getChildReviewLog(),
     mathWrong: store.getChildMathWrong(),
     quizWrong: store.getChildQuizWrong(),
+    goals: store.getChildGoals(),
     readOnly: true,
     bound: !!child,
   };

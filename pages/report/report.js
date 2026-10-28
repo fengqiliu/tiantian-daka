@@ -60,7 +60,7 @@ Page({
     const badges = s.badges;
 
     const ov = REPORT.overview(records, grade, days, today);
-    const bal = SHOP.balance(C.totalStars(records, grade, badges));
+    const bal = SHOP.balance(C.totalStars(records, grade, badges, s.goals));
 
     const rates = REPORT.taskRates(records, grade, days, today).map(a => ({
       ...a,

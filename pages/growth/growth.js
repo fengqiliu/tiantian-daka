@@ -30,7 +30,7 @@ Page({
     const s = CTX.scope();
     const grade = s.grade;
     const records = s.records;
-    const total = C.totalStars(records, grade, s.badges);
+    const total = C.totalStars(records, grade, s.badges, s.goals);
     const rank = B.rankInfo(total);
     const week = C.weeklyStats(records, grade);
 

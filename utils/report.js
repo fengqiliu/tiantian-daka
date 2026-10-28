@@ -3,6 +3,7 @@ const D = require('./date');
 const T = require('./tasks');
 const B = require('./badges');
 const AR = require('./arithmetic');
+const GOALS = require('./goals');
 
 const SUBJECT_NAME = { math: '数学', chinese: '语文', english: '英语' };
 const STUBBORN_MIN = 3; // 错满 3 次算"反复错"
@@ -109,7 +110,7 @@ function stubbornGroup(mathWrong, quizWrong) {
   return best ? { name: best, count: groups[best] } : null;
 }
 
-// 周报：data = { records, grade, badges, drillSessions, quizHistory, reviewLog, mathWrong, quizWrong, today? }（来自 CTX.scope()）
+// 周报：data = { records, grade, badges, drillSessions, quizHistory, reviewLog, mathWrong, quizWrong, goals, today? }（来自 CTX.scope()）
 // today 落在本周内时（本周进行中），任务完成率只算到今天，未来的日子不算漏做
 // 亮点/需关注按固定规则挑选，各最多 3 条；只陈述事实并给温和建议，不和别人比
 function weeklyDigest(data, monday) {
@@ -144,10 +145,19 @@ function weeklyDigest(data, monday) {
       return { id: b.id, name: def ? def.name : b.id, emoji: def ? def.emoji : '🏅' };
     });
 
+  // 每周小目标（孩子自己定的）：进度 + 达成即亮点
+  const g = (data.goals || {})[monday];
+  let goal = null;
+  if (g) {
+    const p = GOALS.progress(g, { records, grade, reviewLog: data.reviewLog }, monday, end);
+    goal = { label: g.label, emoji: g.emoji, current: p.current, target: p.target, pct: p.pct, done: p.done || !!g.achievedAt };
+  }
+
   const mustRates = _mustRates(records, grade, monday, span);
   const highlights = [];
   if (ov.achievedDays === 7) highlights.push('全勤一周：7 天都完成了必做任务');
   else if (ov.achievedDays >= 5) highlights.push('有 ' + ov.achievedDays + ' 天完成了全部必做任务');
+  if (goal && goal.done) highlights.push('完成了本周目标「' + goal.label + '」');
   // 坚持最久的选做任务（不含需家长确认的屏幕时间）
   const extra = taskRates(records, grade, span, end)
     .filter(a => a.rate === 100 && a.appeared >= 3)
@@ -185,7 +195,7 @@ function weeklyDigest(data, monday) {
     achievedDays: ov.achievedDays,
     stars: ov.stars,
     vsPrev,
-    drill, quiz, review, badgesEarned,
+    drill, quiz, review, badgesEarned, goal,
     highlights: highlights.slice(0, 3),
     attention: attention.slice(0, 3),
   };

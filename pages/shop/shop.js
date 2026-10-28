@@ -45,7 +45,7 @@ Page({
 
   refresh() {
     const s = CTX.scope();
-    const earned = C.totalStars(s.records, s.grade, s.badges);
+    const earned = C.totalStars(s.records, s.grade, s.badges, s.goals);
     const bal = SHOP.balance(earned);
     const rewards = SHOP.getRewards().map(r => ({
       ...r,
