@@ -56,6 +56,25 @@ t('push 落库并 pull 取回，字段完整', async () => {
   assert.strictEqual(p.profile.nickname, '小豆');
   assert.strictEqual(p.badges.length, 1);
 });
+t('补卡标记：push 后 pull 与家长 summary 都保留 makeup / makeupAt', async () => {
+  reset();
+  const family = CM.load('family');
+  CM.setOpenid('kid1');
+  await CM.load('login').main({});
+  const code = (await family.main({ action: 'create' })).code;
+  const sync = CM.load('sync');
+  await sync.main({ action: 'push', records: [rec('2026-10-20#pe_rope', { stars: 1, makeup: true, makeupAt: 555 })] });
+  const p = await sync.main({ action: 'pull', since: 0 });
+  assert.deepStrictEqual([p.records[0].makeup, p.records[0].makeupAt], [true, 555]);
+  const plain = rec('2026-10-21#pe_rope');
+  await sync.main({ action: 'push', records: [plain] });
+  const p2 = await sync.main({ action: 'pull', since: 0 });
+  assert.strictEqual(p2.records.find(x => x.date === '2026-10-21').makeup, false, '普通记录 makeup 为 false');
+  CM.setOpenid('parent1');
+  await family.main({ action: 'join', code });
+  const s = await family.main({ action: 'summary', since: 0 });
+  assert.strictEqual(s.records.find(x => x.date === '2026-10-20').makeup, true, '家长端看到补卡标记');
+});
 t('回归：push 分支曾引用未定义的 openid（同步全挂）', async () => {
   reset();
   CM.setOpenid('kid1');

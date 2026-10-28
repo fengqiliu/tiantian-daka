@@ -32,6 +32,7 @@ function strip(doc) {
     id: doc.id, date: doc.date, taskId: doc.taskId,
     value: doc.value, stars: doc.stars, note: doc.note,
     deleted: !!doc.deleted, updatedAt: doc.updatedAt,
+    makeup: !!doc.makeup, makeupAt: doc.makeupAt || 0, // 补打卡标记
   };
 }
 

@@ -1819,6 +1819,75 @@ t('周报：展示本周目标进度，达成时进亮点', () => {
   assert.strictEqual(none.goal, null);
 });
 
+console.log('— 补打卡 —');
+const MK = require('../utils/makeup');
+const MT = '2026-10-21'; // 周三，"今天"
+t('窗口：只能补昨天和前天；今天、未来、三天前都不行', () => {
+  assert(MK.canMakeupDate('2026-10-20', MT));
+  assert(MK.canMakeupDate('2026-10-19', MT));
+  assert(!MK.canMakeupDate('2026-10-21', MT), '今天正常打卡，不算补');
+  assert(!MK.canMakeupDate('2026-10-22', MT));
+  assert(!MK.canMakeupDate('2026-10-18', MT));
+});
+t('save：补卡记录固定 1⭐、带补卡标记；窗口外拒绝', () => {
+  reset();
+  const ok = MK.save('2026-10-20', 'pe_rope', 100, '补上', MT, 1);
+  assert.strictEqual(ok.ok, true, JSON.stringify(ok));
+  const rec = store.getRecords().find(r => r.date === '2026-10-20');
+  assert.deepStrictEqual([rec.taskId, rec.stars, rec.makeup, rec.value.n, rec.note], ['pe_rope', 1, true, 100, '补上']);
+  assert(rec.makeupAt > 0);
+  assert.strictEqual(MK.save('2026-10-18', 'pe_rope', 100, '', MT, 1).ok, false);
+  assert.strictEqual(MK.save('2026-10-21', 'pe_rope', 100, '', MT, 1).ok, false);
+});
+t('每周最多补 2 天：同一天补多项不重复计数；跨周额度恢复', () => {
+  reset();
+  const base = new Date(MT + 'T10:00:00').getTime();
+  assert.strictEqual(MK.remaining(store.getRecords(), MT), 2);
+  assert.strictEqual(MK.save('2026-10-20', 'pe_rope', 100, '', MT, 1, base).ok, true);
+  assert.strictEqual(MK.save('2026-10-20', 'chinese_read', 15, '', MT, 1, base).ok, true, '同一天第二项不额外占额度');
+  assert.strictEqual(MK.remaining(store.getRecords(), MT), 1);
+  assert.strictEqual(MK.save('2026-10-19', 'pe_rope', 100, '', MT, 1, base).ok, true);
+  assert.strictEqual(MK.remaining(store.getRecords(), MT), 0);
+  // 周四想补周三（新的一天）：本周额度已用完
+  const thu = '2026-10-22';
+  const over = MK.save('2026-10-21', 'pe_rope', 100, '', thu, 1, base + 86400000);
+  assert.strictEqual(over.ok, false, '本周额度用完');
+  assert.strictEqual(MK.save('2026-10-20', 'math_calc', 10, '', thu, 1, base + 86400000).ok, true, '已补过的那天还能再补别的项');
+  // 下周一：额度恢复
+  assert.strictEqual(MK.remaining(store.getRecords(), '2026-10-26'), 2);
+});
+t('补卡接上连击；补卡那天不拿"全部必做"+1 加成', () => {
+  reset();
+  seedDay('2026-10-19', 1, mustIds('2026-10-19')(1));
+  seedDay('2026-10-21', 1, mustIds('2026-10-21')(1));
+  assert.strictEqual(C.streaks(store.getRecords(), MT).current, 1, '断了一天');
+  const before = C.totalStars(store.getRecords(), 1, []);
+  mustIds('2026-10-20')(1).forEach(id => {
+    const task = T.generateDailyTasks(1, '2026-10-20').find(x => x.id === id);
+    assert.strictEqual(MK.save('2026-10-20', id, task.type === 'done' ? 1 : task.target, '', MT, 1).ok, true);
+  });
+  assert.strictEqual(C.streaks(store.getRecords(), MT).current, 3, '补卡接上连击');
+  assert.strictEqual(C.totalStars(store.getRecords(), 1, []) - before, mustIds('2026-10-20')(1).length, '每项 1⭐，没有当日 +1');
+});
+t('missingTasks：列出那天还没打卡的任务', () => {
+  reset();
+  seedDay('2026-10-20', 1, ['pe_rope']);
+  const miss = MK.missingTasks(store.getRecords(), 1, '2026-10-20').map(t => t.id);
+  assert(!miss.includes('pe_rope'));
+  assert(miss.includes('chinese_read'));
+  assert.strictEqual(miss.length, T.generateDailyTasks(1, '2026-10-20').length - 1);
+});
+t('补卡标记随同步往返保留', async () => {
+  reset();
+  const api = mockCloud();
+  MK.save('2026-10-20', 'pe_rope', 100, '', MT, 1);
+  await S.push(api);
+  reset();
+  await S.pull(api);
+  const rec = store.getRecords()[0];
+  assert.deepStrictEqual([rec.makeup, rec.makeupAt > 0], [true, true]);
+});
+
 chain.then(() => {
   console.log('\n全部通过：' + passed + ' 项 ✓');
 }).catch(e => {

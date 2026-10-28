@@ -3,6 +3,7 @@ const T = require('../../utils/tasks');
 const C = require('../../utils/checkin');
 const D = require('../../utils/date');
 const CTX = require('../../utils/context');
+const MK = require('../../utils/makeup');
 
 Page({
   data: {
@@ -16,6 +17,7 @@ Page({
     selectedLabel: '',
     dayRecords: [],
     canNext: false,
+    makeup: null, // 补打卡区：{ date, remaining, tasks[] }；不可补时为 null
   },
 
   onShow() {
@@ -62,7 +64,9 @@ Page({
   },
 
   loadDay(date) {
-    const dayRecords = C.getDayRecords(date).map(r => {
+    // 数据作用域：家长端读孩子缓存（此前读本机，家长点某天永远显示"没有记录"）
+    const s = CTX.scope();
+    const dayRecords = s.records.filter(r => r.date === date).map(r => {
       const def = T.getTaskDef(r.taskId);
       return {
         id: r.id,
@@ -73,9 +77,33 @@ Page({
         valueN: r.value && r.value.n,
         unit: def ? def.unit : '',
         type: def ? def.type : 'done',
+        makeup: !!r.makeup,
       };
     });
-    this.setData({ selectedLabel: date ? D.dateLabel(date) : '', dayRecords });
+    this.setData({ selectedLabel: date ? D.dateLabel(date) : '', dayRecords, makeup: this.makeupView(s, date) });
+  },
+
+  // 补打卡区：仅孩子端、仅昨天/前天、有没打卡的任务时显示
+  makeupView(s, date) {
+    const today = D.todayStr();
+    if (s.readOnly || !date || !MK.canMakeupDate(date, today)) return null;
+    const tasks = MK.missingTasks(s.records, s.grade, date);
+    if (!tasks.length) return null;
+    const c = MK.check(s.records, date, today);
+    return {
+      date,
+      blocked: c.ok ? '' : c.error,
+      remaining: MK.remaining(s.records, today),
+      tasks: tasks.map(t => ({ id: t.id, emoji: t.emoji, name: t.name, must: t.must })),
+    };
+  },
+
+  onMakeupTask(e) {
+    const m = this.data.makeup;
+    if (!m || m.blocked) return;
+    wx.navigateTo({
+      url: '/pages/task-detail/task-detail?taskId=' + e.currentTarget.dataset.id + '&date=' + m.date + '&makeup=1',
+    });
   },
 
   onPrev() {

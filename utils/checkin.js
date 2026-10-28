@@ -6,14 +6,15 @@ const D = require('./date');
 function recordId(date, taskId) { return date + '#' + taskId; }
 
 // stars: 1=加油 2=不错 3=超棒（自评/家长评），一条记录一天内幂等覆盖
-function upsertRecord(date, taskId, value, stars, note) {
+// extra：附加字段（如补打卡标记 { makeup, makeupAt }），由 utils/makeup.js 传入
+function upsertRecord(date, taskId, value, stars, note, extra) {
   const def = T.getTaskDef(taskId);
   if (!def) return null;
   stars = Math.min(3, Math.max(1, Number(stars) || 2));
   const n = def.type === 'done' ? 1 : Math.max(0, Number(value) || 0);
   const records = store.getRecordsRaw(); // 读写走 raw，避免丢掉同步墓碑
   const id = recordId(date, taskId);
-  const rec = { id, date, taskId, value: { type: def.type, n }, stars, note: note || '', updatedAt: Date.now() };
+  const rec = { id, date, taskId, value: { type: def.type, n }, stars, note: note || '', updatedAt: Date.now(), ...(extra || {}) };
   const i = records.findIndex(r => r.id === id);
   if (i >= 0) records[i] = rec; else records.push(rec);
   store.saveRecords(records);
@@ -86,7 +87,7 @@ const BADGE_BONUS = {
 // 每达成一个每周小目标的奖励星（utils/goals.js 单向读取）
 const GOAL_BONUS = 5;
 
-// 总星星 = Σ任务星 + 每日全必做加成1星 + Σ已获勋章奖励 + 达成的周目标 × GOAL_BONUS
+// 总星星 = Σ任务星 + 每日全必做加成1星（补卡日除外） + Σ已获勋章奖励 + 达成的周目标 × GOAL_BONUS
 // goals 为 { [周一]: goal } 映射（可省略；页面统一传 CTX.scope().goals）
 // badges 为已获勋章数组（utils/badges.js 的 evaluate/badgeWall 传同一份 store.getBadges()）；
 // 动态计算，不冗余存储，避免与勋章列表不一致。
@@ -98,7 +99,8 @@ function totalStars(records, grade, badges, goals) {
     const recs = byDate[date];
     recs.forEach(r => { total += (r.stars || 0); });
     if (!cache[date]) cache[date] = T.generateDailyTasks(grade, date);
-    if (dayCompletion(cache[date], recs).allMustDone) total += 1;
+    // 补打卡的那天不拿"全部必做"+1 加成（补卡只为接上连击）
+    if (!recs.some(r => r.makeup) && dayCompletion(cache[date], recs).allMustDone) total += 1;
   });
   (badges || []).forEach(b => { total += BADGE_BONUS[b.id] || 0; });
   Object.keys(goals || {}).forEach(k => { if (goals[k] && goals[k].achievedAt) total += GOAL_BONUS; });

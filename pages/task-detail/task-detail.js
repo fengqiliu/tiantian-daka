@@ -5,6 +5,7 @@ const B = require('../../utils/badges');
 const D = require('../../utils/date');
 const CTX = require('../../utils/context');
 const cloud = require('../../utils/cloud');
+const MK = require('../../utils/makeup');
 
 const MOODS = [
   { stars: 1, emoji: '😅', label: '加油' },
@@ -23,6 +24,7 @@ Page({
     stars: 2,
     note: '',
     exists: false,
+    makeup: false, // 补打卡模式（从日历进入）
     moods: MOODS,
     steps: [],
   },
@@ -37,6 +39,17 @@ Page({
     this.date = options.date || D.todayStr();
     const profile = store.getProfile();
     const grade = Number(profile && profile.grade) || 3;
+    this.grade = grade;
+    // 补打卡模式：只能从日历进入，打开时再校验一次规则（窗口 / 每周额度）
+    this.makeup = options.makeup === '1';
+    if (this.makeup) {
+      const c = MK.check(store.getRecords(), this.date, D.todayStr());
+      if (!c.ok) {
+        wx.showToast({ title: c.error, icon: 'none' });
+        setTimeout(() => wx.navigateBack(), 900);
+        return;
+      }
+    }
 
     let task = T.generateDailyTasks(grade, this.date).find(t => t.id === this.taskId);
     if (!task) task = T.buildTask(this.taskId, grade, false); // 历史日期或年级变动时的兜底
@@ -55,7 +68,8 @@ Page({
       secName: meta.name,
       secColor: meta.color,
       secBg: meta.bg,
-      dateLabel: D.dateLabel(this.date),
+      dateLabel: (this.makeup ? '补打卡 · ' : '') + D.dateLabel(this.date),
+      makeup: this.makeup,
       value: rec ? rec.value.n : (task.type === 'done' ? 1 : task.target),
       stars: rec ? rec.stars : 2,
       note: rec ? rec.note : '',
@@ -98,7 +112,12 @@ Page({
       return;
     }
     const doSave = () => {
-      C.upsertRecord(this.date, task.id, task.type === 'done' ? 1 : value, stars, note);
+      if (this.makeup) {
+        const res = MK.save(this.date, task.id, task.type === 'done' ? 1 : value, note, D.todayStr(), this.grade);
+        if (!res.ok) { wx.showToast({ title: res.error, icon: 'none' }); return; }
+      } else {
+        C.upsertRecord(this.date, task.id, task.type === 'done' ? 1 : value, stars, note);
+      }
       try { wx.vibrateShort({ type: 'light' }); } catch (e) { /* 老基础库忽略 */ }
       const fresh = B.evaluate(store.getRecords(), store.getProfile());
       if (fresh.length) {
@@ -111,11 +130,21 @@ Page({
           b ? '「' + b.name + '」' + (b.desc || '') : '继续加油！'
         );
       } else {
-        wx.showToast({ title: '打卡成功 +' + stars + ' ⭐', icon: 'none' });
+        wx.showToast({ title: (this.makeup ? '补打卡成功 +1' : '打卡成功 +' + stars) + ' ⭐', icon: 'none' });
       }
       cloud.syncAll(); // 静默增量同步
       setTimeout(() => wx.navigateBack(), 700);
     };
+    // 补打卡一律需家长确认
+    if (this.makeup) {
+      wx.showModal({
+        title: '请家长确认补打卡',
+        content: '确认孩子 ' + D.dateLabel(this.date) + ' 完成了「' + task.name + '」，只是忘了打卡吗？补卡记 1 ⭐。',
+        confirmText: '确认补卡',
+        success: res => { if (res.confirm) doSave(); },
+      });
+      return;
+    }
     if (task.parentConfirm && !exists) {
       wx.showModal({
         title: '请家长确认',

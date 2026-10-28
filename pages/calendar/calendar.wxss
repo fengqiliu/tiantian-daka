@@ -50,3 +50,16 @@
 }
 .dr-name { font-weight: 600; }
 .dr-stars { font-weight: 600; }
+
+.tag-makeup {
+  font-size: 20rpx;
+  color: #C26A00;
+  background: #FFF1DC;
+  border-radius: 8rpx;
+  padding: 2rpx 10rpx;
+  margin-left: 10rpx;
+  font-weight: 600;
+}
+.mk-tip { margin: 8rpx 0 12rpx; }
+.mk-task { padding: 18rpx 0; border-top: 1rpx solid #F3EDE2; font-size: 28rpx; }
+.mk-task.off { opacity: 0.4; }

@@ -115,6 +115,7 @@ exports.main = async (event) => {
       records: recDocs.data.map(d => ({
         id: d.id, date: d.date, taskId: d.taskId, value: d.value,
         stars: d.stars, note: d.note, deleted: !!d.deleted, updatedAt: d.updatedAt,
+        makeup: !!d.makeup, makeupAt: d.makeupAt || 0, // 补打卡标记（家长日历显示「补」）
       })),
     };
   }

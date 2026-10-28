@@ -11,7 +11,7 @@
   </view>
 
   <view class="card">
-    <view class="h2 td-sec-title">今天完成了多少？</view>
+    <view class="h2 td-sec-title">{{makeup ? '那天完成了多少？' : '今天完成了多少？'}}</view>
 
     <block wx:if="{{task.type !== 'done'}}">
       <view class="stepper row">
@@ -37,8 +37,9 @@
   </view>
 
   <view class="card">
-    <view class="h2 td-sec-title">给自己评个星</view>
-    <view class="mood-row row">
+    <view class="h2 td-sec-title">{{makeup ? '补打卡' : '给自己评个星'}}</view>
+    <view class="muted" wx:if="{{makeup}}" style="margin-bottom: 16rpx;">补卡固定 1 ⭐，需要家长确认；能接上连击，但那天不再有"全部完成"加成</view>
+    <view class="mood-row row" wx:else>
       <view
         wx:for="{{moods}}"
         wx:key="stars"

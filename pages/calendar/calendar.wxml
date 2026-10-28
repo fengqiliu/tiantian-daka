@@ -45,10 +45,29 @@
   <view wx:for="{{dayRecords}}" wx:key="id" class="card dr row">
     <view class="dr-emoji">{{item.emoji}}</view>
     <view class="flex1">
-      <view class="dr-name">{{item.name}}</view>
+      <view class="dr-name">{{item.name}}<text wx:if="{{item.makeup}}" class="tag-makeup">补</text></view>
       <view class="muted" wx:if="{{item.type !== 'done'}}">完成 {{item.valueN}} {{item.unit}}</view>
       <view class="muted" wx:if="{{item.note}}">“{{item.note}}”</view>
     </view>
     <view class="dr-stars">⭐{{item.stars}}</view>
+  </view>
+
+  <view class="card mk" wx:if="{{makeup}}">
+    <view class="row">
+      <view class="h2 flex1">📝 补打卡</view>
+      <text class="muted">本周还可补 {{makeup.remaining}} 天</text>
+    </view>
+    <view class="muted mk-tip" wx:if="{{makeup.blocked}}">{{makeup.blocked}}</view>
+    <view class="muted mk-tip" wx:else>忘了打卡？请家长确认后补上。补卡每项 1 ⭐，能接上连击</view>
+    <view
+      wx:for="{{makeup.tasks}}"
+      wx:key="id"
+      class="mk-task row {{makeup.blocked ? 'off' : ''}}"
+      data-id="{{item.id}}"
+      bindtap="onMakeupTask"
+    >
+      <view class="flex1">{{item.emoji}} {{item.name}}<text wx:if="{{item.must}}" class="tag-must">必做</text></view>
+      <text class="muted">补 ›</text>
+    </view>
   </view>
 </view>
