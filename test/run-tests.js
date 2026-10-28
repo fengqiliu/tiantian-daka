@@ -1761,6 +1761,24 @@ t('周目标随同步往返，家长端缓存并经 scope 读取', async () => {
   store.saveProfile({ role: 'child', grade: 1 });
   assert.deepStrictEqual(CTX.scope().goals, {}, '孩子 scope 读本机');
 });
+t('备份包含每周小目标（含达成戳，恢复后奖励星不丢）；旧备份无 goals 仍可导入；goals 类型不对时拒绝', () => {
+  reset();
+  GOALS.setGoal(GW, GOALS.presets(1)[0]);
+  store.saveGoals({ ...store.getGoals(), [GW]: { ...GOALS.getGoal(GW), achievedAt: 777 } });
+  const text = JSON.stringify(BACKUP.serialize());
+  reset();
+  assert.strictEqual(BACKUP.restoreFromText(text).ok, true);
+  assert.strictEqual(store.getGoals()[GW].achievedAt, 777, '达成戳随备份恢复');
+  assert.strictEqual(C.totalStars([], 1, [], store.getGoals()), C.GOAL_BONUS, '恢复后奖励星还在');
+  const old = JSON.parse(text);
+  delete old.data.goals;
+  reset();
+  assert.strictEqual(BACKUP.restoreFromText(JSON.stringify(old)).ok, true, '0.19.0 之前的备份可导入');
+  assert.deepStrictEqual(store.getGoals(), {});
+  const bad = JSON.parse(text);
+  bad.data.goals = [1, 2];
+  assert.strictEqual(BACKUP.validate(JSON.stringify(bad)).ok, false, 'goals 应为对象');
+});
 t('周报：展示本周目标进度，达成时进亮点', () => {
   reset();
   weekDates(GW).forEach(d => seedDay(d, 1, mustIds(d)(1)));
