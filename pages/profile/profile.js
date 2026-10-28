@@ -6,7 +6,7 @@ const BACKUP = require('../../utils/backup');
 const RESET = require('../../utils/reset');
 
 const AVATARS = ['🐱', '🦊', '🐰', '🐻', '🐸', '🦁', '🐼', '🐷'];
-const APP_VERSION = '0.19.1';
+const APP_VERSION = '0.20.0';
 
 Page({
   data: {

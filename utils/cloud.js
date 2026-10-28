@@ -97,6 +97,8 @@ function cheerList() {
   });
 }
 function cheerRead(ids) { return call('family', { action: 'cheerRead', ids }); }
+// 孩子端：给留言回一个表情
+function cheerReact(id, reaction) { return call('family', { action: 'cheerReact', id, reaction }); }
 
 // ── 每日提醒订阅 ──
 function remindConfig() { return call('remind', { action: 'config' }); }
@@ -133,7 +135,7 @@ module.exports = {
   CLOUD_ENV, init, isAvailable, call,
   syncAll, resetCloud,
   familyCreate, familyJoin, familyLeave, familyRefresh, notifyParents, grantParentSub, familyConfig,
-  cheerSend, cheerList, cheerRead,
+  cheerSend, cheerList, cheerRead, cheerReact,
   remindConfig, remindGrant, remindStatus, remindDisable, subscribeAndGrant,
   REMIND_PAGE,
 };

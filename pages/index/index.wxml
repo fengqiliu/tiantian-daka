@@ -39,7 +39,8 @@
         <view class="task-emoji" style="background: #FFF1F3;">💌</view>
         <view class="flex1 task-info">
           <view class="task-name">给孩子留言</view>
-          <view class="muted">发一句鼓励，孩子首页会看到；点已完成的任务可以为它点赞</view>
+          <view class="muted" wx:if="{{childReply}}">孩子回复了「{{childReply.text}}」{{childReply.reaction}}</view>
+          <view class="muted" wx:else>发一句鼓励，孩子首页会看到；点已完成的任务可以为它点赞</view>
         </view>
         <view class="task-right"><text class="muted">›</text></view>
       </view>
@@ -152,7 +153,10 @@
       </view>
       <view class="cheer-text">{{cheer.cheer.text}}</view>
       <view class="muted" wx:if="{{cheer.cheer.recordLabel}}">为你的「{{cheer.cheer.recordLabel}}」点赞</view>
-      <view class="cheer-ack" bindtap="onCheerAck">收到啦 ❤️</view>
+      <view class="muted cheer-hint">点一个表情回复{{cheer.cheer.from}}</view>
+      <view class="cheer-reacts">
+        <view wx:for="{{reactions}}" wx:key="*this" class="cheer-react" data-r="{{item}}" bindtap="onCheerReact">{{item}}</view>
+      </view>
     </view>
 
     <view wx:if="{{reviewDue > 0 || reviewDone}}" class="card task-card row {{reviewDue ? '' : 'task-done'}}" bindtap="goReview">

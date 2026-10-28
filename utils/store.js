@@ -157,6 +157,12 @@ function saveDrillHistory(list) { backend.set(KEYS.DRILL_HISTORY, list); }
 function getReviewLog() { return _get(KEYS.REVIEW_LOG, []); }
 function saveReviewLog(list) { backend.set(KEYS.REVIEW_LOG, list); }
 
+// 孩子端本地回复表情（回复即已读），云端 cheerReact 异步跟上
+function reactCheerLocal(id, reaction) {
+  const now = Date.now();
+  saveCheers(getCheers().map(c => (c.id === id ? { ...c, reaction, reactedAt: now, readAt: c.readAt || now } : c)));
+}
+
 // ── 每周小目标 ──
 function getGoals() { return _get(KEYS.GOALS, {}); }
 function saveGoals(map) { backend.set(KEYS.GOALS, map); }
@@ -233,7 +239,7 @@ module.exports = {
   getShopStamp, saveShopRaw,
   getDrillHistory, saveDrillHistory,
   getReviewLog, saveReviewLog,
-  getCheers, saveCheers, markCheersRead,
+  getCheers, saveCheers, markCheersRead, reactCheerLocal,
   getGoals, saveGoals,
   getSyncState, saveSyncState,
   getChildProfile, getChildRecords, getChildBadges, getChildDrillHistory, getChildQuizHistory, getChildReviewLog,

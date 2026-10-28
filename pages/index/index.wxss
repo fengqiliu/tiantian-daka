@@ -93,16 +93,19 @@
 
 .cheer-card { background: linear-gradient(135deg, #FFF1F3, #FFF6E9); border: 3rpx solid #FFD3DA; }
 .cheer-text { font-size: 34rpx; font-weight: 700; line-height: 1.5; margin: 10rpx 0 6rpx; color: #33302B; }
-.cheer-ack {
-  display: inline-block;
-  margin-top: 14rpx;
-  background: #FF6B81;
-  color: #fff;
-  font-size: 26rpx;
-  font-weight: 600;
+.cheer-hint { margin-top: 12rpx; }
+.cheer-reacts { display: flex; gap: 16rpx; margin-top: 10rpx; }
+.cheer-react {
+  font-size: 44rpx;
+  background: #fff;
+  border: 2rpx solid #FFD3DA;
   border-radius: 999rpx;
-  padding: 10rpx 30rpx;
+  width: 84rpx;
+  height: 84rpx;
+  line-height: 84rpx;
+  text-align: center;
 }
+.cheer-react:active { background: #FFF1F3; }
 
 .goal-track { height: 16rpx; background: #FFE7C7; border-radius: 999rpx; overflow: hidden; margin: 14rpx 0 8rpx; }
 .goal-in { height: 100%; background: linear-gradient(90deg, #FFB25A, #FF8A00); border-radius: 999rpx; }

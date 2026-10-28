@@ -93,7 +93,7 @@ pull: 云端 updatedAt > lastPullAt 的记录（含墓碑） + profile + badges
 | `checkins` | 本地 record + `openid` | 推荐索引：`(openid+updatedAt)`、`(openid+date)` |
 | `badges` | `{ openid, id, earnedAt }` | 并集写入 |
 | `families` | `{ code, ownerOpenid, ownerProfile, members:[{openid, parentSubQuota, joinedAt}], createdAt }` | `code` 为 6 位邀请码（去除易混淆字符 0/O/1/I/L） |
-| `cheers` | `{ ownerOpenid, fromOpenid, from, text, recordId, recordLabel, createdAt, readAt }` | 家长鼓励留言，只经 `family` 云函数读写（`cheer` / `cheers` / `cheerRead`）；建议集合权限设为「所有用户不可读写」。推荐索引：`(ownerOpenid+createdAt)`、`(fromOpenid+createdAt)` |
+| `cheers` | `{ ownerOpenid, fromOpenid, from, text, recordId, recordLabel, createdAt, readAt, reaction, reactedAt }` | 家长鼓励留言与孩子的表情回复，只经 `family` 云函数读写（`cheer` / `cheers` / `cheerRead` / `cheerReact`）；建议集合权限设为「所有用户不可读写」。推荐索引：`(ownerOpenid+createdAt)`、`(fromOpenid+createdAt)` |
 
 ### 3.5 家人绑定流程
 

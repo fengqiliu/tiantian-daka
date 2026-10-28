@@ -30,6 +30,8 @@ Page({
     reviewDue: 0,
     reviewDone: false,
     cheer: null, // { cheer, unread }：家长留言横幅
+    reactions: CHEER.REACTIONS,
+    childReply: null, // 家长端：孩子最近一次回复 { text, reaction }
     goal: null,  // 本周小目标 { label, emoji, current, target, pct, done }；null = 还没定
     // 家长端同字段 childGoal
     // 家长模式
@@ -146,12 +148,14 @@ Page({
     });
   },
 
-  // 「收到啦」：本地先标已读（横幅换下一条），云端异步跟上
-  onCheerAck() {
+  // 点表情回复：本地先记回复并标已读（横幅换下一条），云端 cheerReact 异步跟上
+  onCheerReact(e) {
     const c = this.data.cheer && this.data.cheer.cheer;
-    if (!c) return;
-    store.markCheersRead([c.id]);
-    cloud.cheerRead([c.id]);
+    const reaction = e.currentTarget.dataset.r;
+    if (!c || !CHEER.isReaction(reaction)) return;
+    store.reactCheerLocal(c.id, reaction);
+    cloud.cheerReact(c.id, reaction);
+    wx.showToast({ title: '已回复' + c.from + ' ' + reaction, icon: 'none' });
     this.setData({ cheer: CHEER.banner(store.getCheers()) });
   },
 
@@ -247,6 +251,16 @@ Page({
       weekly: this.buildWeekly(s, today),
       childGoal: this.goalView(s.goals, { records, grade, reviewLog: s.reviewLog }, today),
     });
+
+    // 孩子最近一次回复（家长发出的留言列表；节流 1 分钟，失败保持原样）
+    if (Date.now() - (this._repliesAt || 0) > 60 * 1000) {
+      this._repliesAt = Date.now();
+      cloud.cheerList().then(res => {
+        if (!res || !res.ok) return;
+        const c = CHEER.latestReaction(res.cheers);
+        this.setData({ childReply: c ? { text: c.text, reaction: c.reaction } : null });
+      });
+    }
 
     // 后台刷新最新数据（节流由 syncAt 控制）
     if (!this._refreshing && Date.now() - (this._lastRefresh || 0) > 60 * 1000) {

@@ -503,6 +503,36 @@ t('防刷：同一家长 24 小时内最多 10 条', async () => {
   CM.db.cheers.forEach(c => { c.createdAt -= 25 * 3600 * 1000; }); // 一天后
   assert.strictEqual((await family.main({ action: 'cheer', from: '妈妈', text: CHEER.PRESETS[0] })).ok, true, '窗口过后恢复');
 });
+t('孩子回复表情：家长在已发出列表看到；回复即已读；可改回复', async () => {
+  const family = await twoFamilies();
+  CM.setOpenid('parent1');
+  const a = await family.main({ action: 'cheer', from: '妈妈', text: '加油哦' });
+  CM.setOpenid('kid1');
+  const r1 = await family.main({ action: 'cheerReact', id: a.id, reaction: '❤️' });
+  assert.strictEqual(r1.ok, true, JSON.stringify(r1));
+  CM.setOpenid('parent1');
+  let sent = (await family.main({ action: 'cheers' })).cheers[0];
+  assert.strictEqual(sent.reaction, '❤️');
+  assert(sent.reactedAt > 0);
+  assert(sent.readAt > 0, '回复即已读');
+  CM.setOpenid('kid1');
+  await family.main({ action: 'cheerReact', id: a.id, reaction: '💪' });
+  CM.setOpenid('parent1');
+  sent = (await family.main({ action: 'cheers' })).cheers[0];
+  assert.strictEqual(sent.reaction, '💪', '可以改回复');
+});
+t('回复校验：只能用固定表情；只能回复自己收到的；家长不能替孩子回复', async () => {
+  const family = await twoFamilies();
+  CM.setOpenid('parent1'); const a = await family.main({ action: 'cheer', from: '妈妈', text: '加油哦' });
+  CM.setOpenid('parent2'); const b = await family.main({ action: 'cheer', from: '爸爸', text: '真棒' });
+  CM.setOpenid('kid1');
+  assert.strictEqual((await family.main({ action: 'cheerReact', id: a.id, reaction: '自由文字' })).ok, false, '非固定表情被拒');
+  assert.strictEqual((await family.main({ action: 'cheerReact', id: b.id, reaction: '❤️' })).ok, false, '别家的留言不能回');
+  CM.setOpenid('parent1');
+  assert.strictEqual((await family.main({ action: 'cheerReact', id: a.id, reaction: '❤️' })).ok, false, '家长不能替孩子回');
+  assert(!CM.db.cheers.find(c => c._id === a.id).reaction);
+  assert(!CM.db.cheers.find(c => c._id === b.id).reaction);
+});
 t('孩子标记已读：只能标自己的', async () => {
   const family = await twoFamilies();
   CM.setOpenid('parent1'); const a = await family.main({ action: 'cheer', from: '妈妈', text: '加油哦' });

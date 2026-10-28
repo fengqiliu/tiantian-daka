@@ -43,3 +43,4 @@
 .ch-sent-text { font-size: 28rpx; font-weight: 600; }
 .ch-read { font-size: 22rpx; color: #9A948B; }
 .ch-read.on { color: #2F9E44; }
+.ch-reply { font-size: 26rpx; color: #FF6B81; font-weight: 600; }

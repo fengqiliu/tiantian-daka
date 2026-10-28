@@ -1659,6 +1659,35 @@ t('cheerList 在家长端不写缓存（家长拿到的是发出的留言，切�
   assert.strictEqual(res.cheers.length, 1, '结果照常返回给页面');
   assert.deepStrictEqual(store.getCheers(), [], '不写孩子端缓存');
 });
+t('回复表情：固定 5 个；latestReaction 取最近一次回复', () => {
+  assert.deepStrictEqual(CHEER.REACTIONS, ['❤️', '😊', '💪', '🤗', '👍']);
+  assert(CHEER.isReaction('❤️'));
+  assert(!CHEER.isReaction('hi'));
+  const list = [
+    { id: 'a', text: '早', reaction: '❤️', reactedAt: 10 },
+    { id: 'b', text: '晚', reaction: '💪', reactedAt: 30 },
+    { id: 'c', text: '没回' },
+  ];
+  assert.strictEqual(CHEER.latestReaction(list).id, 'b');
+  assert.strictEqual(CHEER.latestReaction([{ id: 'x' }]), null);
+});
+t('孩子端本地回复：写入表情并标已读，横幅换下一条', () => {
+  reset();
+  store.saveCheers([{ id: 'c2', createdAt: 20, readAt: 0 }, { id: 'c1', createdAt: 10, readAt: 0 }]);
+  store.reactCheerLocal('c2', '🤗');
+  const c2 = store.getCheers().find(c => c.id === 'c2');
+  assert.deepStrictEqual([c2.reaction, c2.readAt > 0, c2.reactedAt > 0], ['🤗', true, true]);
+  assert.strictEqual(CHEER.banner(store.getCheers()).cheer.id, 'c1');
+});
+t('cloud.cheerReact 调用 family 的 cheerReact', async () => {
+  reset();
+  const calls = [];
+  const cloud = reloadCloud({ call: p => { calls.push(p.data); return Promise.resolve({ result: { ok: true } }); } });
+  cloud.init('prod-test');
+  await cloud.cheerReact('c1', '👍');
+  unloadCloud();
+  assert.deepStrictEqual(calls, [{ action: 'cheerReact', id: 'c1', reaction: '👍' }]);
+});
 t('cheerList 失败时保留旧缓存', async () => {
   reset();
   store.saveCheers([{ id: 'old', createdAt: 1, readAt: 0 }]);

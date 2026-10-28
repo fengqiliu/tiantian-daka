@@ -1,4 +1,4 @@
-// 家长鼓励留言：常用语、称呼、校验与横幅挑选（纯逻辑，无依赖；客户端与 family 云函数共用）
+// 家长鼓励留言：常用语、称呼、校验、横幅挑选与孩子回复表情（纯逻辑，无依赖；客户端与 family 云函数共用）
 // ⚠️ 云函数副本 cloudfunctions/family/lib/cheer.js 由 scripts/sync-cloud-libs.js 复制，勿直接改
 const PRESETS = [
   '今天表现真棒！👍',
@@ -14,10 +14,13 @@ const FROM_OPTIONS = ['妈妈', '爸爸', '爷爷', '奶奶', '外公', '外婆'
 const MAX_LEN = 40;     // 留言最多 40 字（emoji 按 1 字计）
 const LABEL_MAX = 20;   // 关联任务标签最多 20 字
 const DAILY_LIMIT = 10; // 同一家长 24 小时内最多 10 条
+// 孩子回复只能点固定表情（不打字，无需内容审核）
+const REACTIONS = ['❤️', '😊', '💪', '🤗', '👍'];
 
 function _len(s) { return Array.from(s).length; }
 
 function isPreset(text) { return PRESETS.indexOf(text) > -1; }
+function isReaction(r) { return REACTIONS.indexOf(r) > -1; }
 
 // 校验并规范化：返回 { ok:true, from, text, recordId, recordLabel } 或 { ok:false, error }
 function validate(input) {
@@ -39,4 +42,10 @@ function banner(list) {
   return unread.length ? { cheer: unread[0], unread: unread.length } : null;
 }
 
-module.exports = { PRESETS, FROM_OPTIONS, MAX_LEN, LABEL_MAX, DAILY_LIMIT, isPreset, validate, banner };
+// 家长端：最近一次被孩子回复的留言；没有回复返回 null
+function latestReaction(list) {
+  const reacted = (list || []).filter(c => c.reaction).sort((a, b) => (b.reactedAt || 0) - (a.reactedAt || 0));
+  return reacted[0] || null;
+}
+
+module.exports = { PRESETS, FROM_OPTIONS, REACTIONS, MAX_LEN, LABEL_MAX, DAILY_LIMIT, isPreset, isReaction, validate, banner, latestReaction };

@@ -14,6 +14,7 @@ function cheerView(d) {
     id: d._id, from: d.from, text: d.text,
     recordId: d.recordId || null, recordLabel: d.recordLabel || '',
     createdAt: d.createdAt, readAt: d.readAt || 0,
+    reaction: d.reaction || '', reactedAt: d.reactedAt || 0,
   };
 }
 
@@ -215,6 +216,19 @@ exports.main = async (event) => {
     for (const id of ids) {
       await db.collection('cheers').where({ _id: id, ownerOpenid: OPENID }).update({ data: { readAt: now } });
     }
+    return { ok: true };
+  }
+
+  // 孩子端：给收到的留言回一个表情（只能是固定表情；只能回自己收到的；回复即已读，可改）
+  if (action === 'cheerReact') {
+    if (!CHEER.isReaction(event.reaction)) return { ok: false, error: '请选择一个表情' };
+    const now = Date.now();
+    const target = db.collection('cheers').where({ _id: String(event.id || ''), ownerOpenid: OPENID });
+    const found = (await target.limit(1).get()).data[0];
+    if (!found) return { ok: false, error: '留言不存在' };
+    await db.collection('cheers').doc(found._id).update({
+      data: { reaction: event.reaction, reactedAt: now, readAt: found.readAt || now },
+    });
     return { ok: true };
   }
 

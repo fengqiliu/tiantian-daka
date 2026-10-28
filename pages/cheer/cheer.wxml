@@ -1,7 +1,7 @@
 <view class="ch safe-bottom">
   <view class="ch-head">
     <view class="h1">💌 给孩子留言</view>
-    <view class="muted">孩子打开小程序时，首页会弹出你的话</view>
+    <view class="muted">孩子打开小程序时，首页会弹出你的话；孩子可以回你一个表情</view>
   </view>
 
   <view class="card" wx:if="{{cloudOff}}">
@@ -37,7 +37,8 @@
       <view wx:for="{{sent}}" wx:key="id" class="ch-sent">
         <view class="row">
           <view class="flex1 ch-sent-text">{{item.from}}：{{item.text}}</view>
-          <text class="ch-read {{item.readAt ? 'on' : ''}}">{{item.readAt ? '已读' : '未读'}}</text>
+          <text wx:if="{{item.reaction}}" class="ch-reply">回复 {{item.reaction}}</text>
+          <text wx:else class="ch-read {{item.readAt ? 'on' : ''}}">{{item.readAt ? '已读' : '未读'}}</text>
         </view>
         <view class="muted">{{item.timeLabel}}{{item.recordLabel ? ' · 「' + item.recordLabel + '」' : ''}}</view>
       </view>
