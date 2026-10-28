@@ -126,6 +126,14 @@
       </view>
     </view>
 
+    <view wx:if="{{timing}}" class="card timing-card row" bindtap="goTiming">
+      <view class="flex1">
+        <view class="h2">⏱ {{timing.emoji}} {{timing.name}} 计时中</view>
+        <view class="muted">已计 {{timing.minutes}} 分钟{{timing.reached ? ' · 已到目标，去结束吧' : ''}}{{timing.paused ? ' · 已暂停' : ''}}</view>
+      </view>
+      <view class="review-go">查看</view>
+    </view>
+
     <view class="card goal-card" bindtap="onGoalTap">
       <block wx:if="{{goal}}">
         <view class="row">

@@ -13,6 +13,24 @@
   <view class="card">
     <view class="h2 td-sec-title">{{makeup ? '那天完成了多少？' : '今天完成了多少？'}}</view>
 
+    <view class="tm" wx:if="{{canTime}}">
+      <block wx:if="{{timer}}">
+        <view class="tm-clock {{timer.overtime ? 'over' : ''}}">{{timer.clock}}</view>
+        <view class="muted tm-sub">{{timer.overtime ? '已达到目标，继续也可以' : '距离目标 ' + task.target + ' 分钟'}} · 已计 {{timer.minutes}} 分钟{{timer.paused ? ' · 已暂停' : ''}}</view>
+        <view class="tm-track"><view class="tm-in {{timer.overtime ? 'over' : ''}}" style="width: {{timer.pct}}%;"></view></view>
+        <view class="tm-btns row">
+          <view class="tm-btn" wx:if="{{!timer.paused}}" bindtap="onTimerPause">⏸ 暂停</view>
+          <view class="tm-btn" wx:else bindtap="onTimerResume">▶️ 继续</view>
+          <view class="tm-btn primary" bindtap="onTimerStop">⏹ 结束并填入</view>
+        </view>
+        <view class="tm-cancel muted" bindtap="onTimerCancel">放弃这次计时</view>
+      </block>
+      <block wx:elif="{{timerBusy}}">
+        <view class="muted tm-sub">「{{timerBusy}}」正在计时，结束后才能开始新的</view>
+      </block>
+      <view wx:else class="tm-start" bindtap="onTimerStart">⏱ 开始计时（目标 {{task.target}} 分钟）</view>
+    </view>
+
     <block wx:if="{{task.type !== 'done'}}">
       <view class="stepper row">
         <view class="step-btn" bindtap="onMinus">−</view>

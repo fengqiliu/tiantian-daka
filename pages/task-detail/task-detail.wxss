@@ -58,3 +58,16 @@
 
 .td-actions { margin: 32rpx 24rpx 0; }
 .td-remove { margin-top: 20rpx; }
+
+.tm { background: #FFF9EF; border-radius: 20rpx; padding: 24rpx; margin-bottom: 24rpx; text-align: center; }
+.tm-start { color: #FF8A00; font-weight: 700; font-size: 30rpx; padding: 8rpx 0; }
+.tm-clock { font-size: 88rpx; font-weight: 700; color: #33302B; letter-spacing: 4rpx; }
+.tm-clock.over { color: #2F9E44; }
+.tm-sub { margin: 4rpx 0 12rpx; }
+.tm-track { height: 14rpx; background: #FFE7C7; border-radius: 999rpx; overflow: hidden; }
+.tm-in { height: 100%; background: linear-gradient(90deg, #FFB25A, #FF8A00); }
+.tm-in.over { background: linear-gradient(90deg, #8CD9A0, #2F9E44); }
+.tm-btns { gap: 20rpx; margin-top: 20rpx; }
+.tm-btn { flex: 1; background: #fff; border: 2rpx solid #FFE0B8; border-radius: 999rpx; padding: 16rpx 0; font-weight: 600; }
+.tm-btn.primary { background: linear-gradient(135deg, #FFB25A, #FF8A00); color: #fff; border-color: transparent; }
+.tm-cancel { margin-top: 14rpx; font-size: 24rpx; }

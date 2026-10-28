@@ -111,3 +111,5 @@
 .goal-in { height: 100%; background: linear-gradient(90deg, #FFB25A, #FF8A00); border-radius: 999rpx; }
 .goal-in.done { background: linear-gradient(90deg, #8CD9A0, #2F9E44); }
 .goal-done { color: #2F9E44; font-weight: 600; font-size: 26rpx; }
+
+.timing-card { background: #FFF9EF; border: 3rpx solid #FFD9A8; }

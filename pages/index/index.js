@@ -9,6 +9,7 @@ const RV = require('../../utils/review');
 const REPORT = require('../../utils/report');
 const CHEER = require('../../utils/cheer');
 const GOALS = require('../../utils/goals');
+const TM = require('../../utils/timer');
 
 Page({
   data: {
@@ -33,6 +34,7 @@ Page({
     reactions: CHEER.REACTIONS,
     childReply: null, // 家长端：孩子最近一次回复 { text, reaction }
     goal: null,  // 本周小目标 { label, emoji, current, target, pct, done }；null = 还没定
+    timing: null, // 进行中的计时 { taskId, date, name, emoji, minutes, reached, paused }
     // 家长端同字段 childGoal
     // 家长模式
     bound: false,
@@ -105,7 +107,23 @@ Page({
       reviewDone: RV.reviewedToday(today),
       cheer: CHEER.banner(store.getCheers()),
       goal: this.goalView(store.getGoals(), goalData, today),
+      timing: this.timingView(),
     });
+  },
+
+  // 进行中的计时（首页只在打开时刷新，精确读秒在任务页）
+  timingView() {
+    const st = TM.getActive();
+    if (!st) return null;
+    const def = T.getTaskDef(st.taskId) || {};
+    const v = TM.view(st);
+    return { taskId: st.taskId, date: st.date, name: def.name || '', emoji: def.emoji || '⏱', minutes: v.minutes, reached: v.reached, paused: v.paused };
+  },
+
+  goTiming() {
+    const t = this.data.timing;
+    if (!t) return;
+    wx.navigateTo({ url: '/pages/task-detail/task-detail?taskId=' + t.taskId + '&date=' + t.date });
   },
 
   // 本周目标视图（孩子 / 家长共用）；没定目标返回 null

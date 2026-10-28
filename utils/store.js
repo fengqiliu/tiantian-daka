@@ -20,6 +20,7 @@ const KEYS = {
   REVIEW_LOG: 'review_log',          // 错题复习日志：每天一条 { date, total, correct }
   CHEERS: 'cheers',                  // 孩子端：收到的家长留言缓存（云端为准，离线可看）
   GOALS: 'goals',                    // 每周小目标：{ [周一日期]: goal }
+  TIMER: 'timer',                    // 计时打卡：进行中的计时（同时只有一个；仅本机）
   CHILD_PROFILE: 'child_profile',    // 家长端缓存：孩子资料
   CHILD_RECORDS: 'child_records',    // 家长端缓存：孩子打卡记录
   CHILD_BADGES: 'child_badges',      // 家长端缓存：孩子勋章
@@ -167,6 +168,10 @@ function reactCheerLocal(id, reaction) {
 function getGoals() { return _get(KEYS.GOALS, {}); }
 function saveGoals(map) { backend.set(KEYS.GOALS, map); }
 
+// ── 计时打卡（本机，不同步）──
+function getTimer() { return _get(KEYS.TIMER, null); }
+function saveTimer(t) { if (t) backend.set(KEYS.TIMER, t); else backend.remove(KEYS.TIMER); }
+
 // ── 家长留言（孩子端缓存）──
 function getCheers() { return _get(KEYS.CHEERS, []); }
 function saveCheers(list) { backend.set(KEYS.CHEERS, list); }
@@ -241,6 +246,7 @@ module.exports = {
   getReviewLog, saveReviewLog,
   getCheers, saveCheers, markCheersRead, reactCheerLocal,
   getGoals, saveGoals,
+  getTimer, saveTimer,
   getSyncState, saveSyncState,
   getChildProfile, getChildRecords, getChildBadges, getChildDrillHistory, getChildQuizHistory, getChildReviewLog,
   getChildMathWrong, getChildQuizWrong, getChildGoals,

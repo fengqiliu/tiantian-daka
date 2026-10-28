@@ -6,6 +6,7 @@ const D = require('../../utils/date');
 const CTX = require('../../utils/context');
 const cloud = require('../../utils/cloud');
 const MK = require('../../utils/makeup');
+const TM = require('../../utils/timer');
 
 const MOODS = [
   { stars: 1, emoji: '😅', label: '加油' },
@@ -25,6 +26,9 @@ Page({
     note: '',
     exists: false,
     makeup: false, // 补打卡模式（从日历进入）
+    canTime: false, // 时长类任务、当天、非补卡 → 显示计时卡
+    timer: null,    // 本任务的计时视图（TM.view）；null = 未开始
+    timerBusy: '',  // 别的任务正在计时时，显示它的名字
     moods: MOODS,
     steps: [],
   },
@@ -70,11 +74,89 @@ Page({
       secBg: meta.bg,
       dateLabel: (this.makeup ? '补打卡 · ' : '') + D.dateLabel(this.date),
       makeup: this.makeup,
+      canTime: TM.isTimerTask(task.id) && !this.makeup && this.date === D.todayStr(),
       value: rec ? rec.value.n : (task.type === 'done' ? 1 : task.target),
       stars: rec ? rec.stars : 2,
       note: rec ? rec.note : '',
       exists: !!rec,
       steps,
+    });
+  },
+
+  onShow() { this.refreshTimer(); },
+  onHide() { this._stopTick(); },
+  onUnload() { this._stopTick(); },
+
+  // ── 计时打卡（utils/timer.js：按开始时间推算，离开页面/锁屏不丢）──
+  refreshTimer() {
+    if (!this.data.canTime) return;
+    const st = TM.getActive();
+    const mine = st && st.taskId === this.data.task.id && st.date === this.date;
+    const busyDef = st && !mine ? T.getTaskDef(st.taskId) : null;
+    const v = mine ? TM.view(st) : null;
+    if (this._buzzed === undefined) this._buzzed = !!(v && v.reached); // 回到页面时已到点不再震
+    this.setData({ timer: v, timerBusy: busyDef ? busyDef.name : '' });
+    if (v && !v.paused) this._startTick(); else this._stopTick();
+  },
+
+  _startTick() {
+    if (this._tick) return;
+    this._tick = setInterval(() => {
+      const st = TM.getActive();
+      if (!st) { this._stopTick(); return; }
+      const v = TM.view(st);
+      if (v.reached && !this._buzzed) {
+        this._buzzed = true;
+        try { wx.vibrateLong(); } catch (e) { /* 忽略 */ }
+        wx.showToast({ title: '时间到！🎉 可以结束啦', icon: 'none' });
+      }
+      this.setData({ timer: v });
+    }, 1000);
+  },
+
+  _stopTick() {
+    if (this._tick) { clearInterval(this._tick); this._tick = null; }
+  },
+
+  onTimerStart() {
+    const res = TM.start(this.data.task.id, this.date, this.data.task.target);
+    if (!res.ok) {
+      const def = T.getTaskDef(res.active.taskId);
+      wx.showToast({ title: '「' + (def ? def.name : '') + '」还在计时，先结束它', icon: 'none' });
+      return;
+    }
+    this._buzzed = false;
+    this.refreshTimer();
+  },
+
+  onTimerPause() { TM.pause(); this.refreshTimer(); },
+  onTimerResume() { TM.resume(); this.refreshTimer(); },
+
+  // 结束并把分钟数填入（不直接保存，孩子再评星/写一句后点打卡）
+  onTimerStop() {
+    const st = TM.getActive();
+    if (!st) return;
+    if (TM.view(st).minutes < 1) {
+      wx.showToast({ title: '还不到 1 分钟，再坚持一下', icon: 'none' });
+      return;
+    }
+    const r = TM.stop();
+    this._stopTick();
+    this.setData({ timer: null, value: Math.min(999, r.minutes) });
+    wx.showToast({ title: '已填入 ' + r.minutes + ' 分钟，点下面打卡', icon: 'none' });
+  },
+
+  onTimerCancel() {
+    wx.showModal({
+      title: '放弃这次计时？',
+      content: '计时会清零，不会填入分钟数。',
+      confirmText: '放弃',
+      success: res => {
+        if (!res.confirm) return;
+        TM.cancel();
+        this._stopTick();
+        this.setData({ timer: null });
+      },
     });
   },
 

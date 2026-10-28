@@ -10,6 +10,7 @@
 | --- | --- | --- |
 | `ttdr_profile` | 孩子资料 | 单对象 |
 | `ttdr_records` | 打卡记录 | 数组，按 `updatedAt` 就近更新 |
+| `ttdr_timer` | 进行中的计时（计时打卡） | `{ taskId, date, targetMin, startAt, pausedMs, pausedAt }`，同时只有一个；仅本机，不同步不备份 |
 | `ttdr_badges` | 已获得勋章 | 数组 |
 | `ttdr_settings` | 设置（预留） | 对象 |
 

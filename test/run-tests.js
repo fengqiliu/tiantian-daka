@@ -1888,6 +1888,64 @@ t('补卡标记随同步往返保留', async () => {
   assert.deepStrictEqual([rec.makeup, rec.makeupAt > 0], [true, true]);
 });
 
+console.log('— 计时打卡 —');
+const TM = require('../utils/timer');
+const MIN = 60 * 1000;
+const N0 = 1761530400000; // 任意基准时刻
+t('start / view：按开始时间计算，倒计时到目标，超时显示 +', () => {
+  reset();
+  const s = TM.start('chinese_reading_ext', '2026-10-27', 20, N0);
+  assert.strictEqual(s.ok, true);
+  let v = TM.view(TM.getActive(), N0 + 5 * MIN + 30 * 1000);
+  assert.deepStrictEqual([v.minutes, v.reached, v.clock, v.overtime, v.pct], [5, false, '14:30', false, 28]);
+  v = TM.view(TM.getActive(), N0 + 21 * MIN + 5 * 1000);
+  assert.deepStrictEqual([v.minutes, v.reached, v.clock, v.overtime, v.pct], [21, true, '+01:05', true, 100]);
+});
+t('pause / resume：暂停的时间不算；重复暂停/继续无副作用', () => {
+  reset();
+  TM.start('pe_outdoor', '2026-10-27', 30, N0);
+  TM.pause(N0 + 10 * MIN);
+  TM.pause(N0 + 11 * MIN); // 重复暂停不改暂停起点
+  assert.strictEqual(TM.view(TM.getActive(), N0 + 40 * MIN).minutes, 10, '暂停期间不走');
+  assert.strictEqual(TM.view(TM.getActive(), N0 + 40 * MIN).paused, true);
+  TM.resume(N0 + 40 * MIN);
+  TM.resume(N0 + 41 * MIN); // 重复继续无副作用
+  assert.strictEqual(TM.view(TM.getActive(), N0 + 45 * MIN).minutes, 15);
+});
+t('状态持久化：离开页面/锁屏后回来时间不丢；同时只允许一个计时', () => {
+  reset();
+  TM.start('chinese_write', '2026-10-27', 15, N0);
+  assert.strictEqual(TM.getActive().taskId, 'chinese_write', '状态存在 store 里');
+  const again = TM.start('chinese_write', '2026-10-27', 15, N0 + MIN);
+  assert.strictEqual(again.ok, true, '同一任务再点开始：沿用原计时');
+  assert.strictEqual(TM.getActive().startAt, N0);
+  const other = TM.start('pe_outdoor', '2026-10-27', 30, N0 + MIN);
+  assert.strictEqual(other.ok, false, '别的任务在计时时不能开新的');
+  assert.strictEqual(other.active.taskId, 'chinese_write');
+});
+t('stop：返回整分钟并清除；不满 1 分钟为 0；忘了关最多记 180 分钟', () => {
+  reset();
+  TM.start('fun_hobby', '2026-10-27', 30, N0);
+  const r1 = TM.stop(N0 + 12 * MIN + 59 * 1000);
+  assert.deepStrictEqual([r1.minutes, r1.taskId, r1.date], [12, 'fun_hobby', '2026-10-27']);
+  assert.strictEqual(TM.getActive(), null);
+  TM.start('fun_hobby', '2026-10-27', 30, N0);
+  assert.strictEqual(TM.stop(N0 + 40 * 1000).minutes, 0);
+  TM.start('fun_hobby', '2026-10-27', 30, N0);
+  assert.strictEqual(TM.stop(N0 + 10 * 60 * MIN).minutes, TM.CAP_MIN, '封顶');
+  assert.strictEqual(TM.stop(N0), null, '没有计时时 stop 返回 null');
+});
+t('cancel 清除；isTimerTask 只认时长类任务', () => {
+  reset();
+  TM.start('pe_outdoor', '2026-10-27', 30, N0);
+  TM.cancel();
+  assert.strictEqual(TM.getActive(), null);
+  assert(TM.isTimerTask('chinese_reading_ext'));
+  assert(TM.isTimerTask('fun_screen'), '屏幕时间也能计时（保存仍需家长确认）');
+  assert(!TM.isTimerTask('pe_rope'), '计数类不计时');
+  assert(!TM.isTimerTask('habit_sleep'), '完成类不计时');
+});
+
 chain.then(() => {
   console.log('\n全部通过：' + passed + ' 项 ✓');
 }).catch(e => {
