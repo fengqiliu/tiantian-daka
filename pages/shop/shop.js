@@ -24,10 +24,11 @@ Page({
   onLoad(options) {
     this.manage = options.manage === '1';
     const role = CTX.scope().role;
-    // 管理模式（?manage=1）仅家长：上架/下架/撤销兑换；
-    // 兑换页仅孩子：家长看孩子积分余额走「家长报告」
-    if (this.manage && role !== 'parent') {
-      wx.showToast({ title: '奖品管理请在家长模式进行', icon: 'none' });
+    // 奖品架与兑换账本存在孩子手机上（随孩子账号同步），所以管理和兑换都在孩子手机上进行：
+    // 管理模式（?manage=1）由家长在孩子手机「我的 → 奖品管理」里操作，与任务管理一致；
+    // 家长自己的手机（家长身份）写的是家长账号的数据，孩子收不到，因此两种模式都不提供
+    if (this.manage && role === 'parent') {
+      wx.showToast({ title: '请在孩子手机「我的 → 奖品管理」里操作', icon: 'none' });
       setTimeout(() => wx.navigateBack(), 800);
       return;
     }

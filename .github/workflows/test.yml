@@ -1,0 +1,26 @@
+# 每次推送与 PR 跑全部检查：语法、JSON、页面静态检查、云函数 lib 漂移、
+# 客户端逻辑 / 云函数 / 页面流程三套测试。只需 Node，无需安装依赖。
+name: test
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: [18, 22]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Run all checks
+        run: node scripts/run-all.js
+      - name: Run all checks in China time
+        run: node scripts/run-all.js
+        env:
+          TZ: Asia/Shanghai
