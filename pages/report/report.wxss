@@ -54,3 +54,8 @@
 .rp-week-tag.good { background: #E8F8EC; color: #2F9E44; }
 .rp-week-tag.warn { background: #FFF1DC; color: #C26A00; }
 .rp-week-item { font-size: 28rpx; line-height: 1.6; }
+
+.rp-mark { margin-left: 16rpx; font-size: 24rpx; color: #A39E93; min-width: 120rpx; text-align: right; }
+.rp-mark.mastered { color: #2F9E44; }
+.rp-mark.practice { color: #E5484D; }
+.rp-wrong { font-size: 24rpx; color: #E5484D; }

@@ -1,6 +1,6 @@
 # 数据模型
 
-> 对应版本 v0.24.0。本地存储在 `utils/store.js`（键名以 `KEYS` 为准），同步在 `utils/sync.js` ⇄ `cloudfunctions/sync`，家长端在 `cloudfunctions/family`。
+> 对应版本 v0.27.0。本地存储在 `utils/store.js`（键名以 `KEYS` 为准），同步在 `utils/sync.js` ⇄ `cloudfunctions/sync`，家长端在 `cloudfunctions/family`。
 
 ## 1. 本地存储
 
@@ -18,7 +18,7 @@
 | `ttdr_task_overrides` | 家长任务管理 | `{ targets: {taskId: n}, customs: [], updatedAt }` | ✓ 新者胜 | ✓ |
 | `ttdr_rewards` / `ttdr_redemptions` / `ttdr_shop_stamp` | 奖励小铺 | 奖品架 / 兑换账本 / 整体时间戳 | ✓ 新者胜（整体） | ✓ |
 | `ttdr_drill_history` | 口算会话 | `[{ date, level, total, correct, at }]`，≤100 | ✓ 按 `at` 并集 | ✓ |
-| `ttdr_quiz_history` | 小卷历史 | `[{ subject, total, correct, label, at }]`，≤50 | ✓ 按 `at` 并集 | ✓ |
+| `ttdr_quiz_history` | 小卷历史 | `[{ subject, total, correct, label, at, units?, sprint? }]`，≤50；`units: [{ unit, total, correct }]`（0.27.0 起，家长报告按单元汇总掌握情况；更早的记录没有此字段，汇总时跳过），`sprint: true` 为期末冲刺卷（0.26.0） | ✓ 按 `at` 并集 | ✓ |
 | `ttdr_math_wrong` / `ttdr_quiz_wrong` / `ttdr_wrong_stamp` | 两本错题本 | `[{ key, ..., wrongCount, lastWrongAt, box, due }]` + 整体时间戳 | ✓ 新者胜（整体） | ✓ |
 | `ttdr_review_log` | 错题复习日志 | `[{ date, total, correct }]`，每天一条 | ✓ 按日期合并 | ✓ |
 | `ttdr_goals` | 每周小目标 | `{ [周一日期]: { id, type, taskId, target, label, emoji, setAt, achievedAt } }` | ✓ 按周合并 | ✓ |

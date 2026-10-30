@@ -26,6 +26,8 @@ Page({
     drill: null,
     drillRows: [],
     quizRows: [],
+    mastery: [],
+    masteryLine: '',
   },
 
   onLoad() {
@@ -87,6 +89,21 @@ Page({
         subjectName: SUBJECT_NAME[h.subject] || h.subject,
       }));
 
+    // 各单元掌握：按全部小卷历史累计（不随 7/30 天切换），需要再练的排前面
+    const MARK = { mastered: '👍 掌握', practice: '💪 再练练', few: '题还少' };
+    const mastery = REPORT.unitMastery(s.quizHistory, s.quizWrong)
+      .map(row => ({
+        ...row,
+        name: row.subjectName + row.label,
+        text: row.total ? row.correct + '/' + row.total + ' · ' + row.rate + '%' : '还没有作答记录',
+        mark: MARK[row.status],
+      }))
+      .sort((a, b) => (a.status === 'practice' ? 0 : 1) - (b.status === 'practice' ? 0 : 1));
+    const needCount = mastery.filter(row => row.status === 'practice').length;
+    const masteryLine = !mastery.length ? ''
+      : needCount ? needCount + ' 个单元需要再练'
+        : '练过的单元都掌握得不错';
+
     const thisMonday = D.mondayOf(today);
     const week = REPORT.weeklyDigest({ ...s, today }, this.data.weekMonday);
     week.title = this.data.weekMonday === thisMonday ? '本周（进行中）'
@@ -108,6 +125,8 @@ Page({
       drill,
       drillRows,
       quizRows,
+      mastery,
+      masteryLine,
     });
   },
 });

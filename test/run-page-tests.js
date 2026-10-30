@@ -218,6 +218,39 @@ t('每周一卷：单元筛选显示「期末」，选中后只出期末卷的�
   assert(p.data.cards.length > 0);
   p.data.cards.forEach(c => assert.strictEqual(c.unit, 90, c.id));
 });
+t('小卷历史按单元记下答题数；家长报告显示各单元掌握情况', () => {
+  child(1);
+  const p = load('pages/quiz/quiz');
+  p.onLoad();
+  p.onPick(tap({ key: 'math' }));
+  p.onPickUnit(tap({ unit: 5 }));
+  p.onStart();
+  while (p.data.phase === 'play') {
+    const c = p.data.cards[p.data.idx];
+    if (c.type === 'multi') {
+      c.answerSet.forEach(i => p.onOption(tap({ index: i })));
+      p.onMultiSubmit();
+    } else {
+      p.onOption(tap({ index: (c.answerIndex + 1) % c.options.length })); // 全部答错
+    }
+  }
+  const h = QZ.getHistory()[0];
+  assert.deepStrictEqual(h.units, [{ unit: 5, total: h.total, correct: h.correct }]);
+  // 家长端：读孩子同步过来的缓存
+  const childPractice = { drill: [], quiz: QZ.getHistory(), review: [], goals: {} };
+  const childWrong = { math: [], quiz: store.getQuizWrong() };
+  store.clearAll();
+  store.saveProfile({ role: 'parent', grade: 0, nickname: '妈妈', onboarded: true });
+  store.saveChildData({ role: 'child', grade: 1, nickname: '小豆' }, [], [], childPractice, childWrong);
+  const rp = load('pages/report/report');
+  rp.onLoad();
+  const row = rp.data.mastery.find(x => x.name === '数学第5单元');
+  assert(row, JSON.stringify(rp.data.mastery));
+  assert.strictEqual(row.status, 'practice');
+  assert.strictEqual(row.text, h.correct + '/' + h.total + ' · ' + row.rate + '%');
+  assert(row.wrongOpen > 0, '带上错题本未销账题数');
+  assert.strictEqual(rp.data.masteryLine, '1 个单元需要再练');
+});
 t('期末冲刺：20 题覆盖全册各单元，做完按单元给出掌握情况', () => {
   child(1);
   const p = load('pages/quiz/quiz');

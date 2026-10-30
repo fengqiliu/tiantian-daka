@@ -111,6 +111,48 @@ function stubbornGroup(mathWrong, quizWrong) {
   return best ? { name: best, count: groups[best] } : null;
 }
 
+// ── 单元掌握：汇总小卷历史里每份卷的单元答题（0.27.0 起记录 units），附错题本未销账题数 ──
+// 答题少于 MASTERY_MIN 题不下结论（'few'）；正确率 ≥ MASTERY_PCT 为掌握，否则需要再练
+const MASTERY_MIN = 3;
+const MASTERY_PCT = 80;
+const SUBJECT_ORDER = ['math', 'chinese', 'english'];
+
+function _unitTally(history) {
+  const by = {};
+  (history || []).forEach(h => (h.units || []).forEach(u => {
+    const key = h.subject + '#' + u.unit;
+    const row = by[key] || (by[key] = { subject: h.subject, unit: u.unit, total: 0, correct: 0, wrongOpen: 0 });
+    row.total += u.total || 0;
+    row.correct += u.correct || 0;
+  }));
+  return by;
+}
+
+function _masteryRow(row) {
+  const rate = row.total ? Math.round((row.correct / row.total) * 100) : null;
+  const status = row.total < MASTERY_MIN ? 'few' : rate >= MASTERY_PCT ? 'mastered' : 'practice';
+  return {
+    ...row,
+    subjectName: SUBJECT_NAME[row.subject] || row.subject,
+    label: QB.unitLabel(row.unit),
+    rate, status,
+  };
+}
+
+function unitMastery(quizHistory, quizWrong) {
+  const by = _unitTally(quizHistory);
+  (quizWrong || []).forEach(w => {
+    const unit = (w.question || {}).unit;
+    if (!unit) return;
+    const key = w.subject + '#' + unit;
+    const row = by[key] || (by[key] = { subject: w.subject, unit, total: 0, correct: 0, wrongOpen: 0 });
+    row.wrongOpen++;
+  });
+  return Object.values(by)
+    .sort((a, b) => SUBJECT_ORDER.indexOf(a.subject) - SUBJECT_ORDER.indexOf(b.subject) || a.unit - b.unit)
+    .map(_masteryRow);
+}
+
 // 周报：data = { records, grade, badges, drillSessions, quizHistory, reviewLog, mathWrong, quizWrong, goals, today? }（来自 CTX.scope()）
 // today 落在本周内时（本周进行中），任务完成率只算到今天，未来的日子不算漏做
 // 亮点/需关注按固定规则挑选，各最多 3 条；只陈述事实并给温和建议，不和别人比
@@ -185,6 +227,11 @@ function weeklyDigest(data, monday) {
     // 错题本是当前状态（不限本周）：提示最集中的薄弱题型
     const sg = stubbornGroup(data.mathWrong, data.quizWrong);
     if (sg) attention.push('「' + sg.name + '」有 ' + sg.count + ' 道题反复错，可以一起看看错题本');
+    // 本周练过的单元里正确率最低、且不到 80% 的一个
+    const weak = Object.values(_unitTally(quizIn)).map(_masteryRow)
+      .filter(row => row.status === 'practice')
+      .sort((a, b) => a.rate - b.rate)[0];
+    if (weak) attention.push('「' + weak.subjectName + weak.label + '」小卷正确率 ' + weak.rate + '%，可以按单元再练一组');
     if (drill.count && drill.accuracy < 70) attention.push('口算正确率 ' + drill.accuracy + '%，可以先回到低一级巩固');
     if (vsPrev <= -2) attention.push('达成天数比前一周少 ' + (-vsPrev) + ' 天');
   }
@@ -202,4 +249,4 @@ function weeklyDigest(data, monday) {
   };
 }
 
-module.exports = { taskRates, overview, drillSummary, lastWeekMonday, weekLabel, stubbornGroup, weeklyDigest };
+module.exports = { MASTERY_MIN, MASTERY_PCT, taskRates, overview, drillSummary, lastWeekMonday, weekLabel, stubbornGroup, unitMastery, weeklyDigest };

@@ -1451,6 +1451,41 @@ function digestOf(extra) {
     records: store.getRecords(), grade: 1, badges: [], drillSessions: [], quizHistory: [], reviewLog: [], ...extra,
   }, W0);
 }
+t('单元掌握：汇总各份小卷的单元答题，≥3 题才判断，≥80% 掌握，并带上错题本未销账题数', () => {
+  const hist = [
+    { subject: 'math', at: 3, total: 10, correct: 8, units: [{ unit: 5, total: 4, correct: 2 }, { unit: 90, total: 6, correct: 6 }] },
+    { subject: 'math', at: 2, total: 10, correct: 9, units: [{ unit: 5, total: 1, correct: 1 }, { unit: 2, total: 2, correct: 2 }] },
+    { subject: 'english', at: 1, total: 10, correct: 9, units: [{ unit: 3, total: 10, correct: 9 }] },
+    { subject: 'chinese', at: 0, total: 10, correct: 7 }, // 0.27.0 之前的历史没有 units：跳过
+  ];
+  const wrong = [
+    { subject: 'math', question: { unit: 5 } }, { subject: 'math', question: { unit: 5 } },
+    { subject: 'chinese', question: { unit: 4 } },
+  ];
+  const rows = REPORT.unitMastery(hist, wrong);
+  assert.deepStrictEqual(rows.map(r => [r.subjectName + r.label, r.correct, r.total, r.rate, r.status, r.wrongOpen]), [
+    ['数学第2单元', 2, 2, 100, 'few', 0],
+    ['数学第5单元', 3, 5, 60, 'practice', 2],
+    ['数学期末', 6, 6, 100, 'mastered', 0],
+    ['语文第4单元', 0, 0, null, 'few', 1], // 只有错题、没有新答题记录也列出
+    ['英语第3单元', 9, 10, 90, 'mastered', 0],
+  ]);
+  assert.deepStrictEqual(REPORT.unitMastery([], []), []);
+});
+t('周报需关注：本周练过、正确率不到 80% 的最薄弱单元', () => {
+  reset();
+  weekDates(W0).forEach(d => seedDay(d, 1, mustIds(d)(1)));
+  const inWeek = ts(D.addDays(W0, 2));
+  const before = ts(D.addDays(W0, -3));
+  const g = digestOf({
+    quizHistory: [
+      { subject: 'math', at: inWeek, total: 10, correct: 6, label: '合格', units: [{ unit: 6, total: 5, correct: 2 }, { unit: 5, total: 5, correct: 4 }] },
+      { subject: 'english', at: before, total: 5, correct: 1, label: '继续加油', units: [{ unit: 2, total: 5, correct: 1 }] },
+    ],
+  });
+  assert(g.attention.some(a => a === '「数学第6单元」小卷正确率 40%，可以按单元再练一组'), JSON.stringify(g.attention));
+  assert(!g.attention.some(a => a.includes('英语')), '本周没练的单元不在周报里提示');
+});
 t('周区间：上周一 / 区间标签', () => {
   assert.strictEqual(REPORT.lastWeekMonday('2026-10-26'), '2026-10-19', '周一看上周');
   assert.strictEqual(REPORT.lastWeekMonday('2026-10-25'), '2026-10-12', '周日看的是前一个完整周');

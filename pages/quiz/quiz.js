@@ -178,13 +178,15 @@ Page({
     if (answered >= this.data.total) {
       const v = QZ.verdict(this.data.total, this.data.correctCount);
       const sprint = this.data.mode === 'sprint';
+      const breakdown = QZ.unitBreakdown(this._results);
       QZ.saveHistory({
         subject: this.data.selected, total: this.data.total,
         correct: this.data.correctCount, label: v.label,
+        units: breakdown.map(row => ({ unit: row.unit, total: row.total, correct: row.correct })), // 家长报告按单元汇总掌握情况
         ...(sprint ? { sprint: true } : {}),
       });
       cloud.syncAll(); // 小卷历史上云，家长报告可见（节流 1 分钟，静默失败）
-      this.setData({ phase: 'done', verdict: v, breakdown: sprint ? QZ.unitBreakdown(this._results) : [] });
+      this.setData({ phase: 'done', verdict: v, breakdown: sprint ? breakdown : [] });
       this.refreshMeta();
     } else {
       const next = this.data.cards[this.data.idx + 1];
