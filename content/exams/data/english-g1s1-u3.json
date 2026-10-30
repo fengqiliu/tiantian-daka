@@ -1,0 +1,142 @@
+{
+  "subject": "english",
+  "subjectName": "英语",
+  "textbook": "沪教版（五四制）2024新教材（牛津上海版）",
+  "grade": 1,
+  "semester": "上",
+  "id": "english-g1s1-u3",
+  "unit": 3,
+  "unitName": "Unit 3 My schoolbag（我的书包）",
+  "skills": [
+    "学习用品词汇：schoolbag / pencil / pencil case / ruler / eraser / book",
+    "用途理解（write / read / erase / put in）",
+    "整理书包表达（Pack my ...）",
+    "帮助同学（Don't worry. Use my ...）"
+  ],
+  "keySentences": [
+    "Pack my schoolbag.",
+    "Pack my pencil / ruler / book.",
+    "Don't worry.",
+    "Use my eraser / pencil."
+  ],
+  "pdf": "../pdf/2026上海一年级英语上册第三单元测试卷_沪教版2024.pdf",
+  "papers": [
+    {
+      "paper": "A",
+      "level": "基础",
+      "durationMin": 30,
+      "totalScore": 100,
+      "sections": [
+        {
+          "no": 1,
+          "type": "listen-circle",
+          "title": "Listen and circle. 听一听，圈出符合录音的图片",
+          "score": 20,
+          "answers": "1左（pencil）2左（book）3左（schoolbag）4左（Pack my schoolbag.）"
+        },
+        {
+          "no": 2,
+          "type": "match",
+          "title": "Look and match. 看图，把学习用品和单词连起来",
+          "score": 20,
+          "answers": "schoolbag、pencil、ruler、book、eraser、pencil case 分别连对应图片。"
+        },
+        {
+          "no": 3,
+          "type": "read-choose",
+          "title": "Read and choose. 读一读，选择正确的学习用品",
+          "score": 20,
+          "answers": "1A 2B 3A 4A（I write with it.→pencil；I read it.→book；I erase with it.→eraser；I put pencils in it.→pencil case）"
+        },
+        {
+          "no": 4,
+          "type": "classify",
+          "title": "Pack my schoolbag. 圈出应该装进书包的学习用品",
+          "score": 20,
+          "answers": "pencil、book、ruler、eraser（不圈 ball、apple）。"
+        },
+        {
+          "no": 5,
+          "type": "match",
+          "title": "Read and match. 读句子，把表达和情境连起来",
+          "score": 20,
+          "answers": "Pack my pencil—把铅笔装进书包；Pack my ruler—把直尺装进书包；Don't worry—安慰同学；Use my eraser—把橡皮借给同学。"
+        },
+        {
+          "no": 6,
+          "type": "speaking",
+          "title": "Speaking task. 口语小任务（家长/老师评分）",
+          "score": 20,
+          "answers": "能边整理边说出至少4个\"Pack my ...\"句子即可。"
+        }
+      ]
+    },
+    {
+      "paper": "B",
+      "level": "提高",
+      "durationMin": 35,
+      "totalScore": 100,
+      "sections": [
+        {
+          "no": 1,
+          "type": "listen-order",
+          "title": "Listen and number. 听录音，按顺序给图片编号1-6",
+          "score": 20,
+          "answers": "book(1)、pencil(2)、schoolbag(3)、eraser(4)、ruler(5)、pencil case(6)。"
+        },
+        {
+          "no": 2,
+          "type": "complete-dialogue",
+          "title": "Complete the dialogue. 从词语框中选出合适的表达，填序号",
+          "score": 20,
+          "answers": "1D 2A 3B 4C 5E。"
+        },
+        {
+          "no": 3,
+          "type": "context-choice",
+          "title": "Choose the best sentence. 根据情境，选最合适的表达",
+          "score": 20,
+          "answers": "1A Pack my ruler. 2B Use my pencil. 3A Don't worry. 4A Pack my books."
+        },
+        {
+          "no": 4,
+          "type": "read-choose",
+          "title": "Look, think and choose. 看图思考，选择正确答案",
+          "score": 20,
+          "answers": "1A 2B 3A。"
+        },
+        {
+          "no": 5,
+          "type": "classify",
+          "title": "Mini project. \"What do I take to school?\" 圈出合适的物品",
+          "score": 15,
+          "answers": "schoolbag、book、pencil、ruler、eraser；不圈 ball。"
+        },
+        {
+          "no": 6,
+          "type": "speaking",
+          "title": "Speaking challenge. 口语挑战（家长/老师评分）",
+          "score": 15,
+          "answers": "能描述整理书包，并在同伴需要时用\"Don't worry. Use my ...\"提供帮助即可。"
+        }
+      ]
+    }
+  ],
+  "listeningScripts": {
+    "A": [
+      "Pencil.",
+      "Book.",
+      "Schoolbag.",
+      "Pack my schoolbag."
+    ],
+    "B": [
+      "Book.",
+      "Pencil.",
+      "Schoolbag.",
+      "Eraser.",
+      "Ruler.",
+      "Pencil case."
+    ]
+  },
+  "usageNotes": "每题听力读两遍。不要求机械默写单词，口语评价优先看能否准确指认物品并用\"Pack my ...\"完成整理。原卷B卷各题分值合计110分（20+20+20+20+15+15），与卷首\"满分100分\"不一致；totalScore 按卷首记录。"
+}

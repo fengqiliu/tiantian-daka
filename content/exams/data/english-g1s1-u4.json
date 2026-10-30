@@ -1,0 +1,126 @@
+{
+  "subject": "english",
+  "subjectName": "英语",
+  "textbook": "沪教版（五四制）2024新教材（牛津上海版）",
+  "grade": 1,
+  "semester": "上",
+  "id": "english-g1s1-u4",
+  "unit": 4,
+  "unitName": "Unit 4 My classroom（我的教室）",
+  "skills": [
+    "教室物品词汇：classroom / desk / chair / door / blackboard / floor",
+    "值日表达（Let me clean the ...）",
+    "整理（Put the books back.）",
+    "问值日与致谢（Who's on duty? / Thank you.）"
+  ],
+  "keySentences": [
+    "Let me clean the desk / blackboard / floor.",
+    "Put the books back.",
+    "Who's on duty?",
+    "Thank you."
+  ],
+  "pdf": "../pdf/2026上海一年级英语上册第四单元测试卷_沪教版2024.pdf",
+  "papers": [
+    {
+      "paper": "A",
+      "level": "基础",
+      "durationMin": 30,
+      "totalScore": 100,
+      "sections": [
+        {
+          "no": 1,
+          "type": "listen-circle",
+          "title": "Listen and circle. 听一听，圈出听到的图片",
+          "score": 20,
+          "answers": "1 desk 2 blackboard 3 floor 4 chair。"
+        },
+        {
+          "no": 2,
+          "type": "match",
+          "title": "Look and match. 看图，把教室物品和单词连起来",
+          "score": 20,
+          "answers": "desk—课桌；chair—椅子；door—门；blackboard—黑板；floor—地面；classroom—教室。"
+        },
+        {
+          "no": 3,
+          "type": "context-choice",
+          "title": "Read and choose. 读一读，选出最合适的句子",
+          "score": 20,
+          "answers": "1 Let me clean the blackboard. 2 Who's on duty? 3 Thank you. 4 Put the books back."
+        },
+        {
+          "no": 4,
+          "type": "read-choose",
+          "title": "Look and choose. 看图，圈出正确的表达",
+          "score": 20,
+          "answers": "1A 2A。"
+        },
+        {
+          "no": 5,
+          "type": "speaking",
+          "title": "Speak and act. 说一说，演一演（家长/老师评分）",
+          "score": 20,
+          "answers": "任选两句，符合情境且能清楚表达即可：发音清楚8分，表达合适8分，大胆开口4分。"
+        }
+      ]
+    },
+    {
+      "paper": "B",
+      "level": "提高",
+      "durationMin": 35,
+      "totalScore": 100,
+      "sections": [
+        {
+          "no": 1,
+          "type": "listen-order",
+          "title": "Listen and number. 听一听，给图片标上1-4",
+          "score": 20,
+          "answers": "课桌图1；黑板图2；放书图3；地面图4。"
+        },
+        {
+          "no": 2,
+          "type": "complete-dialogue",
+          "title": "Choose and fill. 选择合适的单词填空",
+          "score": 20,
+          "answers": "1 classroom 2 chair 3 blackboard 4 floor（We learn in the classroom. / We sit on a chair. / We write on the blackboard. / We walk on the floor.）"
+        },
+        {
+          "no": 3,
+          "type": "complete-dialogue",
+          "title": "Complete the dialogue. 选择句子补全对话",
+          "score": 20,
+          "answers": "Me. / Thank you."
+        },
+        {
+          "no": 4,
+          "type": "context-choice",
+          "title": "Think and choose. 想一想，选择合适的做法或表达",
+          "score": 20,
+          "answers": "1A Let me clean the floor. 2A Thank you. 3A Clean the blackboard. 4A Put the books back."
+        },
+        {
+          "no": 5,
+          "type": "speaking",
+          "title": "Mini-project. 我的值日任务",
+          "score": 20,
+          "answers": "任选两项；句型完整、发音基本清楚即可。"
+        }
+      ]
+    }
+  ],
+  "listeningScripts": {
+    "A": [
+      "desk",
+      "blackboard",
+      "floor",
+      "chair"
+    ],
+    "B": [
+      "Let me clean the desk.",
+      "Let me clean the blackboard.",
+      "Put the books back.",
+      "Let me clean the floor."
+    ]
+  },
+  "usageNotes": "每题听力读两遍。\"位置\"（on / under / beside）仅作观察拓展，不列为本单元核心考核点。"
+}

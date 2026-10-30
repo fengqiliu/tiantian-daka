@@ -1,0 +1,125 @@
+{
+  "subject": "english",
+  "subjectName": "英语",
+  "textbook": "沪教版（五四制）2024新教材（牛津上海版）",
+  "grade": 1,
+  "semester": "上",
+  "id": "english-g1s1-u6",
+  "unit": 6,
+  "unitName": "Unit 6 My family（我的家庭）",
+  "skills": [
+    "家庭成员词汇：mum / dad / sister / brother / family / me",
+    "介绍家人（This is my ...）",
+    "表达爱（I love my ... / I love my family.）"
+  ],
+  "keySentences": [
+    "This is my mum / dad / sister / brother.",
+    "This is me.",
+    "This is my family.",
+    "I love my family."
+  ],
+  "pdf": "../pdf/2026上海一年级英语上册第六单元测试卷_沪教版2024.pdf",
+  "papers": [
+    {
+      "paper": "A",
+      "level": "基础",
+      "durationMin": 30,
+      "totalScore": 100,
+      "sections": [
+        {
+          "no": 1,
+          "type": "listen-circle",
+          "title": "Listen and circle. 听一听，圈出听到的图片",
+          "score": 20,
+          "answers": "1A mum 2A sister 3A dad 4A brother。"
+        },
+        {
+          "no": 2,
+          "type": "match",
+          "title": "Look and match. 看图，把家庭成员和单词连起来",
+          "score": 20,
+          "answers": "mum—妈妈；dad—爸爸；sister—姐妹；brother—兄弟；family—家庭。"
+        },
+        {
+          "no": 3,
+          "type": "context-choice",
+          "title": "Read and choose. 读一读，选出最合适的句子",
+          "score": 20,
+          "answers": "1 This is my mum. 2 This is my dad. 3 I love my family. 4 This is me."
+        },
+        {
+          "no": 4,
+          "type": "read-choose",
+          "title": "Look and choose. 看\"家庭照\"，圈出正确表达",
+          "score": 20,
+          "answers": "1A 2A。"
+        },
+        {
+          "no": 5,
+          "type": "speaking",
+          "title": "Speak and show. 说一说，介绍你的家人",
+          "score": 20,
+          "answers": "能用 This is my ... 介绍至少一位家人，并能说 I love my family. 即可。"
+        }
+      ]
+    },
+    {
+      "paper": "B",
+      "level": "提高",
+      "durationMin": 35,
+      "totalScore": 100,
+      "sections": [
+        {
+          "no": 1,
+          "type": "listen-order",
+          "title": "Listen and number. 听一听，给图片标上1-4",
+          "score": 20,
+          "answers": "brother图=1；dad图=2；mum图=3；sister图=4。"
+        },
+        {
+          "no": 2,
+          "type": "complete-dialogue",
+          "title": "Choose and fill. 选择合适的单词填空",
+          "score": 20,
+          "answers": "1 family 2 dad 3 sister 4 me。"
+        },
+        {
+          "no": 3,
+          "type": "complete-dialogue",
+          "title": "Complete the family talk. 选择句子补全\"家庭介绍\"",
+          "score": 20,
+          "answers": "mum；I love my family."
+        },
+        {
+          "no": 4,
+          "type": "context-choice",
+          "title": "Think and choose. 想一想，选择合适的表达",
+          "score": 20,
+          "answers": "1A This is my brother. 2A I love my mum. 3A This is my family. 4A This is me."
+        },
+        {
+          "no": 5,
+          "type": "speaking",
+          "title": "Mini-project. My family photo 我的家庭照",
+          "score": 20,
+          "answers": "能用 This is my family. / This is my ... / I love my ... 中至少两种表达介绍即可。"
+        }
+      ]
+    }
+  ],
+  "listeningScripts": {
+    "A": [
+      "mum",
+      "sister",
+      "dad",
+      "brother"
+    ],
+    "B": [
+      "brother",
+      "dad",
+      "mum",
+      "sister"
+    ]
+  },
+  "usageNotes": "每题听力读两遍。本卷不提前扩展 grandpa / grandma / uncle / aunt 等非本单元核心词汇。"
+}

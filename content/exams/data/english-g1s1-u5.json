@@ -1,0 +1,134 @@
+{
+  "subject": "english",
+  "subjectName": "英语",
+  "textbook": "沪教版（五四制）2024新教材（牛津上海版）",
+  "grade": 1,
+  "semester": "上",
+  "id": "english-g1s1-u5",
+  "unit": 5,
+  "unitName": "Unit 5 Lovely faces（可爱的脸）",
+  "skills": [
+    "脸部词汇：face / eye / ear / nose / mouth",
+    "one / two 与单复数初步理解（eyes / ears）",
+    "描述所见（I see ...）",
+    "指令（Draw a face.）"
+  ],
+  "keySentences": [
+    "I see two eyes.",
+    "I see a nose / a mouth / an ear.",
+    "Draw a face.",
+    "A lovely face."
+  ],
+  "pdf": "../pdf/2026上海一年级英语上册第五单元测试卷_沪教版2024.pdf",
+  "papers": [
+    {
+      "paper": "A",
+      "level": "基础",
+      "durationMin": 30,
+      "totalScore": 100,
+      "sections": [
+        {
+          "no": 1,
+          "type": "listen-circle",
+          "title": "Listen and circle. 听一听，圈出听到的图片",
+          "score": 20,
+          "answers": "1A eye 2A nose 3A face 4A mouth。"
+        },
+        {
+          "no": 2,
+          "type": "match",
+          "title": "Look and match. 看图，把脸部部位和单词连起来",
+          "score": 20,
+          "answers": "eye—眼睛；ear—耳朵；nose—鼻子；mouth—嘴巴；face—脸。"
+        },
+        {
+          "no": 3,
+          "type": "read-choose",
+          "title": "Read and choose. 读一读，选择合适的图片或句子",
+          "score": 20,
+          "answers": "1A 2A 3A 4A（I see two eyes.→两只眼睛；I see a nose.→鼻子；I see two ears.→两只耳朵；Draw a face.→脸）"
+        },
+        {
+          "no": 4,
+          "type": "read-choose",
+          "title": "Look and count. 看脸，选择正确的数量表达",
+          "score": 20,
+          "answers": "eyes—two eyes；ears—two ears；nose—one nose；mouth—one mouth。"
+        },
+        {
+          "no": 5,
+          "type": "speaking",
+          "title": "Draw and say. 画一张可爱的脸，再说一说",
+          "score": 20,
+          "answers": "能画出基本脸部结构，并用 I see ... 正确说出至少两个部位即可。"
+        }
+      ]
+    },
+    {
+      "paper": "B",
+      "level": "提高",
+      "durationMin": 35,
+      "totalScore": 100,
+      "sections": [
+        {
+          "no": 1,
+          "type": "listen-order",
+          "title": "Listen and number. 听一听，给图片标上1-5",
+          "score": 20,
+          "answers": "mouth=1；ear=2；eye=3；nose=4；face=5。"
+        },
+        {
+          "no": 2,
+          "type": "complete-dialogue",
+          "title": "Choose and fill. 选择合适的单词填空",
+          "score": 20,
+          "answers": "1 face 2 nose 3 mouth 4 eye。"
+        },
+        {
+          "no": 3,
+          "type": "read-choose",
+          "title": "Look, think and choose. 看图想一想，选择正确表达",
+          "score": 20,
+          "answers": "1A 2A 3A。"
+        },
+        {
+          "no": 4,
+          "type": "complete-dialogue",
+          "title": "Complete the talk. 选择合适的词，补全\"找脸\"的对话",
+          "score": 20,
+          "answers": "face；eyes；mouth。"
+        },
+        {
+          "no": 5,
+          "type": "context-choice",
+          "title": "Think and choose. 想一想，选择正确的表达",
+          "score": 10,
+          "answers": "1A I see two eyes. 2A Draw a face. 3A I see an ear. 4A A lovely face."
+        },
+        {
+          "no": 6,
+          "type": "speaking",
+          "title": "Mini-project. Make a lovely face. 做一张\"可爱的脸\"",
+          "score": 10,
+          "answers": "能用 I see ... 正确介绍至少3个脸部部位即可。"
+        }
+      ]
+    }
+  ],
+  "listeningScripts": {
+    "A": [
+      "eye",
+      "nose",
+      "face",
+      "mouth"
+    ],
+    "B": [
+      "mouth",
+      "ear",
+      "eye",
+      "nose",
+      "face"
+    ]
+  },
+  "usageNotes": "每题听力读两遍。B卷题头每题标20分，但评分建议为20/20/20/20/10/10（合计100），数据按评分建议记录。big / small 仅作拓展，不作硬性得分点。"
+}

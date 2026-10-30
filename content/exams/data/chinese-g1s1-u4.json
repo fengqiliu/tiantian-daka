@@ -1,0 +1,150 @@
+{
+  "subject": "chinese",
+  "subjectName": "语文",
+  "textbook": "统编版（2024修订）",
+  "grade": 1,
+  "semester": "上",
+  "id": "chinese-g1s1-u4",
+  "unit": 4,
+  "unitName": "汉语拼音（ai ei ui ~ ang eng ing ong · 语文园地四）",
+  "skills": [
+    "复韵母、特殊韵母 er、前后鼻韵母分类",
+    "标调规则（iu/ui 标在后一个字母上）",
+    "j/q/x/y 与 ü 相拼省两点；n/l 与 ü 相拼保留两点",
+    "整体认读音节 ye yue yuan yin yun ying",
+    "前鼻韵母与后鼻韵母辨析",
+    "拼读词语与短句"
+  ],
+  "pdf": "../pdf/2026上海一年级语文上册第四单元测试卷_统编版2024.pdf",
+  "papers": [
+    {
+      "paper": "A",
+      "level": "基础",
+      "durationMin": 35,
+      "totalScore": 100,
+      "sections": [
+        {
+          "no": 1,
+          "type": "classify",
+          "title": "韵母分类",
+          "score": 18,
+          "answers": "复韵母：ai、ei、ui、ao、ou、iu、ie、üe；特殊韵母：er；鼻韵母：an、en、in、un、ün、ang、eng、ing、ong。"
+        },
+        {
+          "no": 2,
+          "type": "tone",
+          "title": "给音节戴上声调帽子",
+          "score": 12,
+          "answers": "ǎi、guì、máo、liǔ、yuè、yuán。"
+        },
+        {
+          "no": 3,
+          "type": "spell",
+          "title": "拼一拼，写出完整音节",
+          "score": 12,
+          "answers": "bai、mei、dou、tie、que、xian（q 与 üe 相拼省两点）。"
+        },
+        {
+          "no": 4,
+          "type": "recognize",
+          "title": "整体认读音节找一找",
+          "score": 12,
+          "answers": "ye、yue、yuan、yin、yun、ying（不圈 ya、wen、xian、liang）。"
+        },
+        {
+          "no": 5,
+          "type": "read-choose",
+          "title": "看图选音节",
+          "score": 12,
+          "answers": "帽子 mào zi；太阳 tài yáng；白云 bái yún；彩虹 cǎi hóng。"
+        },
+        {
+          "no": 6,
+          "type": "classify",
+          "title": "前鼻韵母和后鼻韵母分分家",
+          "score": 12,
+          "answers": "前鼻：an、in、ün、en、un、an、in；后鼻：eng、ong、ang、ing、ong。"
+        },
+        {
+          "no": 7,
+          "type": "read-choose",
+          "title": "读一读，选出正确的拼音",
+          "score": 12,
+          "answers": "妹妹 mèi mei；白云 bái yún；月亮 yuè liang；明亮 míng liàng。"
+        },
+        {
+          "no": 8,
+          "type": "reading",
+          "title": "拼音小阅读",
+          "score": 10,
+          "answers": "1. 复韵母音节任圈一个（bái/xiǎo/niǎo/fēi/lái）；2. shàng；3. 朗读音节基本准确即可。"
+        }
+      ]
+    },
+    {
+      "paper": "B",
+      "level": "提高",
+      "durationMin": 40,
+      "totalScore": 100,
+      "sections": [
+        {
+          "no": 1,
+          "type": "tone",
+          "title": "给音节正确标调",
+          "score": 16,
+          "answers": "bái、fēi、shuǐ、qiú、xiè、yuǎn、yīn、yíng。"
+        },
+        {
+          "no": 2,
+          "type": "spell",
+          "title": "拼写规则我会用",
+          "score": 16,
+          "answers": "jue、que、xue、yue、nü、lü、juan、xuan。"
+        },
+        {
+          "no": 3,
+          "type": "classify",
+          "title": "前鼻还是后鼻",
+          "score": 12,
+          "answers": "前鼻：shān、lín、chén、wén、xīn、hún；后鼻：shāng、líng、chéng、wēng、xīng、hóng。"
+        },
+        {
+          "no": 4,
+          "type": "tone",
+          "title": "标调小法官",
+          "score": 12,
+          "answers": "liú、guǐ、xiè、qiū（不选 líu、gǔi、xìe、qīu）。"
+        },
+        {
+          "no": 5,
+          "type": "spell",
+          "title": "看图写音节",
+          "score": 12,
+          "answers": "bái yún、yuè liang、píng guǒ、cǎi hóng。"
+        },
+        {
+          "no": 6,
+          "type": "match",
+          "title": "音节词找朋友",
+          "score": 12,
+          "answers": "bái yún—白云；qì qiú—气球；yuè liang—月亮；míng liàng—明亮。"
+        },
+        {
+          "no": 7,
+          "type": "reading",
+          "title": "综合拼音阅读",
+          "score": 12,
+          "answers": "1. 前鼻音节任圈一个；2. 后鼻音节任圈一个；3. 妈妈；4. 朗读。"
+        },
+        {
+          "no": 8,
+          "type": "write",
+          "title": "四线三格规范书写",
+          "score": 8,
+          "answers": "bái yún、míng liàng，字母占格与声调位置正确。"
+        }
+      ]
+    }
+  ],
+  "usageNotes": "本单元结束后完成一年级上册汉语拼音的系统学习。重点易错：iu/ui 标调位置、ü 省点规则、前后鼻韵母。"
+}

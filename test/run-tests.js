@@ -700,6 +700,35 @@ t('题库完整：id 唯一、来源可溯、选项与答案自洽（含多选�
     }
   });
 });
+t('期末卷：unit 90 显示为「期末」，周报"反复错的题型"同样用期末标签', () => {
+  assert.strictEqual(QBANK.unitLabel(QBANK.FINAL_UNIT), '期末');
+  assert.strictEqual(QBANK.unitLabel(5), '第5单元');
+  const REPORT = require('../utils/report');
+  const g = REPORT.stubbornGroup([], [{ subject: 'math', wrongCount: 5, question: { unit: QBANK.FINAL_UNIT } }]);
+  assert.strictEqual(g.name, '数学期末');
+});
+t('题库与知识库对齐：每道题的单元都有试卷数据，index.json 收录全部数据文件', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const dir = path.join(__dirname, '../content/exams/data');
+  const fileOf = (subject, unit) => subject + '-g1s1-' + (unit === QBANK.FINAL_UNIT ? 'final' : 'u' + unit) + '.json';
+  QBANK.bank.forEach(q => assert(fs.existsSync(path.join(dir, fileOf(q.subject, q.unit))), '缺少试卷数据: ' + q.id));
+  const index = JSON.parse(fs.readFileSync(path.join(dir, 'index.json'), 'utf8'));
+  const listed = index.papers.map(p => p.file.replace(/^data\//, '')).sort();
+  const onDisk = fs.readdirSync(dir).filter(f => f.endsWith('.json') && f !== 'index.json').sort();
+  assert.deepStrictEqual(listed, onDisk, 'index.json 与 data/ 目录不一致');
+  onDisk.forEach(f => {
+    const d = JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8'));
+    assert.strictEqual(d.id + '.json', f, 'id 与文件名一致: ' + f);
+    const cov = index.coverage.subjects[d.subject];
+    assert(d.unit === QBANK.FINAL_UNIT ? cov.final : cov.units.includes(d.unit), 'coverage 未登记: ' + f);
+    assert(fs.existsSync(path.join(dir, d.pdf)), '原卷 PDF 不存在: ' + f);
+  });
+  const units = s => [...new Set(QBANK.bank.filter(q => q.subject === s).map(q => q.unit))].sort((a, b) => a - b);
+  assert.deepStrictEqual(units('math'), [2, 3, 4, 5, 6, 7, 90]);
+  assert.deepStrictEqual(units('chinese'), [1, 2, 3, 4, 5, 6, 7, 8, 90]);
+  assert.deepStrictEqual(units('english'), [1, 2, 3, 4, 5, 6]);
+});
 t('多选题实例化与判分：乱序映射正确，集合精确匹配', () => {
   const q = QBANK.bank.find(x => x.type === 'multi');
   const card = QZ.instantiate(q, seededRng(55));

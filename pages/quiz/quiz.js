@@ -1,6 +1,7 @@
 const store = require('../../utils/store');
 const D = require('../../utils/date');
 const QZ = require('../../utils/quiz');
+const QB = require('../../utils/quiz-bank');
 const cloud = require('../../utils/cloud');
 
 const SUBJECT_META = {
@@ -58,7 +59,8 @@ Page({
   },
 
   _unitsFor(subject) {
-    return [...new Set(QZ.poolFor(subject).map(q => q.unit))].sort((a, b) => a - b);
+    return [...new Set(QZ.poolFor(subject).map(q => q.unit))].sort((a, b) => a - b)
+      .map(value => ({ value, label: QB.unitLabel(value) }));
   },
 
   onPick(e) {

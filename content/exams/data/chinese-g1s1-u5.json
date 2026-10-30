@@ -1,0 +1,101 @@
+{
+  "subject": "chinese",
+  "subjectName": "语文",
+  "textbook": "统编版（2024修订）",
+  "grade": 1,
+  "semester": "上",
+  "id": "chinese-g1s1-u5",
+  "unit": 5,
+  "unitName": "阅读（四季主题课文 · 雪地里的小画家）",
+  "skills": [
+    "本单元生字认读与书写（人、大、可、东、西等）",
+    "加点字读音辨析",
+    "四季与景物搭配",
+    "量词、标点（？！。）",
+    "课文内容判断与短文信息提取",
+    "用一句完整的话写季节"
+  ],
+  "pdf": "../pdf/2026上海一年级语文上册第五单元测试卷_统编版2024.pdf",
+  "papers": [
+    {
+      "paper": "A",
+      "level": "基础",
+      "durationMin": 35,
+      "totalScore": 100,
+      "sections": [
+        {
+          "no": 1,
+          "type": "spell",
+          "title": "拼音和生字",
+          "score": 24,
+          "answers": "1. 人、大、可、东、西；2. 秋天 qiū、莲叶 lián、竹叶 zhú、冬天 dōng。"
+        },
+        {
+          "no": 2,
+          "type": "context-choice",
+          "title": "字词小达人",
+          "score": 26,
+          "answers": "3. 春—花开；夏—荷花；秋—落叶；冬—雪花。4. 人、东、是、四、西。"
+        },
+        {
+          "no": 3,
+          "type": "judge",
+          "title": "课文内容",
+          "score": 20,
+          "answers": "5. 小鸡—竹叶；小狗—梅花；小鸭—枫叶；小马—月牙。6. √、√、√、√、×、×。"
+        },
+        {
+          "no": 4,
+          "type": "reading",
+          "title": "阅读",
+          "score": 20,
+          "answers": "7. 秋天；8. 黄色；9. 小船；10. 开放题（落叶、菊花、大雁等）。"
+        },
+        {
+          "no": 5,
+          "type": "writing",
+          "title": "表达",
+          "score": 10,
+          "answers": "围绕一个季节写完整、通顺的一句话。"
+        }
+      ]
+    },
+    {
+      "paper": "B",
+      "level": "提高",
+      "durationMin": 40,
+      "totalScore": 100,
+      "sections": [
+        {
+          "no": 1,
+          "type": "spell",
+          "title": "拼音闯关",
+          "score": 20,
+          "answers": "1. 秋天、冬天、莲叶、竹叶、东西；2. 第一组（nán / lián / tiān）应为 A，第二组（dōng / dōng / yòng）C。原卷答案页第一组写作 C，有误。"
+        },
+        {
+          "no": 2,
+          "type": "context-choice",
+          "title": "字词和句子",
+          "score": 30,
+          "answers": "3. 条、片、群、个、只；4. ③②①（美丽的秋天来了）；5. ？、！、。"
+        },
+        {
+          "no": 3,
+          "type": "reading",
+          "title": "综合阅读",
+          "score": 30,
+          "answers": "6. 四个；7. 春天—绿草，夏天—荷花，秋天—落叶，冬天—雪花；8. 雪花；9. 开放题。"
+        },
+        {
+          "no": 4,
+          "type": "writing",
+          "title": "课文知识与表达",
+          "score": 20,
+          "answers": "10. 小鸡①、小狗②、小鸭③、小马④；11. \"什么时候，什么怎么样\"句式写一句话。"
+        }
+      ]
+    }
+  ],
+  "usageNotes": "原卷答案勘误：B卷第2题第一组 nán / lián / tiān 中，lián、tiān 韵母都是 ian，nán 韵母是 an，读音不同的是 A；原答案页写 C，有误，本知识库已按 A 记录，且该题不收入 App 题库。"
+}

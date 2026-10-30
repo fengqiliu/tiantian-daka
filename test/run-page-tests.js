@@ -205,6 +205,19 @@ t('每周一卷：全对得「优秀」并记历史', () => {
   assert.strictEqual(p.data.verdict.label, '优秀');
   assert.strictEqual(QZ.getHistory()[0].label, '优秀');
 });
+t('每周一卷：单元筛选显示「期末」，选中后只出期末卷的题', () => {
+  child(1);
+  const p = load('pages/quiz/quiz');
+  p.onLoad();
+  p.onPick(tap({ key: 'math' }));
+  const last = p.data.units[p.data.units.length - 1];
+  assert.deepStrictEqual(last, { value: 90, label: '期末' });
+  assert.strictEqual(p.data.units[0].label, '第2单元');
+  p.onPickUnit(tap({ unit: 90 }));
+  p.onStart();
+  assert(p.data.cards.length > 0);
+  p.data.cards.forEach(c => assert.strictEqual(c.unit, 90, c.id));
+});
 t('错题复习：答错进本 → 到期出现在复习 → 答对升级', () => {
   child(1);
   const AR = require('../utils/arithmetic');

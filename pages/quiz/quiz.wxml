@@ -26,7 +26,7 @@
       <view class="muted" style="margin-bottom: 14rpx;">按单元练习</view>
       <view class="qz-units">
         <view class="qz-unit {{selectedUnit === 0 ? 'on' : ''}}" data-unit="0" bindtap="onPickUnit">全部</view>
-        <view wx:for="{{units}}" wx:key="*this" class="qz-unit {{selectedUnit === item ? 'on' : ''}}" data-unit="{{item}}" bindtap="onPickUnit">第{{item}}单元</view>
+        <view wx:for="{{units}}" wx:key="value" class="qz-unit {{selectedUnit === item.value ? 'on' : ''}}" data-unit="{{item.value}}" bindtap="onPickUnit">{{item.label}}</view>
       </view>
     </view>
   </block>

@@ -1,0 +1,136 @@
+{
+  "subject": "english",
+  "subjectName": "英语",
+  "textbook": "沪教版（五四制）2024新教材（牛津上海版）",
+  "grade": 1,
+  "semester": "上",
+  "id": "english-g1s1-u2",
+  "unit": 2,
+  "unitName": "Unit 2 New friends（新朋友）",
+  "skills": [
+    "认识新朋友时主动问候（Hello!/Hi!）",
+    "介绍自己的名字（My name is ... / You can call me ...）",
+    "欢迎外国朋友（Welcome to China!）",
+    "初次见面礼貌用语（Nice to meet you.）",
+    "拓展：询问姓名 What's your name?"
+  ],
+  "keySentences": [
+    "Hello! / Hi!",
+    "My name is ...",
+    "You can call me ...",
+    "Welcome to China!",
+    "Nice to meet you."
+  ],
+  "pdf": "../pdf/2026上海一年级英语上册第二单元测试卷_沪教版2024.pdf",
+  "papers": [
+    {
+      "paper": "A",
+      "level": "基础",
+      "durationMin": 30,
+      "totalScore": 100,
+      "sections": [
+        {
+          "no": 1,
+          "type": "listen-circle",
+          "title": "Listen and circle. 听一听，圈出符合录音的图片",
+          "score": 20,
+          "answers": "1左（Hello!）2左（Welcome!）3左（name）4左（Nice to meet you.）"
+        },
+        {
+          "no": 2,
+          "type": "match",
+          "title": "Look and match. 看图，把图片和单词连起来",
+          "score": 15,
+          "answers": "friend—朋友图；name—姓名牌；welcome—欢迎新朋友图。"
+        },
+        {
+          "no": 3,
+          "type": "read-choose",
+          "title": "Read and choose. 读一读，选择合适的应答",
+          "score": 25,
+          "answers": "1A 2A 3A 4A 5A（Hello!→Hi!；My name is Shenshen.→Hi, Shenshen.；Welcome to China!→Thank you.；Nice to meet you.→Nice to meet you.；You can call me Lily.→Hi, Lily.）"
+        },
+        {
+          "no": 4,
+          "type": "context-choice",
+          "title": "Choose the right words. 根据情境，圈出正确表达",
+          "score": 20,
+          "answers": "1 Nice to meet you. 2 My name is Minmin. 3 Welcome to China! 4 You can call me Lily."
+        },
+        {
+          "no": 5,
+          "type": "speaking",
+          "title": "Speaking task. 口语小任务（家长/老师评分）",
+          "score": 20,
+          "answers": "按\"主动问候、清楚说姓名、表达得体\"综合评分。"
+        }
+      ]
+    },
+    {
+      "paper": "B",
+      "level": "提高",
+      "durationMin": 35,
+      "totalScore": 100,
+      "sections": [
+        {
+          "no": 1,
+          "type": "listen-order",
+          "title": "Listen and number. 听录音，按听到的顺序给场景编号1-5",
+          "score": 20,
+          "answers": "打招呼(1)→欢迎(2)→姓名(3)→初次见面(4)→朋友(5)。"
+        },
+        {
+          "no": 2,
+          "type": "complete-dialogue",
+          "title": "Complete the dialogue. 从词语框中选出合适的表达，填序号",
+          "score": 20,
+          "answers": "1A 2B 3C 4E 5D（A. Hello! B. My name is Lily. C. Welcome to China! D. Nice to meet you. E. You can call me Lily.）"
+        },
+        {
+          "no": 3,
+          "type": "match",
+          "title": "Read and match. 读一读，把表达和用途连起来",
+          "score": 15,
+          "answers": "Hello/Hi—和新朋友打招呼；My name is—说出自己的名字；Welcome to China—欢迎新朋友；Nice to meet you—第一次见面。"
+        },
+        {
+          "no": 4,
+          "type": "context-choice",
+          "title": "Choose by the situation. 根据情境，选择最合适的表达",
+          "score": 20,
+          "answers": "1A Nice to meet you, Lily. 2A My name is Xiaopu. 3A Hi, Lily. 4A Welcome to China!"
+        },
+        {
+          "no": 5,
+          "type": "context-choice",
+          "title": "Extension. 拓展：询问姓名，选择正确的对话",
+          "score": 10,
+          "answers": "A（What's your name? — My name is Minmin.）"
+        },
+        {
+          "no": 6,
+          "type": "speaking",
+          "title": "Speaking challenge. 口语挑战（家长/老师评分）",
+          "score": 15,
+          "answers": "能完成问候、说姓名和初次见面的礼貌表达即可。"
+        }
+      ]
+    }
+  ],
+  "listeningScripts": {
+    "A": [
+      "Hello!",
+      "Hi, Lily. Welcome to China!",
+      "My name is Lily.",
+      "Nice to meet you."
+    ],
+    "B": [
+      "Hello!",
+      "Hi, Lily. Welcome to China!",
+      "My name is Shenshen.",
+      "Nice to meet you.",
+      "Friends, my friends."
+    ]
+  },
+  "usageNotes": "每题听力读两遍。书面题以听辨、认读和情境理解为主，不要求默写。What's your name? 为拓展，不作硬性得分点。原卷选择题答案多为A，App 内练习会打乱选项顺序。"
+}

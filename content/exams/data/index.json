@@ -1,24 +1,40 @@
 {
   "kbName": "天天小达人 · 试卷知识库",
-  "scope": "上海市小学 · 2024新教材 · 按单元收录单元测试卷（A卷基础 / B卷提高，含参考答案）",
-  "updatedAt": "2026-10-01",
+  "scope": "上海市小学 · 2024新教材 · 按单元收录单元测试卷与期末综合模拟卷（A卷基础 / B卷提高，含参考答案）",
+  "updatedAt": "2026-10-30",
   "coverage": {
     "grade": 1,
     "semester": "上",
     "subjects": {
-      "math": { "textbook": "沪教版（2024修订）", "units": [1, 2, 3, 4] },
-      "chinese": { "textbook": "统编版（2024修订）", "units": [1, 2, 3] },
-      "english": { "textbook": "沪教版（五四制）2024新教材", "units": [1] }
-    }
+      "math": { "textbook": "沪教版（2024修订）", "units": [1, 2, 3, 4, 5, 6, 7], "final": true },
+      "chinese": { "textbook": "统编版（2024修订）", "units": [1, 2, 3, 4, 5, 6, 7, 8], "final": true },
+      "english": { "textbook": "沪教版（五四制）2024新教材", "units": [1, 2, 3, 4, 5, 6] }
+    },
+    "note": "unit 90 = 期末综合模拟卷（文件名 *-final.json）"
   },
   "papers": [
     { "id": "math-g1s1-u1", "file": "data/math-g1s1-u1.json", "unitName": "我是小学生", "themes": ["位置（左右上下）", "听口令执行", "分类整理"] },
     { "id": "math-g1s1-u2", "file": "data/math-g1s1-u2.json", "unitName": "认识图形", "themes": ["立体图形", "平面图形", "滚/站/叠", "描面"] },
     { "id": "math-g1s1-u3", "file": "data/math-g1s1-u3.json", "unitName": "10以内的数", "themes": ["数数与数序", "比较", "分与合", "几个vs第几个", "数线"] },
     { "id": "math-g1s1-u4", "file": "data/math-g1s1-u4.json", "unitName": "10以内数的加减法", "themes": ["口算", "未知数", "看图列式", "解决问题"], "extras": ["drills.arithmeticA 20题", "drills.arithmeticB 20题"] },
+    { "id": "math-g1s1-u5", "file": "data/math-g1s1-u5.json", "unitName": "20以内的数", "themes": ["11-20读写", "十和几的组成", "数序与数线", "比较与排序"] },
+    { "id": "math-g1s1-u6", "file": "data/math-g1s1-u6.json", "unitName": "20以内数的加减法（一）", "themes": ["不进位/不退位", "凑十法进位加", "看图列式", "解决问题"], "extras": ["drills.arithmeticA 10题", "drills.arithmeticB 10题"] },
+    { "id": "math-g1s1-u7", "file": "data/math-g1s1-u7.json", "unitName": "复习与整理（第一至六单元）", "themes": ["计算", "数与数序", "图形与位置", "应用题"], "extras": ["drills.arithmeticA 10题", "drills.arithmeticB 10题"] },
+    { "id": "math-g1s1-final", "file": "data/math-g1s1-final.json", "unitName": "期末综合模拟卷", "themes": ["连加连减", "选择判断", "图形与位置", "综合应用"], "extras": ["drills.arithmeticA 15题", "drills.arithmeticB 14题"] },
     { "id": "chinese-g1s1-u1", "file": "data/chinese-g1s1-u1.json", "unitName": "识字", "themes": ["象形识字", "形近字", "田字格", "笔画", "数字汉字"] },
     { "id": "chinese-g1s1-u2", "file": "data/chinese-g1s1-u2.json", "unitName": "汉语拼音（a o e ~ d t n l）", "themes": ["单韵母6", "声母8", "声调", "拼读拆分", "四线三格"] },
     { "id": "chinese-g1s1-u3", "file": "data/chinese-g1s1-u3.json", "unitName": "汉语拼音（g k h ~ y w）", "themes": ["平翘舌", "整体认读10个", "三拼音节", "小ü省点规则"] },
-    { "id": "english-g1s1-u1", "file": "data/english-g1s1-u1.json", "unitName": "Unit 1 Greetings", "themes": ["问候语", "情境运用", "口语任务"], "extras": ["listeningScripts A/B 各5句"] }
+    { "id": "chinese-g1s1-u4", "file": "data/chinese-g1s1-u4.json", "unitName": "汉语拼音（ai ei ui ~ ang eng ing ong）", "themes": ["复韵母", "标调规则", "ü省点", "整体认读", "前后鼻韵母"] },
+    { "id": "chinese-g1s1-u5", "file": "data/chinese-g1s1-u5.json", "unitName": "阅读（四季主题）", "themes": ["生字读音", "四季景物", "量词与标点", "课文判断"], "note": "B卷第2题第一组原答案有误，已勘误" },
+    { "id": "chinese-g1s1-u6", "file": "data/chinese-g1s1-u6.json", "unitName": "识字（会意字·学习用品·升国旗）", "themes": ["会意字", "词语归类", "生活礼仪", "短文阅读"] },
+    { "id": "chinese-g1s1-u7", "file": "data/chinese-g1s1-u7.json", "unitName": "阅读（小小的船·影子·两件宝）", "themes": ["方位词", "ABB词语", "课文主旨", "音量礼仪"] },
+    { "id": "chinese-g1s1-u8", "file": "data/chinese-g1s1-u8.json", "unitName": "阅读（比尾巴·乌鸦喝水·雨点儿）", "themes": ["多音字轻声", "事情顺序", "汉字结构", "笔顺规则"] },
+    { "id": "chinese-g1s1-final", "file": "data/chinese-g1s1-final.json", "unitName": "期末综合模拟卷", "themes": ["拼音分类", "字词句子", "课内知识", "阅读", "看图写话"] },
+    { "id": "english-g1s1-u1", "file": "data/english-g1s1-u1.json", "unitName": "Unit 1 Greetings", "themes": ["问候语", "情境运用", "口语任务"], "extras": ["listeningScripts A/B 各5句"] },
+    { "id": "english-g1s1-u2", "file": "data/english-g1s1-u2.json", "unitName": "Unit 2 New friends", "themes": ["打招呼", "介绍名字", "欢迎", "初次见面"], "extras": ["listeningScripts A 4句 / B 5句"] },
+    { "id": "english-g1s1-u3", "file": "data/english-g1s1-u3.json", "unitName": "Unit 3 My schoolbag", "themes": ["学习用品", "Pack my ...", "Don't worry. Use my ..."], "extras": ["listeningScripts A 4句 / B 6句"] },
+    { "id": "english-g1s1-u4", "file": "data/english-g1s1-u4.json", "unitName": "Unit 4 My classroom", "themes": ["教室物品", "值日表达", "Who's on duty?"], "extras": ["listeningScripts A/B 各4句"] },
+    { "id": "english-g1s1-u5", "file": "data/english-g1s1-u5.json", "unitName": "Unit 5 Lovely faces", "themes": ["脸部词汇", "one/two", "I see ..."], "extras": ["listeningScripts A 4句 / B 5句"] },
+    { "id": "english-g1s1-u6", "file": "data/english-g1s1-u6.json", "unitName": "Unit 6 My family", "themes": ["家庭成员", "This is my ...", "I love my family."], "extras": ["listeningScripts A/B 各4句"] }
   ]
 }

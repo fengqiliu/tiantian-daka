@@ -4,6 +4,7 @@ const T = require('./tasks');
 const B = require('./badges');
 const AR = require('./arithmetic');
 const GOALS = require('./goals');
+const QB = require('./quiz-bank');
 
 const SUBJECT_NAME = { math: '数学', chinese: '语文', english: '英语' };
 const STUBBORN_MIN = 3; // 错满 3 次算"反复错"
@@ -94,7 +95,7 @@ function _mustRates(records, grade, monday, span) {
   return Object.values(agg).map(a => ({ ...a, rate: Math.round((a.done / a.appeared) * 100) }));
 }
 
-// 反复错的题型：口算按级别、小卷按"科目第 N 单元"归类，返回题数最多的一类 { name, count } 或 null
+// 反复错的题型：口算按级别、小卷按"科目第 N 单元 / 期末"归类，返回题数最多的一类 { name, count } 或 null
 function stubbornGroup(mathWrong, quizWrong) {
   const groups = {};
   (mathWrong || []).filter(w => (w.wrongCount || 0) >= STUBBORN_MIN).forEach(w => {
@@ -103,7 +104,7 @@ function stubbornGroup(mathWrong, quizWrong) {
   });
   (quizWrong || []).filter(w => (w.wrongCount || 0) >= STUBBORN_MIN).forEach(w => {
     const q = w.question || {};
-    const name = (SUBJECT_NAME[w.subject] || w.subject) + (q.unit ? '第' + q.unit + '单元' : '');
+    const name = (SUBJECT_NAME[w.subject] || w.subject) + (q.unit ? QB.unitLabel(q.unit) : '');
     groups[name] = (groups[name] || 0) + 1;
   });
   const best = Object.keys(groups).sort((a, b) => groups[b] - groups[a])[0];

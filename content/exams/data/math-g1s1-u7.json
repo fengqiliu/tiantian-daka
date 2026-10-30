@@ -1,0 +1,176 @@
+{
+  "subject": "math",
+  "subjectName": "数学",
+  "textbook": "沪教版（2024修订）",
+  "grade": 1,
+  "semester": "上",
+  "id": "math-g1s1-u7",
+  "unit": 7,
+  "unitName": "复习与整理（第一至第六单元综合）",
+  "skills": [
+    "10以内加减、20以内不进位/不退位及进位加法",
+    "0-20各数的读写、组成、数序与比较",
+    "认识正方体、长方体、圆柱、球与左右位置",
+    "凑十法与未知数",
+    "看图列式",
+    "\"多几、还剩、又来了\"类应用题"
+  ],
+  "pdf": "../pdf/2026上海一年级数学上册第七单元复习综合测试卷_沪教版2024.pdf",
+  "papers": [
+    {
+      "paper": "A",
+      "level": "基础",
+      "durationMin": 40,
+      "totalScore": 100,
+      "sections": [
+        {
+          "no": 1,
+          "type": "arithmetic",
+          "title": "直接写得数",
+          "score": 20,
+          "answers": "见 drills.arithmeticA。"
+        },
+        {
+          "no": 2,
+          "type": "part-whole",
+          "title": "数一数，填一填",
+          "score": 24,
+          "answers": "4；10；2；1、6；12、14；13、15；17、20；10。"
+        },
+        {
+          "no": 3,
+          "type": "compare",
+          "title": "在○里填\">\"\"<\"或\"=\"",
+          "score": 12,
+          "answers": "8>6；10=10；15>12；9+4=13；18-5>12；7+2<10。"
+        },
+        {
+          "no": 4,
+          "type": "shape-position",
+          "title": "认识图形和位置",
+          "score": 12,
+          "answers": "A，B，C，D，B，右。"
+        },
+        {
+          "no": 5,
+          "type": "equation-from-picture",
+          "title": "看图列式",
+          "score": 12,
+          "answers": "6+3=9；10-4=6；9+5=14。"
+        },
+        {
+          "no": 6,
+          "type": "word-problem",
+          "title": "解决问题",
+          "score": 20,
+          "answers": "1. 12+5=17（本）；2. 18-6=12（支）；3. 7+3+2=12（个）；4. 10-3-2=5（块）。"
+        }
+      ]
+    },
+    {
+      "paper": "B",
+      "level": "提高",
+      "durationMin": 45,
+      "totalScore": 100,
+      "sections": [
+        {
+          "no": 1,
+          "type": "arithmetic",
+          "title": "计算小能手",
+          "score": 20,
+          "answers": "见 drills.arithmeticB。"
+        },
+        {
+          "no": 2,
+          "type": "ordinal",
+          "title": "数的规律和组成",
+          "score": 20,
+          "answers": "6，1，6；15；17，19；12，15，18，20。"
+        },
+        {
+          "no": 3,
+          "type": "missing-number",
+          "title": "动脑填一填（凑十与未知数）",
+          "score": 20,
+          "answers": "5；10；5；15；8。"
+        },
+        {
+          "no": 4,
+          "type": "shape-position",
+          "title": "图形和位置",
+          "score": 12,
+          "answers": "B、C；D；正方体；左；C；A。"
+        },
+        {
+          "no": 5,
+          "type": "equation-from-picture",
+          "title": "看图列式",
+          "score": 12,
+          "answers": "7+4=11；15-3=12；8+5=13。"
+        },
+        {
+          "no": 6,
+          "type": "word-problem",
+          "title": "解决问题",
+          "score": 16,
+          "answers": "1. 13+4=17（本）；2. 20-10=10（支）；3. 8+2=10（个）；4. 9-6=3（张）。"
+        }
+      ]
+    }
+  ],
+  "drills": {
+    "arithmeticA": {
+      "problems": [
+        "7+2",
+        "10-6",
+        "8+5",
+        "16-4",
+        "13+2",
+        "9-3",
+        "6+4",
+        "14+5",
+        "18-6",
+        "9+7"
+      ],
+      "answers": [
+        9,
+        4,
+        13,
+        12,
+        15,
+        6,
+        10,
+        19,
+        12,
+        16
+      ]
+    },
+    "arithmeticB": {
+      "problems": [
+        "8+7",
+        "17-5",
+        "9+6",
+        "13+6",
+        "10-7",
+        "6+5",
+        "18-4",
+        "7+8",
+        "15-5",
+        "4+6-3"
+      ],
+      "answers": [
+        15,
+        12,
+        15,
+        19,
+        3,
+        11,
+        14,
+        15,
+        10,
+        7
+      ]
+    }
+  },
+  "usageNotes": "复习范围第一至第六单元，20以内退位减法不在考查范围。90-100分可挑战B卷；80-89分重点复习失分题型；70-79分按\"数与数序→图形→计算→应用题\"分块巩固；70分以下回到对应单元练习后复测。比较\"多几\"要用较大的数减较小的数。"
+}
