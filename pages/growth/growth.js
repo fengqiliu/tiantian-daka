@@ -6,6 +6,7 @@ const D = require('../../utils/date');
 const CTX = require('../../utils/context');
 const QZ = require('../../utils/quiz');
 const SHOP = require('../../utils/shop');
+const TERM = require('../../utils/term');
 
 Page({
   data: {
@@ -76,6 +77,7 @@ Page({
       wall: B.badgeWall(records, { grade }, s.badges),
       quizHint,
       wrongHint,
+      termHint: TERM.periodAt(D.todayStr()).label + ' · 打卡、累计与勋章总结',
       role: s.role,
       shopHint,
     });
@@ -83,6 +85,10 @@ Page({
 
   goQuiz() {
     wx.navigateTo({ url: '/pages/quiz/quiz' });
+  },
+
+  goTerm() {
+    wx.navigateTo({ url: '/pages/term/term' });
   },
 
   goWrongBook() {

@@ -44,6 +44,14 @@
     <view class="quiz-go">查看 ›</view>
   </view>
 
+  <view class="card row quiz-entry" bindtap="goTerm">
+    <view class="flex1">
+      <view class="h2">📖 学期成长报告</view>
+      <view class="muted">{{termHint}}</view>
+    </view>
+    <view class="quiz-go">查看 ›</view>
+  </view>
+
   <view class="card row quiz-entry" wx:if="{{role === 'child'}}" bindtap="goShop">
     <view class="flex1">
       <view class="h2">🎁 奖励小铺</view>

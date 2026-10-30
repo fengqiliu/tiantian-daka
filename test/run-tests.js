@@ -1946,6 +1946,82 @@ t('cancel 清除；isTimerTask 只认时长类任务', () => {
   assert(!TM.isTimerTask('habit_sleep'), '完成类不计时');
 });
 
+console.log('— 学期成长报告 —');
+const TERM = require('../utils/term');
+t('periodAt：由校历推出学期与假期；暑假后是第一学期、寒假后是第二学期', () => {
+  const a = TERM.periodAt('2026-09-15');
+  assert.deepStrictEqual([a.kind, a.label, a.start, a.end], ['term', '2026 学年第一学期', '2026-09-01', '2027-01-22']);
+  const b = TERM.periodAt('2026-03-10');
+  assert.deepStrictEqual([b.kind, b.label, b.start, b.end], ['term', '2025 学年第二学期', '2026-02-28', '2026-06-30']);
+  const c = TERM.periodAt('2026-07-15');
+  assert.deepStrictEqual([c.kind, c.label, c.start, c.end], ['holiday', '2026 暑假', '2026-07-01', '2026-08-31']);
+  const w = TERM.periodAt('2027-02-01');
+  assert.deepStrictEqual([w.kind, w.label], ['holiday', '2027 寒假']);
+  assert.strictEqual(a.approx, false);
+});
+t('校历之外按惯例推算并标记 approx', () => {
+  const before = TERM.periodAt('2025-10-01');
+  assert.deepStrictEqual([before.label, before.start, before.end, before.approx], ['2025 学年第一学期', '2025-09-01', '2026-02-01', true]);
+  const after = TERM.periodAt('2027-10-01');
+  assert.deepStrictEqual([after.label, after.start, after.approx], ['2027 学年第一学期', '2027-09-01', true]);
+  assert(after.end > '2027-12-31', '学期末取次年 1 月底');
+});
+t('prev / next：在学期与假期之间前后翻', () => {
+  const t1 = TERM.periodAt('2026-09-15');
+  assert.strictEqual(TERM.prev(t1).label, '2026 暑假');
+  assert.strictEqual(TERM.prev(TERM.prev(t1)).label, '2025 学年第二学期');
+  assert.strictEqual(TERM.next(t1).label, '2027 寒假');
+  assert.strictEqual(TERM.next(TERM.prev(t1)).label, t1.label);
+});
+t('termSummary：只统计本学期（进行中则到今天），累计量/连击/勋章/周目标/口算前后对比', () => {
+  reset();
+  const P0 = TERM.periodAt('2026-09-15'); // 2026-09-01 ~ 2027-01-22
+  // 学期内连续 3 天全部必做 + 每天跳绳 100、阅读 20 分；学期外一天不算
+  ['2026-09-01', '2026-09-02', '2026-09-03', '2026-09-10'].forEach(d => {
+    seedDay(d, 1, mustIds(d)(1));
+    C.upsertRecord(d, 'chinese_reading_ext', 30, 2, '');
+  });
+  seedDay('2026-08-20', 1, mustIds('2026-08-20')(1)); // 暑假，不属于本学期
+  const ts = d => new Date(d + 'T10:00:00').getTime();
+  const data = {
+    records: store.getRecords(), grade: 1,
+    badges: [{ id: 'streak_7', earnedAt: ts('2026-09-20') }, { id: 'first_checkin', earnedAt: ts('2026-08-20') }],
+    goals: { '2026-08-31': { id: 'g', achievedAt: ts('2026-09-05') }, '2026-09-07': { id: 'h', achievedAt: 0 }, '2026-08-17': { id: 'old', achievedAt: ts('2026-08-20') } },
+    drillSessions: [
+      { date: '2026-09-02', total: 10, correct: 6, at: ts('2026-09-02') },
+      { date: '2026-09-03', total: 10, correct: 7, at: ts('2026-09-03') },
+      { date: '2026-10-20', total: 10, correct: 9, at: ts('2026-10-20') },
+      { date: '2026-10-21', total: 10, correct: 10, at: ts('2026-10-21') },
+    ],
+    quizHistory: [{ subject: 'math', total: 10, correct: 9, label: '优秀', at: ts('2026-09-30') }],
+    reviewLog: [{ date: '2026-09-05', total: 5, correct: 5 }, { date: '2026-08-01', total: 5, correct: 5 }],
+  };
+  const s = TERM.termSummary(data, P0, '2026-10-31');
+  assert.strictEqual(s.label, '2026 学年第一学期');
+  assert.strictEqual(s.inProgress, true);
+  assert.strictEqual(s.to, '2026-10-31', '进行中只统计到今天');
+  assert.deepStrictEqual([s.checkinDays, s.achievedDays, s.bestStreak], [4, 4, 3]);
+  assert.strictEqual(s.totals.rope, 400);
+  assert.strictEqual(s.totals.readingMinutes, 120);
+  assert.strictEqual(s.totals.calc, 80);
+  assert.deepStrictEqual(s.badges.map(b => b.id), ['streak_7']);
+  assert.strictEqual(s.goalsAchieved, 1, '只算本学期内的周目标');
+  assert.deepStrictEqual(s.drill, { count: 4, firstAccuracy: 65, lastAccuracy: 95 });
+  assert.deepStrictEqual([s.quizCount, s.reviewDays], [1, 1]);
+  assert(s.stars > 0);
+  assert(s.highlights.length > 0 && s.highlights.length <= 4);
+  assert(s.highlights.some(h => h.includes('口算正确率')), JSON.stringify(s.highlights));
+});
+t('termSummary：已结束的学期统计到学期末；没有数据也不报错', () => {
+  reset();
+  const P1 = TERM.periodAt('2026-03-10');
+  const s = TERM.termSummary({ records: [], grade: 1 }, P1, '2026-10-31');
+  assert.deepStrictEqual([s.inProgress, s.to, s.checkinDays, s.bestStreak, s.drill.count], [false, '2026-06-30', 0, 0, 0]);
+  assert.deepStrictEqual(s.highlights, []);
+  const future = TERM.termSummary({ records: [], grade: 1 }, TERM.periodAt('2027-03-10'), '2026-10-31');
+  assert.strictEqual(future.notStarted, true, '还没开始的学期');
+});
+
 chain.then(() => {
   console.log('\n全部通过：' + passed + ' 项 ✓');
 }).catch(e => {

@@ -1,6 +1,6 @@
 # 设计规范与信息架构
 
-> 对应版本 v0.22.0。页面清单以 `app.json` 为准；数据作用域见 [data-model.md](data-model.md)。
+> 对应版本 v0.23.0。页面清单以 `app.json` 为准；数据作用域见 [data-model.md](data-model.md)。
 
 ## 1. 信息架构
 
@@ -22,7 +22,7 @@
 ├─ calendar 日历【Tab 2】—— 月历热力图 + 单日明细（补卡标「补」）
 │  └─ 孩子端点昨天/前天 → 补打卡区 → task-detail（补卡模式，家长确认）
 ├─ growth 成长【Tab 3】—— 称号 / 连击 / 周分布 / 勋章墙
-│  └─ 入口：每周一卷 → quiz · 错题本 → wrong-book（→ review）· 奖励小铺 → shop（仅孩子端）
+│  └─ 入口：每周一卷 → quiz · 错题本 → wrong-book（→ review）· 学期成长报告 → term · 奖励小铺 → shop（仅孩子端）
 └─ profile 我的【Tab 4】—— 资料 / 家人绑定 / 提醒订阅 / 数据（导出 · 导入 · 一键清空）
    └─ 家长设置（在孩子手机上）：任务管理 → tasks-manage · 家长报告 → report · 奖品管理 → shop?manage=1
 ```
@@ -46,7 +46,7 @@ graph LR
   D -.-> H[profile 我的]
 ```
 
-家长端主路径：`onboarding（我是家长）→ index 输入邀请码绑定 → 只读查看 index / calendar / growth / wrong-book / report → cheer 留言`。家长端所有页面从 `utils/context.js` 的 `scope()` 读孩子数据缓存；打卡、计时、补卡、复习、兑换等写操作在家长端不出现。
+家长端主路径：`onboarding（我是家长）→ index 输入邀请码绑定 → 只读查看 index / calendar / growth / wrong-book / report / term → cheer 留言`。家长端所有页面从 `utils/context.js` 的 `scope()` 读孩子数据缓存；打卡、计时、补卡、复习、兑换等写操作在家长端不出现。
 
 ## 2. 视觉规范
 
@@ -99,6 +99,7 @@ graph LR
 | 数字键盘 | math-drill / review | 3×4 大按键，⌫ 删除、✓ 提交；答错时题面变红并显示正确答案 |
 | 选项按钮 | quiz / review | 单选即判；多选点选后「提交本题」；判后绿=正确、红=选错 |
 | 月历格 | calendar | 绿底圆=达成、黄底圆=有打卡、空心=未打卡、描边=今天/选中 |
+| 学期报告 | term | 顶部 ‹ › 在学期与寒暑假之间翻（最远到当前）；四格 KPI + 成长亮点 + 累计六宫格 + 练习 + 勋章 |
 | 补打卡区 | calendar（孩子） | 昨天/前天且有未打卡任务时出现：剩余额度 + 任务列表；额度用完时置灰并说明 |
 | 勋章格 | growth | 未获得灰度+❓制造收集欲，已获得亮起+日期 |
 | 跟读卡片 | read-aloud | 三态：空闲(🎙️录音)→录音中(⏹停止+计时脉冲)→已录(▶️播放/🔁重录/时长)；录音仅存本机 |

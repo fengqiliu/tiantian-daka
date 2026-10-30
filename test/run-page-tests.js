@@ -379,6 +379,39 @@ t('绑定 → 家长看孩子进度/日历/错题本 → 留言 → 孩子表情
     });
 });
 
+console.log('— 学期成长报告 —');
+t('成长页入口 → 学期报告：当前学期、可往前翻、不能翻到未来；家长端读孩子数据', () => {
+  child(2);
+  C.upsertRecord(today(), 'pe_rope', 100, 2, '');
+  const g = load('pages/growth/growth');
+  g.onShow();
+  assert(g.data.termHint.indexOf(require('../utils/term').periodAt(today()).label) === 0);
+  g.goTerm();
+  assert.strictEqual(ui.navs.pop(), '/pages/term/term');
+  const p = load('pages/term/term');
+  p.onLoad();
+  assert.strictEqual(p.data.s.inProgress, true);
+  assert.strictEqual(p.data.s.checkinDays, 1);
+  assert.strictEqual(p.data.s.totals.rope, 100);
+  assert.strictEqual(p.data.canNext, false);
+  const label = p.data.s.label;
+  p.onNext();
+  assert.strictEqual(p.data.s.label, label, '不能翻到未来');
+  p.onPrev();
+  assert.notStrictEqual(p.data.s.label, label);
+  assert.strictEqual(p.data.canNext, true);
+  p.onNext();
+  assert.strictEqual(p.data.s.label, label);
+  // 家长端：读孩子缓存
+  const rec = store.getRecords()[0];
+  store.clearAll();
+  store.saveProfile({ role: 'parent', onboarded: true });
+  store.saveChildData({ nickname: '小豆', grade: 2 }, [rec], [], null, null);
+  const pp = load('pages/term/term');
+  pp.onLoad();
+  assert.deepStrictEqual([pp.data.role, pp.data.s.checkinDays], ['parent', 1]);
+});
+
 console.log('— 报告 —');
 t('周报：默认上周，可翻到本周、不能翻到未来', () => {
   child(2);

@@ -1,0 +1,67 @@
+<view class="tm safe-bottom">
+  <view class="card tm-head row">
+    <view class="tm-nav" bindtap="onPrev">‹</view>
+    <view class="flex1 tm-title">
+      <view class="h1">{{s.emoji}} {{s.label}}</view>
+      <view class="muted">{{s.start}} ~ {{s.end}}{{s.approx ? '（按惯例推算）' : ''}}{{s.inProgress ? ' · 进行中，统计到今天' : ''}}</view>
+    </view>
+    <view class="tm-nav {{canNext ? '' : 'off'}}" bindtap="onNext">›</view>
+  </view>
+
+  <view class="card" wx:if="{{s.notStarted}}">
+    <view class="muted">这个学期还没开始</view>
+  </view>
+
+  <block wx:else>
+    <view class="card row">
+      <view class="tm-kpi flex1">
+        <view class="tm-num">{{s.checkinDays}}</view>
+        <view class="muted">打卡天数</view>
+      </view>
+      <view class="tm-kpi flex1">
+        <view class="tm-num">✅ {{s.achievedDays}}</view>
+        <view class="muted">达成天数</view>
+      </view>
+      <view class="tm-kpi flex1">
+        <view class="tm-num">🔥 {{s.bestStreak}}</view>
+        <view class="muted">最长连续</view>
+      </view>
+      <view class="tm-kpi flex1">
+        <view class="tm-num">⭐ {{s.stars}}</view>
+        <view class="muted">任务星星</view>
+      </view>
+    </view>
+
+    <view class="card" wx:if="{{s.highlights.length}}">
+      <view class="h2 tm-sec">🌟 这学期的成长</view>
+      <view class="tm-hl" wx:for="{{s.highlights}}" wx:key="*this">· {{item}}</view>
+    </view>
+
+    <view class="card">
+      <view class="h2 tm-sec">📊 累计</view>
+      <view class="tm-grid">
+        <view class="tm-cell"><view class="tm-cell-num">{{s.totals.rope}}</view><view class="muted">🪢 跳绳（个）</view></view>
+        <view class="tm-cell"><view class="tm-cell-num">{{readingHours}}</view><view class="muted">📚 课外阅读（小时）</view></view>
+        <view class="tm-cell"><view class="tm-cell-num">{{outdoorHours}}</view><view class="muted">🌳 户外（小时）</view></view>
+        <view class="tm-cell"><view class="tm-cell-num">{{s.totals.calc}}</view><view class="muted">🧮 口算（题）</view></view>
+        <view class="tm-cell"><view class="tm-cell-num">{{s.totals.poems}}</view><view class="muted">📜 古诗（首）</view></view>
+        <view class="tm-cell"><view class="tm-cell-num">{{s.goalsAchieved}}</view><view class="muted">🎯 周目标达成</view></view>
+      </view>
+    </view>
+
+    <view class="card">
+      <view class="h2 tm-sec">✏️ 练习</view>
+      <view class="tm-line">🧮 口算挑战 {{s.drill.count}} 次{{drillTrend}}</view>
+      <view class="tm-line">📝 每周一卷 {{s.quizCount}} 份 · 🧠 错题复习 {{s.reviewDays}} 天</view>
+    </view>
+
+    <view class="card" wx:if="{{s.badges.length}}">
+      <view class="h2 tm-sec">🏅 这学期获得的勋章</view>
+      <view class="tm-badges">
+        <view class="tm-badge" wx:for="{{s.badges}}" wx:key="id">{{item.emoji}} {{item.name}}</view>
+      </view>
+    </view>
+
+    <view class="muted tm-foot" wx:if="{{!s.checkinDays}}">这个时段还没有打卡记录</view>
+  </block>
+</view>

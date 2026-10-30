@@ -1,6 +1,6 @@
 # 数据模型
 
-> 对应版本 v0.22.0。本地存储在 `utils/store.js`（键名以 `KEYS` 为准），同步在 `utils/sync.js` ⇄ `cloudfunctions/sync`，家长端在 `cloudfunctions/family`。
+> 对应版本 v0.23.0。本地存储在 `utils/store.js`（键名以 `KEYS` 为准），同步在 `utils/sync.js` ⇄ `cloudfunctions/sync`，家长端在 `cloudfunctions/family`。
 
 ## 1. 本地存储
 
@@ -86,6 +86,8 @@
 | 累计聚合 | `aggregateSum(records, taskIds)`：勋章与周目标用 | `checkin.js` |
 | 复习队列 | 两本错题本中 `due ≤ 今天` 的题，先到期先复习 | `review.js` |
 | 周报 | 某周的打卡/达成天数、练习概况、周目标、亮点与需关注 | `report.weeklyDigest` |
+| 学期 / 假期划分 | 由 `calendar-config.HOLIDAYS` 推出：暑假后为第一学期、寒假后为第二学期；校历之外按惯例推算 | `term.periodAt` |
+| 学期报告 | 某学期/假期内的打卡、最长连续、累计量、勋章、周目标、口算正确率前后半对比 | `term.termSummary` |
 
 ## 2. 云开发（已编码，待开通环境）
 

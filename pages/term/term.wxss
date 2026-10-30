@@ -1,0 +1,16 @@
+.tm { padding-top: 24rpx; }
+.tm-head { align-items: center; }
+.tm-nav { font-size: 48rpx; color: #FF8A00; padding: 0 16rpx; font-weight: 700; }
+.tm-nav.off { opacity: 0.25; }
+.tm-title { text-align: center; }
+.tm-kpi { text-align: center; }
+.tm-num { font-size: 36rpx; font-weight: 700; color: #FF8A00; }
+.tm-sec { margin-bottom: 12rpx; }
+.tm-hl { font-size: 28rpx; line-height: 1.7; }
+.tm-grid { display: flex; flex-wrap: wrap; }
+.tm-cell { width: 33.33%; text-align: center; padding: 14rpx 0; }
+.tm-cell-num { font-size: 40rpx; font-weight: 700; color: #33302B; }
+.tm-line { font-size: 28rpx; line-height: 1.8; }
+.tm-badges { display: flex; flex-wrap: wrap; gap: 12rpx; }
+.tm-badge { background: #FFF1DC; border-radius: 999rpx; padding: 8rpx 20rpx; font-size: 26rpx; }
+.tm-foot { text-align: center; padding: 12rpx 0 24rpx; }
