@@ -1,7 +1,7 @@
 // 口算挑战：分级出题、判定与错题本（纯逻辑，随机源 rng 可注入以便测试）
 // 分级对齐沪教版（2024修订）一年级上册进度，并向上覆盖中高年级常用口算：
 // 5以内加减（U3 分与合）→ 10以内加减（U4）→ 10以内填空（U4 填一填）
-// → 20以内加减 → 表内乘除法（二上）→ 100以内加减（二下/三上）
+// → 20以内进位加 / 不退位减（U6，一上不学退位减）→ 20以内加减（一下）→ 表内乘除法（二上）→ 100以内加减（二下/三上）
 const store = require('./store');
 const D = require('./date');
 const REVIEW = require('./review');
@@ -17,11 +17,13 @@ const LEVELS = {
   sub5:      { name: '5以内减法',   gen: rng => genBinary(rng, 5, '-') },
   addsub10:  { name: '10以内加减',  gen: rng => genBinary(rng, 10, rng() < 0.5 ? '+' : '-') },
   missing10: { name: '10以内填空',  gen: rng => genMissing(rng, 10) },
+  add20carry: { name: '20以内进位加（凑十）', gen: genCarryAdd },
+  sub20nb:   { name: '20以内不退位减', gen: genNoBorrowSub },
   addsub20:  { name: '20以内加减',  gen: rng => genBinary(rng, 20, rng() < 0.5 ? '+' : '-') },
   mul99:     { name: '表内乘除法',  gen: genMul99 },
   addsub100: { name: '100以内加减', gen: rng => genBinary(rng, 100, rng() < 0.5 ? '+' : '-') },
 };
-const LEVEL_ORDER = ['add5', 'sub5', 'addsub10', 'missing10', 'addsub20', 'mul99', 'addsub100'];
+const LEVEL_ORDER = ['add5', 'sub5', 'addsub10', 'missing10', 'add20carry', 'sub20nb', 'addsub20', 'mul99', 'addsub100'];
 
 function genBinary(rng, max, op) {
   if (op === '+') {
@@ -60,6 +62,22 @@ function genMissing(rng, max) {
   const c = randInt(rng, 0, max - b);
   const ans = c + b;
   return { kind: 'missing', a: null, op: '-', b, c, answer: ans, id: `□-${b}=${c}` };
+}
+
+// 进位加：两个一位数，和在 11-18（如 9+6、8+5），对应第六单元"凑十法"
+function genCarryAdd(rng) {
+  const a = randInt(rng, 2, 9);
+  const b = randInt(rng, 11 - a, 9);
+  return { kind: 'result', a, op: '+', b, c: null, answer: a + b, id: `${a}+${b}=` };
+}
+
+// 不退位减：十几减几（减数不大于个位，如 18-6），或十几/20 减 10
+function genNoBorrowSub(rng) {
+  const a = randInt(rng, 11, 20);
+  const ones = a % 10;
+  const k = randInt(rng, 0, ones); // 0..ones-1 → 减一位数；ones → 减 10
+  const b = k < ones ? k + 1 : 10;
+  return { kind: 'result', a, op: '-', b, c: null, answer: a - b, id: `${a}-${b}=` };
 }
 
 function genMul99(rng) {
@@ -134,10 +152,16 @@ function buildSession(level, n, rng) {
   return shuffle(wrongItems.concat(fresh), rng);
 }
 
-// 按年级推荐级别
-function recommendByGrade(grade) {
+// 按年级推荐级别；一年级按月份跟上教学进度（date 为 YYYY-MM-DD，缺省今天）：
+// 上册 9-11 月 10以内加减 → 12-1 月学到第六单元进位加 → 下册（2-8 月）学过退位减后用 20以内加减
+function recommendByGrade(grade, date) {
   const g = Number(grade) || 1;
-  if (g <= 1) return 'addsub10';
+  if (g <= 1) {
+    const month = Number((date || D.todayStr()).slice(5, 7));
+    if (month >= 9 && month <= 11) return 'addsub10';
+    if (month === 12 || month === 1) return 'add20carry';
+    return 'addsub20';
+  }
   if (g === 2) return 'addsub20';
   return 'addsub100';
 }

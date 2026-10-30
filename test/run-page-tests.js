@@ -218,6 +218,36 @@ t('每周一卷：单元筛选显示「期末」，选中后只出期末卷的�
   assert(p.data.cards.length > 0);
   p.data.cards.forEach(c => assert.strictEqual(c.unit, 90, c.id));
 });
+t('期末冲刺：20 题覆盖全册各单元，做完按单元给出掌握情况', () => {
+  child(1);
+  const p = load('pages/quiz/quiz');
+  p.onLoad();
+  p.onPick(tap({ key: 'english' }));
+  p.onSprint();
+  assert.strictEqual(p.data.mode, 'sprint');
+  assert.strictEqual(p.data.total, 20);
+  assert.deepStrictEqual([...new Set(p.data.cards.map(c => c.unit))].sort(), [1, 2, 3, 4, 5, 6]);
+  let first = true;
+  while (p.data.phase === 'play') {
+    const c = p.data.cards[p.data.idx];
+    if (c.type === 'multi') {
+      c.answerSet.forEach(i => p.onOption(tap({ index: i })));
+      p.onMultiSubmit();
+    } else {
+      // 第一题故意答错，其余全对
+      p.onOption(tap({ index: first ? (c.answerIndex + 1) % c.options.length : c.answerIndex }));
+    }
+    first = false;
+  }
+  assert.strictEqual(p.data.phase, 'done');
+  const rows = p.data.breakdown;
+  assert.strictEqual(rows.length, 6);
+  assert.strictEqual(rows.reduce((s, r) => s + r.total, 0), 20);
+  assert.strictEqual(rows.reduce((s, r) => s + r.correct, 0), 19);
+  assert.strictEqual(QZ.getHistory()[0].sprint, true, '历史记录标记为冲刺卷');
+  p.onAgain();
+  assert.deepStrictEqual([p.data.mode, p.data.phase, p.data.total], ['sprint', 'play', 20], '再来一组仍是冲刺卷');
+});
 t('错题复习：答错进本 → 到期出现在复习 → 答对升级', () => {
   child(1);
   const AR = require('../utils/arithmetic');
@@ -538,6 +568,35 @@ t('跟读教室：录一句 → 保存录音 → 回放 → 完成打卡', () =>
   assert(rec, '完成跟读打卡');
   assert(/跟读教室 1\//.test(rec.note));
   assert(ui.navs.includes('back'));
+});
+t('跟读教室：切到 Unit 3 录音打卡，下次进来默认还是 Unit 3', () => {
+  child(1);
+  let p = load('pages/read-aloud/read-aloud');
+  p.onLoad();
+  assert.strictEqual(p.data.selectedUnit, 1);
+  assert.strictEqual(p.data.units.length, 6);
+  p.onPickUnit(tap({ unit: 3 }));
+  assert.strictEqual(p.data.title, 'Unit 3 My schoolbag');
+  assert(p.data.cards.every(c => c.id.startsWith('u3-')));
+  p.onRecord(tap({ id: p.data.cards[0].id }));
+  p.onPickUnit(tap({ unit: 4 }));
+  assert.strictEqual(ui.toasts.pop(), '先完成当前录音哦', '录音中不能切单元');
+  p.onStop();
+  ui.recorder.fireStop({ tempFilePath: 'tmp://u3.mp3', duration: 2000 });
+  p.onFinish();
+  assert(/跟读教室 1\/10 句 · Unit 3/.test(store.getRecords().find(r => r.taskId === 'english_listen').note));
+  p = load('pages/read-aloud/read-aloud');
+  p.onLoad();
+  assert.strictEqual(p.data.selectedUnit, 3, '接着上次的单元');
+});
+t('口算挑战：级别里有进位加和不退位减，一年级按学期进度推荐', () => {
+  child(1);
+  const AR = require('../utils/arithmetic');
+  const p = load('pages/math-drill/math-drill');
+  p.onLoad();
+  const keys = p.data.levels.map(l => l.key);
+  assert(keys.includes('add20carry') && keys.includes('sub20nb'));
+  assert.strictEqual(p.data.level, AR.recommendByGrade(1, today()));
 });
 t('跟读教室：麦克风权限被拒时引导去设置', () => {
   child(1);

@@ -31,7 +31,7 @@ Page({
     const inList = T.generateDailyTasks(this.grade, this.date).find(t => t.id === 'math_calc');
     this.target = inList ? inList.target : T.buildTask('math_calc', this.grade, true).target;
     this.setData({ levels: AR.LEVEL_ORDER.map(k => ({ key: k, name: AR.LEVELS[k].name })) });
-    this.startSession(AR.recommendByGrade(this.grade));
+    this.startSession(AR.recommendByGrade(this.grade, this.date));
   },
 
   onUnload() {

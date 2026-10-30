@@ -446,6 +446,31 @@ t('内容库完整：Unit 1 句子/情境 id 唯一且非空', () => {
   u.sentences.forEach(s => assert(s.text && s.tip));
   u.scenes.forEach(s => assert(s.when && s.say));
 });
+t('内容库扩到 Unit 1-6：每单元对应知识库试卷，全库 id 唯一', () => {
+  const fs = require('fs');
+  const path = require('path');
+  assert.deepStrictEqual(EC.units.map(u => u.unit), [1, 2, 3, 4, 5, 6]);
+  const all = [];
+  EC.units.forEach(u => {
+    assert(fs.existsSync(path.join(__dirname, '../content/exams/data', u.id + '.json')), '知识库缺 ' + u.id);
+    assert(u.sentences.length >= 5 && u.scenes.length >= 4, u.title + ' 内容量应足够');
+    u.sentences.forEach(s => assert(s.text && s.tip, s.id));
+    u.scenes.forEach(s => assert(s.when && s.say, s.id));
+    [...u.sentences, ...u.scenes].forEach(x => { assert(x.id.startsWith('u' + u.unit + '-'), x.id); all.push(x.id); });
+  });
+  assert.strictEqual(new Set(all).size, all.length, '全库 id 不应重复');
+});
+t('跟读选单元：指定的单元优先，否则接着上次录过的单元，都没有则 Unit 1', () => {
+  assert.strictEqual(RA.pickUnit(EC.units, [], 3).unit, 3);
+  assert.strictEqual(RA.pickUnit(EC.units, [], 99).unit, 1, '无效单元回落');
+  assert.strictEqual(RA.pickUnit(EC.units, []).unit, 1);
+  const readings = [
+    { sentenceId: 'u2-s1', createdAt: 100 },
+    { sentenceId: 'u4-sc2', createdAt: 300 },
+    { sentenceId: 'u1-s1', createdAt: 200 },
+  ];
+  assert.strictEqual(RA.pickUnit(EC.units, readings).unit, 4, '最近一次录的是 Unit 4');
+});
 t('录音状态机：只允许合法转移', () => {
   assert(RA.canRecord('idle') && RA.canRecord('recorded'), '空闲/已录可开始录音');
   assert(!RA.canRecord('recording'), '录音中不能重复开始');
@@ -492,11 +517,37 @@ function seededRng(seed) {
   };
 }
 
-t('级别表完整，按年级推荐合理', () => {
+t('级别表完整，按年级与学期进度推荐', () => {
   AR.LEVEL_ORDER.forEach(k => assert(AR.LEVELS[k] && AR.LEVELS[k].name));
-  assert.strictEqual(AR.recommendByGrade(1), 'addsub10');
-  assert.strictEqual(AR.recommendByGrade(2), 'addsub20');
-  assert.strictEqual(AR.recommendByGrade(5), 'addsub100');
+  assert.deepStrictEqual(AR.LEVEL_ORDER.slice(3, 7), ['missing10', 'add20carry', 'sub20nb', 'addsub20']);
+  // 一年级：上册 9-11 月 10以内；12-1 月学到第六单元进位加；下册学退位减后用 20以内加减
+  assert.strictEqual(AR.recommendByGrade(1, '2026-09-10'), 'addsub10');
+  assert.strictEqual(AR.recommendByGrade(1, '2026-11-30'), 'addsub10');
+  assert.strictEqual(AR.recommendByGrade(1, '2026-12-01'), 'add20carry');
+  assert.strictEqual(AR.recommendByGrade(1, '2027-01-15'), 'add20carry');
+  assert.strictEqual(AR.recommendByGrade(1, '2027-03-01'), 'addsub20');
+  assert.strictEqual(AR.recommendByGrade(2, '2026-10-01'), 'addsub20');
+  assert.strictEqual(AR.recommendByGrade(5, '2026-10-01'), 'addsub100');
+});
+t('20以内进位加：两个一位数、个位相加满十，答案正确', () => {
+  const ps = AR.generate('add20carry', 30, seededRng(3));
+  assert(ps.length >= 25, '题量够（不重复的进位加共 36 道）');
+  ps.forEach(p => {
+    assert.strictEqual(p.op, '+');
+    assert(p.a >= 2 && p.a <= 9 && p.b >= 2 && p.b <= 9, p.id);
+    assert(p.a + p.b >= 11 && p.a + p.b <= 18, '必须进位: ' + p.id);
+    assert.strictEqual(p.answer, p.a + p.b);
+  });
+});
+t('20以内不退位减：十几减几不退位，或整十减 10，答案正确', () => {
+  const ps = AR.generate('sub20nb', 40, seededRng(5));
+  assert(ps.length >= 30);
+  ps.forEach(p => {
+    assert.strictEqual(p.op, '-');
+    assert(p.a >= 11 && p.a <= 20, p.id);
+    assert(p.b === 10 || (p.b >= 1 && p.b <= p.a % 10), '不能退位: ' + p.id);
+    assert.strictEqual(p.answer, p.a - p.b);
+  });
 });
 t('10以内加减：范围合法、答案正确、判定无误', () => {
   const rng = seededRng(42);
@@ -728,6 +779,32 @@ t('题库与知识库对齐：每道题的单元都有试卷数据，index.json 
   assert.deepStrictEqual(units('math'), [2, 3, 4, 5, 6, 7, 90]);
   assert.deepStrictEqual(units('chinese'), [1, 2, 3, 4, 5, 6, 7, 8, 90]);
   assert.deepStrictEqual(units('english'), [1, 2, 3, 4, 5, 6]);
+});
+t('期末冲刺：覆盖全册每个单元，错题多的单元多出题', () => {
+  reset();
+  const units = [...new Set(QZ.poolFor('math').map(q => q.unit))];
+  let s = QZ.buildSprint('math', 20, seededRng(8));
+  assert.strictEqual(s.total, 20);
+  units.forEach(u => assert(s.cards.some(c => c.unit === u), '缺少单元 ' + u));
+  assert.strictEqual(new Set(s.cards.map(c => c.id)).size, 20, '不重复');
+  const even = s.cards.filter(c => c.unit === 5).length;
+  // 第五单元错了 4 题 → 冲刺卷里第五单元的题应更多，且错题优先出现
+  const wrongQs = QZ.poolFor('math').filter(q => q.unit === 5).slice(0, 4);
+  wrongQs.forEach(q => QZ.markResult(q, false, '2026-12-01'));
+  s = QZ.buildSprint('math', 20, seededRng(8));
+  const weighted = s.cards.filter(c => c.unit === 5).length;
+  assert(weighted > even, '第五单元题数应增加：' + even + ' → ' + weighted);
+  wrongQs.forEach(q => assert(s.cards.some(c => c.id === q.id), '错题应出现: ' + q.id));
+  units.forEach(u => assert(s.cards.some(c => c.unit === u), '加权后仍覆盖单元 ' + u));
+});
+t('期末冲刺分单元结果：按单元汇总，正确率 ≥80% 为掌握', () => {
+  const rows = QZ.unitBreakdown([
+    { unit: 90, ok: true }, { unit: 2, ok: true }, { unit: 2, ok: false },
+    { unit: 5, ok: true }, { unit: 5, ok: true }, { unit: 5, ok: true }, { unit: 5, ok: true }, { unit: 5, ok: false },
+  ]);
+  assert.deepStrictEqual(rows.map(r => [r.label, r.correct, r.total, r.mastered]), [
+    ['第2单元', 1, 2, false], ['第5单元', 4, 5, true], ['期末', 1, 1, true],
+  ]);
 });
 t('多选题实例化与判分：乱序映射正确，集合精确匹配', () => {
   const q = QBANK.bank.find(x => x.type === 'multi');

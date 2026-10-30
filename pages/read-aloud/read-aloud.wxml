@@ -4,6 +4,10 @@
     <view class="muted">{{title}} · 已录 {{recordedCount}}/{{total}} 句 · 录音仅保存在本机</view>
   </view>
 
+  <view class="ra-units">
+    <view wx:for="{{units}}" wx:key="value" class="ra-unit {{selectedUnit === item.value ? 'on' : ''}}" data-unit="{{item.value}}" bindtap="onPickUnit">{{item.label}}</view>
+  </view>
+
   <view class="card ra-card" wx:for="{{cards}}" wx:key="id" wx:for-item="card">
     <view class="ra-text">{{card.text}}</view>
     <view class="muted">{{card.tip}}</view>

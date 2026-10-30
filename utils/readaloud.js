@@ -46,6 +46,16 @@ function completion(cards, readings) {
   };
 }
 
+// 选单元：指定的单元优先；否则接着最近一次录音所在的单元（句子 id 形如 u3-s1）；都没有则第一个单元
+function pickUnit(units, readings, requested) {
+  const byNo = n => units.find(u => u.unit === Number(n));
+  if (requested !== undefined && byNo(requested)) return byNo(requested);
+  const latest = (readings || []).slice().sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
+    .map(r => /^u(\d+)-/.exec(r.sentenceId || ''))
+    .find(m => m && byNo(m[1]));
+  return latest ? byNo(latest[1]) : units[0];
+}
+
 // 清理 cutoff 之前的跟读记录（音频文件由页面层删除），防止本地存储无限累积
 function pruneReadings(cutoffDate) {
   const readings = store.getReadings();
@@ -55,4 +65,4 @@ function pruneReadings(cutoffDate) {
   return { removed, kept: keep.length };
 }
 
-module.exports = { STATE, MIN_SEC, MAX_SEC, PRUNE_DAYS, canRecord, canStop, canPlay, clampDuration, recordId, saveReading, getDayReadings, completion, pruneReadings };
+module.exports = { STATE, MIN_SEC, MAX_SEC, PRUNE_DAYS, canRecord, canStop, canPlay, clampDuration, recordId, saveReading, getDayReadings, completion, pickUnit, pruneReadings };

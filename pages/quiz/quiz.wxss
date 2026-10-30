@@ -50,3 +50,15 @@
 
 .qz-done { text-align: center; padding: 48rpx 32rpx; }
 .qz-done-emoji { font-size: 110rpx; margin-bottom: 8rpx; }
+
+.qz-breakdown { margin-top: 28rpx; text-align: left; }
+.qz-bd-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16rpx 8rpx;
+  border-bottom: 2rpx solid #F2EDE3;
+  font-size: 28rpx;
+}
+.qz-bd-tag { font-size: 24rpx; color: #E5484D; }
+.qz-bd-tag.ok { color: #2F9E44; }

@@ -4,6 +4,8 @@ const QZ = require('../../utils/quiz');
 const QB = require('../../utils/quiz-bank');
 const cloud = require('../../utils/cloud');
 
+const SPRINT_SIZE = 20;
+
 const SUBJECT_META = {
   math: { name: '数学', emoji: '🧮' },
   chinese: { name: '语文', emoji: '📕' },
@@ -26,6 +28,8 @@ Page({
     optStates: [], // 当前题每个选项的状态：'' | 'sel' | 'right' | 'wrong'
     footHint: '选出正确的一项',
     verdict: null,
+    mode: 'unit', // unit：按科目/单元组 10 题 | sprint：期末冲刺 20 题
+    breakdown: [], // 冲刺卷分单元结果
     historyLine: '',
     wrongCount: 0,
   },
@@ -74,8 +78,22 @@ Page({
 
   onStart() {
     const unit = this.data.selectedUnit || undefined;
-    const { cards, total } = QZ.buildQuiz(this.data.selected, 10, null, unit);
+    this._play('unit', QZ.buildQuiz(this.data.selected, 10, null, unit));
+  },
+
+  // 期末冲刺：全册每个单元都抽到，错得多的单元多抽
+  onSprint() {
+    this._play('sprint', QZ.buildSprint(this.data.selected, SPRINT_SIZE));
+  },
+
+  onAgain() {
+    if (this.data.mode === 'sprint') this.onSprint(); else this.onStart();
+  },
+
+  _play(mode, { cards, total }) {
+    this._results = [];
     this.setData({
+      mode, breakdown: [],
       phase: 'play', cards, total,
       idx: 0, answered: 0, correctCount: 0,
       feedback: '', optStates: [],
@@ -100,6 +118,7 @@ Page({
     // 单选：立即判分
     const ok = idx === card.answerIndex;
     QZ.markResult(card, ok);
+    this._results.push({ unit: card.unit, ok });
     const answered = this.data.answered + 1;
     const correctCount = this.data.correctCount + (ok ? 1 : 0);
     this._setSingleStates(card, idx, ok);
@@ -117,6 +136,7 @@ Page({
     }
     const ok = QZ.gradeMulti(card, picked);
     QZ.markResult(card, ok);
+    this._results.push({ unit: card.unit, ok });
     const answered = this.data.answered + 1;
     const correctCount = this.data.correctCount + (ok ? 1 : 0);
     const states = card.options.map((_, i) => {
@@ -157,12 +177,14 @@ Page({
     });
     if (answered >= this.data.total) {
       const v = QZ.verdict(this.data.total, this.data.correctCount);
+      const sprint = this.data.mode === 'sprint';
       QZ.saveHistory({
         subject: this.data.selected, total: this.data.total,
         correct: this.data.correctCount, label: v.label,
+        ...(sprint ? { sprint: true } : {}),
       });
       cloud.syncAll(); // 小卷历史上云，家长报告可见（节流 1 分钟，静默失败）
-      this.setData({ phase: 'done', verdict: v });
+      this.setData({ phase: 'done', verdict: v, breakdown: sprint ? QZ.unitBreakdown(this._results) : [] });
       this.refreshMeta();
     } else {
       const next = this.data.cards[this.data.idx + 1];

@@ -14,3 +14,9 @@ node_modules/
 
 # AI 助手本地配置（与项目代码无关）
 .commandcode/
+
+# 试卷知识库：只收录已转录的单元卷 / 期末卷 PDF（2026上海一年级…_教材2024.pdf）
+# 扫描版练习册（无文字层）与 docx 学习指南留在本地，不入库
+content/exams/pdf/*.docx
+content/exams/pdf/26新*.pdf
+content/exams/pdf/【*】*.pdf

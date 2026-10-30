@@ -3,7 +3,7 @@
 const store = require('./store');
 const D = require('./date');
 const REVIEW = require('./review');
-const BANK = require('./quiz-bank').bank;
+const { bank: BANK, unitLabel } = require('./quiz-bank');
 
 const GRADES = [
   { min: 0.9, label: '优秀', emoji: '🌟' },
@@ -89,6 +89,55 @@ function buildQuiz(subject, n, rng, unit) {
   return { cards, total: cards.length };
 }
 
+// 期末冲刺：从全册每个单元（含期末卷）抽题。每个单元先保底 1 题，其余名额按权重
+// （1 + 该单元错题本题数）用最高平均数法分配，单元题量不够时名额让给别的单元；
+// 每个单元内错题优先，其余随机。
+function buildSprint(subject, n, rng) {
+  rng = rng || Math.random;
+  const pool = poolFor(subject);
+  const units = [...new Set(pool.map(q => q.unit))].sort((a, b) => a - b);
+  const wrong = store.getQuizWrong().filter(w => w.subject === subject)
+    .sort((a, b) => ((a.due || '') < (b.due || '') ? -1 : (a.due || '') > (b.due || '') ? 1 : 0));
+  const rows = units.map(u => ({
+    unit: u,
+    items: pool.filter(q => q.unit === u),
+    wrong: wrong.filter(w => w.question.unit === u).map(w => w.question),
+    quota: 0,
+  }));
+  rows.forEach(row => { row.weight = 1 + row.wrong.length; });
+  let left = Math.min(n, pool.length);
+  rows.forEach(row => { if (left > 0) { row.quota = 1; left--; } });
+  while (left > 0) {
+    const open = rows.filter(row => row.quota < row.items.length);
+    if (!open.length) break;
+    open.sort((a, b) => b.weight / (b.quota + 1) - a.weight / (a.quota + 1));
+    open[0].quota++;
+    left--;
+  }
+  const picked = [];
+  rows.forEach(row => {
+    const first = row.wrong.slice(0, row.quota);
+    const used = new Set(first.map(q => q.id));
+    const rest = shuffle(row.items.filter(q => !used.has(q.id)), rng).slice(0, row.quota - first.length);
+    picked.push(...first, ...rest);
+  });
+  const cards = shuffle(picked, rng).map(q => instantiate(q, rng));
+  return { cards, total: cards.length };
+}
+
+// 冲刺卷分单元结果：results 为 [{ unit, ok }]，按单元汇总，正确率 ≥80% 记为掌握
+const MASTERED_MIN = 0.8;
+function unitBreakdown(results) {
+  const by = {};
+  results.forEach(r => {
+    const row = by[r.unit] || (by[r.unit] = { unit: r.unit, label: unitLabel(r.unit), total: 0, correct: 0 });
+    row.total++;
+    if (r.ok) row.correct++;
+  });
+  return Object.values(by).sort((a, b) => a.unit - b.unit)
+    .map(row => ({ ...row, mastered: row.correct / row.total >= MASTERED_MIN }));
+}
+
 // 错题本：答错入本累计，到期答对按间隔升级，连对 3 次销账（排期见 utils/review.js）
 // 始终存原始库题，不含会话期打乱的选项顺序；today 可注入（测试用）
 function markResult(question, correct, today) {
@@ -108,4 +157,4 @@ function saveHistory(entry) {
 
 function getHistory() { return store.getQuizHistory(); }
 
-module.exports = { GRADES, verdict, subjects, poolFor, buildQuiz, instantiate, gradeMulti, markResult, saveHistory, getHistory };
+module.exports = { GRADES, verdict, subjects, poolFor, buildQuiz, buildSprint, unitBreakdown, instantiate, gradeMulti, markResult, saveHistory, getHistory };

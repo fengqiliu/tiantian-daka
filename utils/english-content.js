@@ -1,6 +1,6 @@
-// 英语跟读内容库（与试卷知识库 content/exams/data/english-g1s1-u1.json 同源）
-// 教材：沪教版（五四制）2024新教材 · Unit 1 Greetings
-// 后续单元在 units 数组追加即可，页面按年级自动匹配（暂只有一上内容，各年级先共用）
+// 英语跟读内容库（与试卷知识库 content/exams/data/english-g1s1-u<N>.json 同源：重点句 + 情境选择题）
+// 教材：沪教版（五四制）2024新教材 · 一年级上册 Unit 1-6
+// 后续单元在 units 数组追加即可；页面可切换单元（暂只有一上内容，各年级先共用）
 module.exports = {
   textbook: '沪教版（五四制）2024新教材',
   units: [
@@ -24,6 +24,111 @@ module.exports = {
         { id: 'u1-sc2', when: '下午见到同学', say: 'Good afternoon!' },
         { id: 'u1-sc3', when: '晚上见到家人', say: 'Good evening!' },
         { id: 'u1-sc4', when: '放学和老师告别', say: 'Goodbye!' },
+      ],
+    },
+    {
+      id: 'english-g1s1-u2',
+      unit: 2,
+      grade: 1,
+      semester: '上',
+      title: 'Unit 2 New friends',
+      sentences: [
+        { id: 'u2-s1', text: 'Hello! / Hi!', tip: '打招呼：你好！' },
+        { id: 'u2-s2', text: 'My name is Lily.', tip: '介绍自己的名字' },
+        { id: 'u2-s3', text: 'You can call me Lily.', tip: '告诉别人可以怎么称呼我' },
+        { id: 'u2-s4', text: 'Welcome to China!', tip: '欢迎来到中国！' },
+        { id: 'u2-s5', text: 'Nice to meet you.', tip: '初次见面：很高兴认识你' },
+        { id: 'u2-s6', text: 'Thank you.', tip: '谢谢' },
+      ],
+      scenes: [
+        { id: 'u2-sc1', when: '第一次见到新朋友', say: 'Nice to meet you.' },
+        { id: 'u2-sc2', when: '告诉别人自己的名字', say: 'My name is Minmin.' },
+        { id: 'u2-sc3', when: '欢迎 Lily 来中国', say: 'Welcome to China!' },
+        { id: 'u2-sc4', when: '告诉别人可以叫自己 Lily', say: 'You can call me Lily.' },
+      ],
+    },
+    {
+      id: 'english-g1s1-u3',
+      unit: 3,
+      grade: 1,
+      semester: '上',
+      title: 'Unit 3 My schoolbag',
+      sentences: [
+        { id: 'u3-s1', text: 'schoolbag / pencil case', tip: '书包 / 铅笔盒' },
+        { id: 'u3-s2', text: 'pencil / ruler', tip: '铅笔 / 直尺' },
+        { id: 'u3-s3', text: 'eraser / book', tip: '橡皮 / 书' },
+        { id: 'u3-s4', text: 'Pack my schoolbag.', tip: '整理我的书包' },
+        { id: 'u3-s5', text: "Don't worry.", tip: '别着急' },
+        { id: 'u3-s6', text: 'Use my eraser.', tip: '用我的橡皮吧' },
+      ],
+      scenes: [
+        { id: 'u3-sc1', when: '把直尺放进书包', say: 'Pack my ruler.' },
+        { id: 'u3-sc2', when: '把铅笔借给同学', say: 'Use my pencil.' },
+        { id: 'u3-sc3', when: '同学找不到橡皮很着急', say: "Don't worry." },
+        { id: 'u3-sc4', when: '把书本装进书包', say: 'Pack my books.' },
+      ],
+    },
+    {
+      id: 'english-g1s1-u4',
+      unit: 4,
+      grade: 1,
+      semester: '上',
+      title: 'Unit 4 My classroom',
+      sentences: [
+        { id: 'u4-s1', text: 'classroom / desk / chair', tip: '教室 / 课桌 / 椅子' },
+        { id: 'u4-s2', text: 'door / blackboard / floor', tip: '门 / 黑板 / 地面' },
+        { id: 'u4-s3', text: 'Let me clean the desk.', tip: '我来擦课桌' },
+        { id: 'u4-s4', text: 'Put the books back.', tip: '把书放回去' },
+        { id: 'u4-s5', text: "Who's on duty?", tip: '今天谁值日？' },
+        { id: 'u4-s6', text: 'Thank you.', tip: '谢谢' },
+      ],
+      scenes: [
+        { id: 'u4-sc1', when: '你想擦黑板', say: 'Let me clean the blackboard.' },
+        { id: 'u4-sc2', when: '地上有纸屑', say: 'Let me clean the floor.' },
+        { id: 'u4-sc3', when: '书本放乱了', say: 'Put the books back.' },
+        { id: 'u4-sc4', when: '同学帮你打扫后', say: 'Thank you.' },
+      ],
+    },
+    {
+      id: 'english-g1s1-u5',
+      unit: 5,
+      grade: 1,
+      semester: '上',
+      title: 'Unit 5 Lovely faces',
+      sentences: [
+        { id: 'u5-s1', text: 'face / eye / ear', tip: '脸 / 眼睛 / 耳朵' },
+        { id: 'u5-s2', text: 'nose / mouth', tip: '鼻子 / 嘴巴' },
+        { id: 'u5-s3', text: 'I see two eyes.', tip: '我看到两只眼睛' },
+        { id: 'u5-s4', text: 'I see a nose.', tip: '我看到一个鼻子' },
+        { id: 'u5-s5', text: 'Draw a face.', tip: '画一张脸' },
+        { id: 'u5-s6', text: 'A lovely face.', tip: '一张可爱的脸' },
+      ],
+      scenes: [
+        { id: 'u5-sc1', when: '看到两只耳朵', say: 'I see two ears.' },
+        { id: 'u5-sc2', when: '看到一张嘴巴', say: 'I see a mouth.' },
+        { id: 'u5-sc3', when: '请同学画一张脸', say: 'Draw a face.' },
+        { id: 'u5-sc4', when: '夸这张脸真可爱', say: 'A lovely face.' },
+      ],
+    },
+    {
+      id: 'english-g1s1-u6',
+      unit: 6,
+      grade: 1,
+      semester: '上',
+      title: 'Unit 6 My family',
+      sentences: [
+        { id: 'u6-s1', text: 'mum / dad', tip: '妈妈 / 爸爸' },
+        { id: 'u6-s2', text: 'sister / brother', tip: '姐妹 / 兄弟' },
+        { id: 'u6-s3', text: 'This is my family.', tip: '这是我的家人' },
+        { id: 'u6-s4', text: 'This is my mum.', tip: '这是我的妈妈' },
+        { id: 'u6-s5', text: 'This is me.', tip: '这是我' },
+        { id: 'u6-s6', text: 'I love my family.', tip: '我爱我的家人' },
+      ],
+      scenes: [
+        { id: 'u6-sc1', when: '介绍爸爸', say: 'This is my dad.' },
+        { id: 'u6-sc2', when: '介绍哥哥', say: 'This is my brother.' },
+        { id: 'u6-sc3', when: '指着照片里的自己', say: 'This is me.' },
+        { id: 'u6-sc4', when: '告诉家人你爱他们', say: 'I love my family.' },
       ],
     },
   ],

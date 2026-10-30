@@ -11,6 +11,8 @@ Page({
   data: {
     title: '',
     subtitle: '',
+    units: [],
+    selectedUnit: 1,
     cards: [],
     recordedCount: 0,
     total: 0,
@@ -21,7 +23,7 @@ Page({
 
   onLoad() {
     this.date = D.todayStr();
-    this.unit = EC.units[0];
+    this.unit = RA.pickUnit(EC.units, store.getReadings());
     this.recorder = wx.getRecorderManager();
     this.recorder.onStop(res => this._onRecorderStop(res));
     this.recorder.onError(err => this._onRecorderError(err));
@@ -86,11 +88,22 @@ Page({
     this.setData({
       title: this.unit.title,
       subtitle: EC.textbook,
+      units: EC.units.map(u => ({ value: u.unit, label: 'Unit ' + u.unit })),
+      selectedUnit: this.unit.unit,
       cards,
       total: comp.total,
       recordedCount: comp.recorded,
       canFinish: comp.recorded > 0,
     });
+  },
+
+  onPickUnit(e) {
+    if (this.data.recordingId) {
+      wx.showToast({ title: '先完成当前录音哦', icon: 'none' });
+      return;
+    }
+    this.unit = RA.pickUnit(EC.units, [], e.currentTarget.dataset.unit);
+    this.refresh();
   },
 
   onRecord(e) {
@@ -155,7 +168,7 @@ Page({
     const grade = Number(profile && profile.grade) || 1;
     const inList = T.generateDailyTasks(grade, this.date).find(t => t.id === 'english_listen');
     const task = inList || T.buildTask('english_listen', grade, true);
-    C.upsertRecord(this.date, 'english_listen', task.target, stars, '跟读教室 ' + comp.recorded + '/' + comp.total + ' 句');
+    C.upsertRecord(this.date, 'english_listen', task.target, stars, '跟读教室 ' + comp.recorded + '/' + comp.total + ' 句 · Unit ' + this.unit.unit);
     const fresh = B.evaluate(store.getRecords(), profile);
     if (fresh.length) {
       const b = B.badgeById(fresh[0].id);

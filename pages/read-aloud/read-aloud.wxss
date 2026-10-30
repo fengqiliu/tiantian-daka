@@ -20,3 +20,13 @@
   0%, 100% { opacity: 1; }
   50% { opacity: 0.55; }
 }
+
+.ra-units { display: flex; flex-wrap: wrap; gap: 14rpx; margin: 0 0 20rpx; }
+.ra-unit {
+  background: #F7F2E8;
+  border-radius: 999rpx;
+  padding: 12rpx 28rpx;
+  font-size: 26rpx;
+  color: #6B655B;
+}
+.ra-unit.on { background: #FF8A00; color: #fff; font-weight: 600; }
