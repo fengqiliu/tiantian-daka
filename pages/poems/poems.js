@@ -15,8 +15,10 @@ Page({
   onLoad() {
     this.date = D.todayStr();
     const done = {}; // 今天已背的诗
+    // 同一天背多首时 note 累计为「会背《A》、会背《B》」，要拆开逐首判断
+    // （之前按整条 note 匹配，背了两首后重新进入页面两首都显示没背，可以重复计数）
     C.getDayRecords(this.date).forEach(r => {
-      if (r.taskId === 'chinese_poem' && r.note) done[r.note] = true;
+      if (r.taskId === 'chinese_poem' && r.note) r.note.split('、').forEach(s => { done[s] = true; });
     });
     this.setData({
       textbook: POEMS.textbook,

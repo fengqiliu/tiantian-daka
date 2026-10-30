@@ -4,13 +4,13 @@
 
 > 小学生 1-5 年级每日学习 / 运动 / 娱乐打卡微信小程序（上海小学版）
 > 语文 · 数学 · 英语 + 跳绳户外 + 非屏幕娱乐，任务按年级自动生成，坚持看得见。
-> 当前功能版本 **v0.23.0**：在打卡闭环之上（含计时打卡与家长确认的补打卡），已有练习（跟读 / 口算 / 小卷 / 古诗）、错题间隔复习、每周小目标、奖励小铺、家长报告与周报、学期成长报告、家长鼓励留言；版本详情见 [CHANGELOG.md](CHANGELOG.md)。
+> 当前功能版本 **v0.24.0**：在打卡闭环之上（含计时打卡与家长确认的补打卡），已有练习（跟读 / 口算 / 小卷 / 古诗）、错题间隔复习、每周小目标、奖励小铺、家长报告与周报、学期成长报告、家长鼓励留言；版本详情见 [CHANGELOG.md](CHANGELOG.md)。
 
 ## 当前状态
 
 - **本地功能已实现**：每日任务、打卡激励、计时打卡、补打卡、日历、跟读、口算、小卷、古诗、错题本与间隔复习、每周小目标、任务管理、奖励小铺、家长报告与周报、学期成长报告、数据备份恢复。
 - **云端代码已实现，需部署验证**：多设备同步、家人绑定与家长只读视图、家长鼓励留言与孩子表情回复、每日提醒与里程碑通知、一键清空云端。当前 `utils/cloud.js` 的 `CLOUD_ENV` 为空，默认以纯本地模式运行。
-- **测试资产**：152 项客户端逻辑用例、51 项云函数用例、21 项页面流程用例，外加页面静态检查，`node scripts/run-all.js` 一键运行，GitHub Actions 每次推送自动跑；均无需安装依赖。云函数与页面测试使用内存桩，不能替代真实微信云环境与双手机联调。
+- **测试资产**：163 项客户端逻辑用例、55 项云函数用例、32 项页面流程用例，外加页面静态检查，`node scripts/run-all.js` 一键运行，GitHub Actions 每次推送自动跑；均无需安装依赖。云函数与页面测试使用内存桩，不能替代真实微信云环境与双手机联调。
 - **试用阶段**：按 [7 天真机试用指南](docs/trial-guide.md) 验证孩子与家长端流程，收集内容和交互反馈。
 
 ## 功能一览
@@ -37,7 +37,7 @@
 - **家长报告与周报**：周报默认看上周、可翻页（打卡与达成天数及对比前一周、练习概况、孩子的周目标进度、最多 3 条亮点与 3 条需关注，含"反复错的题型"）；另有近 7 / 30 天任务完成率、口算正确率趋势与小卷记录；家长首页显示上周周报摘要
 - **鼓励留言**：给孩子发一句鼓励（常用语一键填 / 自定义 ≤40 字，可为某次已完成的打卡点赞），孩子首页弹出「妈妈说」卡片，孩子点一个表情回复（❤️😊💪🤗👍，不打字），家长在首页和已发出列表看到回复与已读；自定义文字经微信内容安全检查，每位家长每天最多 10 条
 - **任务管理与奖品管理**（在孩子手机的「我的」页）：调整目标值、添加自定义任务；上架奖品与撤销兑换。改动自动同步到云端
-- **里程碑通知**：孩子获得勋章时通过订阅消息通知家长
+- **里程碑与周报推送**：孩子获得勋章时通过订阅消息通知家长；家长可订阅每周一早上 08:00 推送的上周周报摘要
 
 **数据自主**
 
@@ -87,9 +87,10 @@ tiantian-daka/
 │   ├── report.js                    # 家长报告：完成率、口算趋势、周报（亮点/需关注）
 │   ├── term.js                      # 学期成长报告：由校历推出学期/假期 + 时段汇总
 │   ├── cheer.js                     # 鼓励留言常用语/称呼/校验/回复表情（与 family 云函数共用）
+│   ├── week-brief.js                # 周报推送摘要 + 北京时间日期（与 weeklyReport 云函数共用）
 │   ├── backup.js                    # JSON 备份：序列化/校验/恢复
 │   ├── reset.js                     # 一键清空：先清云端、成功后清本机
-│   ├── store.js                     # 存储适配层（wx storage / 内存）+ 家长端孩子数据缓存
+│   ├── store.js                     # 存储适配层（wx storage / 内存）：打卡记录按年分片 + 读缓存、写失败可见、家长端孩子数据缓存
 │   ├── sync.js                      # 同步引擎（增量、新者胜、墓碑、并集）
 │   ├── history-merge.js             # 练习历史与复习日志合并（与 sync 云函数共用）
 │   ├── cloud.js                     # 云初始化/调用/家人/留言/提醒封装（未配置时静默降级）
@@ -99,18 +100,21 @@ tiantian-daka/
 │   ├── sync/                        # 增量同步 push/pull + 一键清空 reset（lib/history-merge.js）
 │   ├── family/                      # 邀请码绑定/家长摘要/里程碑推送/鼓励留言与回复（lib/cheer.js）
 │   ├── remind/                      # 提醒订阅配额管理
-│   └── dailyRemind/                 # 每天 20:00 定时提醒（lib/ 下为共享的任务生成逻辑）
+│   ├── dailyRemind/                 # 每天 20:00 定时提醒（lib/ 下为共享的任务生成逻辑）
+│   └── weeklyReport/                # 每周一 08:00 推送上周周报给订阅的家长（lib/ 含 week-brief）
 ├── scripts/
 │   ├── run-all.js                   # 一键跑全部检查（本地与 CI 共用）
+│   ├── bench.js                     # 性能基准：一年数据下各页面耗时、记录分片读取次数
 │   ├── check-pages.js               # 页面静态检查：四件套、事件绑定、跳转目标
 │   └── sync-cloud-libs.js           # 把 utils/ 共享逻辑复制到各云函数 lib/（--check 只校验漂移）
 ├── .github/workflows/test.yml       # CI：Node 18 / 22 × UTC / 北京时间
 ├── content/exams/                   # 试卷知识库（上海 2024 新教材单元卷 PDF + 结构化数据）
 ├── test/
-│   ├── run-tests.js                 # 客户端单元测试（152 项，node 直接运行）
-│   ├── run-cloud-tests.js           # 云函数测试（51 项，内存数据库桩）
-│   ├── run-page-tests.js            # 页面流程测试（21 项，加载真实页面按用户操作驱动）
+│   ├── run-tests.js                 # 客户端单元测试（163 项，node 直接运行）
+│   ├── run-cloud-tests.js           # 云函数测试（55 项，内存数据库桩）
+│   ├── run-page-tests.js            # 页面流程测试（32 项，加载真实页面按用户操作驱动）
 │   ├── page-harness.js              # 页面测试桩：Page / wx 桩、可冻结时钟、wx.cloud 接内存云函数
+│   ├── perf-fixture.js              # 一年规模的模拟数据（性能基准与存储测试用）
 │   └── cloud-mock.js                # wx-server-sdk 内存桩（openid 隔离 / 订阅配额 / 内容安全 / 删除）
 ├── design/preview.html              # 浏览器打开的 5 屏设计预览
 └── docs/                            # PRD / 设计规范 / 数据模型 / 任务内容库 / 试用指南
@@ -130,9 +134,9 @@ node scripts/run-all.js          # 一键跑下面全部检查（CI 也用它）
 
 | 检查 | 命令 | 覆盖 |
 | --- | --- | --- |
-| 客户端逻辑 | `node test/run-tests.js` | 152 项：任务生成、打卡统计、激励、同步引擎、练习、复习、周目标、补卡、计时等纯逻辑 |
-| 云函数 | `node test/run-cloud-tests.js` | 51 项：内存数据库桩替代 `wx-server-sdk`，含 openid 隔离、订阅配额、内容安全、一键清空 |
-| 页面流程 | `node test/run-page-tests.js` | 21 项：在 Node 里加载真实页面、按用户操作顺序调用页面方法，含家长 ⇄ 孩子联动（走真实云函数代码） |
+| 客户端逻辑 | `node test/run-tests.js` | 163 项：任务生成、打卡统计、激励、同步引擎、练习、复习、周目标、补卡、计时等纯逻辑 |
+| 云函数 | `node test/run-cloud-tests.js` | 55 项：内存数据库桩替代 `wx-server-sdk`，含 openid 隔离、订阅配额、内容安全、一键清空 |
+| 页面流程 | `node test/run-page-tests.js` | 32 项：在 Node 里加载真实页面、按用户操作顺序调用页面方法，含家长 ⇄ 孩子联动（走真实云函数代码） |
 | 页面静态检查 | `node scripts/check-pages.js` | 每个页面四件套齐全、WXML 事件绑定在 JS 里都有方法、跳转目标都在 `app.json` 里 |
 | 云函数 lib 漂移 | `node scripts/sync-cloud-libs.js --check` | 云函数 `lib/` 与 `utils/` 源文件一致 |
 
@@ -151,13 +155,13 @@ node scripts/run-all.js          # 一键跑下面全部检查（CI 也用它）
 0. 前置：**测试号（touristappid）不支持云开发**——需在 [mp.weixin.qq.com](https://mp.weixin.qq.com) 注册自己的小程序（个人主体免费），拿到 AppID 并替换 `project.config.json` 中的 `appid`
 1. 开通：开发者工具 → 云开发 → 开通，创建环境，复制**环境 ID**
 2. 配置环境 ID：编辑 `utils/cloud.js` 顶部 `CLOUD_ENV`
-3. 同步共享逻辑：`node scripts/sync-cloud-libs.js`（把 `utils/` 中的共享文件复制到 `dailyRemind/lib`、`sync/lib`、`family/lib`）
-4. 部署函数：右键 `cloudfunctions/` 下 5 个函数（login / sync / family / remind / dailyRemind）→「上传并部署：云端安装依赖」。`family/config.json` 声明了 `subscribeMessage.send` 与 `security.msgSecCheck` 两项 openapi 权限，随函数一起上传
+3. 同步共享逻辑：`node scripts/sync-cloud-libs.js`（把 `utils/` 中的共享文件复制到 `dailyRemind/lib`、`sync/lib`、`family/lib`、`weeklyReport/lib`）
+4. 部署函数：右键 `cloudfunctions/` 下 6 个函数（login / sync / family / remind / dailyRemind / weeklyReport）→「上传并部署：云端安装依赖」。`family/config.json` 声明了 `subscribeMessage.send` 与 `security.msgSecCheck` 两项 openapi 权限，随函数一起上传
 5. 数据库（控制台 → 数据库）：任意用户登录一次后 `users` / `checkins` / `badges` / `families` / `cheers` 会自动创建。`cheers` 只经云函数读写，权限建议设为「所有用户不可读写」。按 [data-model 文档](docs/data-model.md) 建组合索引：`checkins` 的 `(openid, updatedAt)`、`(openid, date)`；`cheers` 的 `(ownerOpenid, createdAt)`、`(fromOpenid, createdAt)`
-6. 申请订阅消息模板：mp.weixin.qq.com → 订阅消息 → 选用"打卡提醒"类模板（含两个"事物"字段）→ 把提醒模板 ID 填入 `cloudfunctions/remind/config.js` 与 `cloudfunctions/dailyRemind/config.js`（两处必须是**同一个**模板 ID，否则订阅成功但定时任务发不出消息），把家长通知模板 ID 填入 `cloudfunctions/family/config.js`；字段名不同则同步修改对应 `index.js` 的 `data` 字段
+6. 申请订阅消息模板：mp.weixin.qq.com → 订阅消息 → 选用"打卡提醒"类模板（含两个"事物"字段）→ 把提醒模板 ID 填入 `cloudfunctions/remind/config.js` 与 `cloudfunctions/dailyRemind/config.js`（两处必须是**同一个**模板 ID，否则订阅成功但定时任务发不出消息），把家长通知模板 ID 填入 `cloudfunctions/family/config.js` 的 `NOTIFY_TEMPLATE_ID`；周报模板 ID 同时填入 `cloudfunctions/family/config.js` 与 `cloudfunctions/weeklyReport/config.js` 的 `WEEKLY_TEMPLATE_ID`（两处必须相同）；字段名不同则同步修改对应 `index.js` 的 `data` 字段
 7. 真机验证（两部手机）：孩子端「我的 → 家人绑定」显示邀请码 → 家长手机输入绑定；孩子打卡后家长首页应看到进度；家长发一条留言，孩子首页应出现「妈妈说」卡片；孩子端点「开启提醒」授权一次，当晚 20:00 未完成时应收到消息
 
-> 以后修改了 `utils/tasks.js`、`utils/history-merge.js`、`utils/cheer.js` 等共享文件，都要重新运行第 3 步并重新上传对应云函数；提交前用 `--check` 确认无漂移。
+> 以后修改了 `utils/tasks.js`、`utils/history-merge.js`、`utils/cheer.js`、`utils/week-brief.js` 等共享文件，都要重新运行第 3 步并重新上传对应云函数；提交前用 `--check` 确认无漂移。
 
 ## 参与开发
 
@@ -165,7 +169,7 @@ node scripts/run-all.js          # 一键跑下面全部检查（CI 也用它）
 
 1. **先写失败的测试**：纯逻辑写进 `test/run-tests.js`，云函数写进 `test/run-cloud-tests.js`，页面交互写进 `test/run-page-tests.js`；确认它先失败，再写实现让它通过。
 2. **逻辑放在 `utils/`**：页面只做展示与调用，规则都写成可在 Node 里测的纯函数；页面统一从 `utils/context.js` 的 `scope()` 取数，家长端才能自动切到孩子数据。
-3. **改了共享文件**（`utils/tasks.js`、`date.js`、`calendar-config.js`、`history-merge.js`、`cheer.js`）要跑 `node scripts/sync-cloud-libs.js`，并在变更日志里注明需要重新上传哪个云函数。
+3. **改了共享文件**（`utils/tasks.js`、`date.js`、`calendar-config.js`、`history-merge.js`、`cheer.js`、`week-brief.js`）要跑 `node scripts/sync-cloud-libs.js`，并在变更日志里注明需要重新上传哪个云函数。
 4. **提交前跑 `node scripts/run-all.js`**，全部通过再提交；推送后 CI 会在 Node 18 / 22、UTC 与北京时间下再跑一遍。
 5. **发版时同步三处版本号**：`CHANGELOG.md`（新增一节，写清新增 / 修复 / 部署提示）、本 README 顶部的「当前功能版本」、`pages/profile/profile.js` 的 `APP_VERSION`（「我的」页底部显示）。
 6. 涉及文档的改动同时更新 `docs/` 下对应文件，保持文档与代码一致。
@@ -208,8 +212,9 @@ node scripts/run-all.js          # 一键跑下面全部检查（CI 也用它）
 - **0.22.0 ✅**：计时打卡（时长类任务倒计时、到点提醒、自动填入分钟）
 - **0.22.1 ✅**：页面流程测试 + 页面静态检查 + CI；修复奖品管理进不去
 - **0.23.0 ✅**：学期成长报告（按校历划分学期 / 假期）
+- **0.24.0 ✅**：打卡记录按年分片（防微信 1MB 单键上限）+ 读缓存；周报推送；补齐页面测试并修复 3 个页面问题
 - **近期验收**：部署全部云函数、双手机验证绑定 / 同步 / 留言、确认订阅提醒送达；执行 7 天真机试用
-- **待定**：周报订阅推送（需新申请模板）、一年级下册题库与跟读内容
+- **待定**：一年级下册题库与跟读内容（等下册单元试卷转录）
 - **1.0.0**：班级打卡圈 + 教师点评（⛔ 待云环境与组织流程）、英语发音评测（待付费评测服务）
 
 ## 技术说明

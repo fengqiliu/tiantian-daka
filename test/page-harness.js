@@ -20,6 +20,12 @@ function resetUI() {
   ui.sheetPick = 0;
   ui.interval = null;
   ui.clipboard = null;
+  ui.recorder = null;
+  ui.audio = null;
+  ui.files = {};
+  ui.played = '';
+  ui.openedSetting = 0;
+  ui.subscribeAnswer = '';
 }
 resetUI();
 
@@ -43,6 +49,41 @@ global.wx = {
   showLoading() {},
   hideLoading() {},
   setClipboardData(o) { ui.clipboard = o.data; if (o.success) o.success(); },
+  getClipboardData(o) { if (o.success) o.success({ data: ui.clipboard || '' }); },
+  openSetting() { ui.openedSetting = (ui.openedSetting || 0) + 1; },
+  // 订阅消息：默认全部同意；ui.subscribeAnswer = 'reject' 模拟拒绝
+  requestSubscribeMessage(o) {
+    const res = {};
+    (o.tmplIds || []).forEach(id => { res[id] = ui.subscribeAnswer || 'accept'; });
+    if (o.success) o.success(res);
+  },
+  // 录音 / 播放 / 文件：跟读教室用；测试通过 ui.recorder.fireStop(...) / fireError(...) 模拟回调
+  getRecorderManager() {
+    const rec = {
+      starts: 0, stops: 0, onStopCb: null, onErrorCb: null,
+      onStop(cb) { this.onStopCb = cb; },
+      onError(cb) { this.onErrorCb = cb; },
+      start() { this.starts++; },
+      stop() { this.stops++; },
+      fireStop(res) { this.onStopCb && this.onStopCb(res); },
+      fireError(err) { this.onErrorCb && this.onErrorCb(err); },
+    };
+    ui.recorder = rec;
+    return rec;
+  },
+  createInnerAudioContext() {
+    const a = { src: '', plays: 0, play() { this.plays++; ui.played = this.src; }, destroy() {} };
+    ui.audio = a;
+    return a;
+  },
+  getFileSystemManager() {
+    return {
+      mkdirSync() {},
+      copyFileSync(src, dest) { ui.files = (ui.files || {}); ui.files[dest] = src; },
+      unlinkSync(p) { if (ui.files) delete ui.files[p]; },
+    };
+  },
+  env: { USER_DATA_PATH: 'wxfile://usr' },
   cloud: {
     init() {},
     callFunction: ({ name, data }) => CM.load(name).main(data).then(result => ({ result })),

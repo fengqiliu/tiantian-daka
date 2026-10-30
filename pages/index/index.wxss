@@ -113,3 +113,5 @@
 .goal-done { color: #2F9E44; font-weight: 600; font-size: 26rpx; }
 
 .timing-card { background: #FFF9EF; border: 3rpx solid #FFD9A8; }
+
+.weekly-sub { margin-top: 14rpx; color: #FF8A00; font-size: 26rpx; font-weight: 600; }

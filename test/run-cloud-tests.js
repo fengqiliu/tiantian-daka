@@ -587,6 +587,60 @@ t('family lib：cheer.js 与 utils/ 一致', () => {
   assert(fs.existsSync(lib), '应由 scripts/sync-cloud-libs.js 复制');
   assert.strictEqual(fs.readFileSync(lib, 'utf8'), fs.readFileSync(path.join(root, 'utils/cheer.js'), 'utf8'));
 });
+console.log('— 周报推送 weeklyReport —');
+t('家长订阅周报：grantWeekly 累加配额（上限 3）；孩子不能订阅', async () => {
+  const family = await twoFamilies();
+  CM.setOpenid('parent1');
+  await family.main({ action: 'grantWeekly', n: 1 });
+  await family.main({ action: 'grantWeekly', n: 5 });
+  assert.strictEqual(CM.db.families.find(f => f.members.some(m => m.openid === 'parent1')).members[0].weeklyQuota, 3);
+  CM.setOpenid('kid1');
+  assert.strictEqual((await family.main({ action: 'grantWeekly', n: 1 })).ok, false);
+  CM.setOpenid('parent1');
+  const conf = await family.main({ action: 'config' });
+  assert(conf.weeklyTemplateId, 'config 返回周报模板 ID');
+});
+t('weeklyReport：只能定时触发；模板未配置时跳过不发', async () => {
+  reset();
+  const fn = CM.load('weeklyReport');
+  assert.strictEqual((await fn.main({})).ok, false, '非定时触发拒绝');
+  const r = await fn.main({ Type: 'Timer' });
+  assert.strictEqual(r.ok, false);
+  assert(/WEEKLY_TEMPLATE_ID/.test(r.error));
+  assert.strictEqual(CM.sent.length, 0);
+});
+t('weeklyReport：给有配额的家长推送孩子上周摘要，扣配额；无配额不发；43101 清零', async () => {
+  const family = await twoFamilies();
+  CM.setConfig('weeklyReport', { WEEKLY_TEMPLATE_ID: 'tmpl-weekly-test' });
+  // kid1 上周（2026-10-19 周）打卡 2 天、本周 1 天
+  CM.setOpenid('kid1');
+  const sync = CM.load('sync');
+  await sync.main({ action: 'push', profile: { nickname: '小豆', grade: 1, updatedAt: 1 },
+    records: [rec('2026-10-19#pe_rope'), rec('2026-10-20#pe_rope'), rec('2026-10-26#pe_rope')] });
+  CM.setOpenid('parent1'); await family.main({ action: 'grantWeekly', n: 2 });
+  // parent2（kid2 家）没有订阅
+  const fn = CM.load('weeklyReport');
+  const r = await fn.main({ Type: 'Timer', today: '2026-10-26' });
+  assert.strictEqual(r.ok, true);
+  assert.strictEqual(r.sent, 1);
+  const msg = CM.sent[0];
+  assert.deepStrictEqual([msg.touser, msg.templateId, msg.page], ['parent1', 'tmpl-weekly-test', 'pages/report/report']);
+  assert(msg.data.thing1.value.indexOf('小豆') === 0, msg.data.thing1.value);
+  assert(msg.data.thing2.value.indexOf('打卡2天') > -1, '只统计上周：' + msg.data.thing2.value);
+  assert(Array.from(msg.data.thing1.value).length <= 20 && Array.from(msg.data.thing2.value).length <= 20);
+  const m1 = () => CM.db.families.find(f => f.members.some(m => m.openid === 'parent1')).members[0];
+  assert.strictEqual(m1().weeklyQuota, 1, '发送成功扣 1');
+  CM.setSendImpl(async () => { throw Object.assign(new Error('unsub'), { errCode: 43101 }); });
+  await fn.main({ Type: 'Timer', today: '2026-10-26' });
+  assert.strictEqual(m1().weeklyQuota, 0, '43101 清零');
+});
+t('周报模板 ID 契约：family 与 weeklyReport 两处 config 必须同源', () => {
+  const famConf = require('../cloudfunctions/family/config.js');
+  const wkConf = require('../cloudfunctions/weeklyReport/config.js');
+  assert.strictEqual(famConf.WEEKLY_TEMPLATE_ID, wkConf.WEEKLY_TEMPLATE_ID);
+  const trig = require('../cloudfunctions/weeklyReport/config.json').triggers[0];
+  assert.strictEqual(trig.config, '0 0 8 * * 1 *', '每周一 08:00');
+});
 t('leave 移除家长成员；孩子端 leave 不影响家庭', async () => {
   reset();
   const family = CM.load('family');

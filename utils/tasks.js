@@ -183,7 +183,10 @@ function generateDailyTasks(grade, dateStr) {
   const key = (Number(grade) || 3) + '@' + dateStr + '@' + overridesFingerprint();
   const cached = _memo.get(key);
   if (cached) return cached;
-  const result = _generateDailyTasksUncached(grade, dateStr);
+  // 自定义任务从添加当天（from）起才出现，不追溯到过去的清单，否则完成率会凭空多出未完成；
+  // 旧版没有 from 的自定义任务照常每天出现
+  const result = _generateDailyTasksUncached(grade, dateStr)
+    .filter(t => !t.custom || !t.from || dateStr >= t.from);
   if (_memo.size >= MEMO_MAX) _memo.clear();
   _memo.set(key, result);
   return result;

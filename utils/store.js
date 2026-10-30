@@ -3,7 +3,8 @@
 const KEY_PREFIX = 'ttdr_';
 const KEYS = {
   PROFILE: 'profile',
-  RECORDS: 'records',
+  RECORDS: 'records',                // 旧版单一记录键（只用于迁移；现按年分片 records_YYYY）
+  RECORDS_YEARS: 'records_years',    // 打卡记录分片的年份索引
   BADGES: 'badges',
   SETTINGS: 'settings',
   SYNC: 'sync',                      // 同步游标
@@ -35,80 +36,160 @@ const KEYS = {
 let memory = {};
 const hasWx = typeof wx !== 'undefined' && !!wx.getStorageSync;
 
+// 写入失败（如超出微信单键 1MB / 总量 10MB）由 _set 统一处理，这里不吞异常
 const defaultBackend = {
   get(k) {
     if (hasWx) { try { return wx.getStorageSync(KEY_PREFIX + k); } catch (e) { return undefined; } }
     return memory[k];
   },
   set(k, v) {
-    if (hasWx) { try { wx.setStorageSync(KEY_PREFIX + k, v); return; } catch (e) { /* 落入内存 */ } }
+    if (hasWx) { wx.setStorageSync(KEY_PREFIX + k, v); return; }
     memory[k] = v;
   },
   remove(k) {
-    if (hasWx) { try { wx.removeStorageSync(KEY_PREFIX + k); return; } catch (e) { /* 落入内存 */ } }
+    if (hasWx) { try { wx.removeStorageSync(KEY_PREFIX + k); } catch (e) { /* 忽略 */ } return; }
     delete memory[k];
   },
 };
 
 let backend = defaultBackend;
+let fallback = {};        // 写入失败的键：本次会话内从这里读，不丢当前数据
+let storageError = null;  // 最近一次写入失败 { key, message, at }，页面据此提示导出备份
+let recCache = null;      // 打卡记录分片的内存缓存（见下方"打卡记录"）
 
-function init(b) { backend = b; }
+// 测试注入后端；不传则恢复默认（wx storage / 内存）。同时清空缓存与错误状态
+function init(b) {
+  backend = b || defaultBackend;
+  fallback = {};
+  storageError = null;
+  recCache = null;
+}
+
+function _rawGet(key) {
+  if (Object.prototype.hasOwnProperty.call(fallback, key)) return fallback[key];
+  return backend.get(key);
+}
 
 function _get(key, def) {
-  const v = backend.get(key);
+  const v = _rawGet(key);
   return (v === undefined || v === null || v === '') ? def : v;
 }
+
+function _set(key, value) {
+  try {
+    backend.set(key, value);
+    delete fallback[key];
+  } catch (e) {
+    fallback[key] = value;
+    storageError = { key, message: (e && (e.errMsg || e.message)) || String(e), at: Date.now() };
+  }
+}
+
+function _remove(key) {
+  delete fallback[key];
+  backend.remove(key);
+}
+
+function getStorageError() { return storageError; }
 
 // ── 资料 ──
 function getProfile() { return _get(KEYS.PROFILE, null); }
 // 页面保存入口：自动盖时间戳（同步冲突以 updatedAt 新者为准）
 function saveProfile(p) {
   if (!p) return;
-  backend.set(KEYS.PROFILE, { ...p, updatedAt: Date.now() });
+  _set(KEYS.PROFILE, { ...p, updatedAt: Date.now() });
 }
 // 同步合并专用：保留远端时间戳，不重新盖章
-function saveProfileRaw(p) { if (p) backend.set(KEYS.PROFILE, p); }
+function saveProfileRaw(p) { if (p) _set(KEYS.PROFILE, p); }
 
 // ── 打卡记录 ──
 // raw 含墓碑（deleted: true，删除不物理删，供增量同步）；对外一律用 getRecords（已过滤）
-function getRecordsRaw() { return _get(KEYS.RECORDS, []); }
+//
+// 按年分片存储：records_2026、records_2027 … + 年索引 records_years。
+// 一年约 400KB，单一大键约 2-3 年就会超过微信单键 1MB 上限（写入失败）；分片后每片只装一年。
+// - 旧版单一 records 键在首次读取时自动迁移并删除
+// - 内存缓存已解析的分片（只有本进程写存储，缓存不会过期）；读取返回新数组，调用方改副本不污染缓存
+// - 保存时按引用比较每年的元素，只重写有变化的年份（调用方修改记录都是替换为新对象，不原地改）
+const RECORD_SHARD = 'records_';
+
+function _yearOf(r) { return Number(String((r && r.date) || '').slice(0, 4)) || 0; }
+
+function _writeRecords(cache, list) {
+  const byYear = {};
+  list.forEach(r => { const y = _yearOf(r); (byYear[y] = byYear[y] || []).push(r); });
+  const years = Object.keys(byYear).map(Number).sort((a, b) => a - b);
+  years.forEach(y => {
+    const prev = cache.shards[y];
+    const next = byYear[y];
+    const same = prev && prev.length === next.length && prev.every((x, i) => x === next[i]);
+    if (!same) _set(RECORD_SHARD + y, next);
+    cache.shards[y] = next;
+  });
+  cache.years.filter(y => !byYear[y]).forEach(y => { _remove(RECORD_SHARD + y); delete cache.shards[y]; });
+  if (years.join(',') !== cache.years.join(',')) _set(KEYS.RECORDS_YEARS, years);
+  cache.years = years;
+}
+
+function _loadRecords() {
+  if (recCache) return recCache;
+  const cache = { years: [], shards: {} };
+  recCache = cache;
+  const legacy = _rawGet(KEYS.RECORDS);
+  if (Array.isArray(legacy)) {
+    _writeRecords(cache, legacy);
+    _remove(KEYS.RECORDS);
+    return cache;
+  }
+  const years = _get(KEYS.RECORDS_YEARS, []);
+  cache.years = (Array.isArray(years) ? years : []).map(Number).sort((a, b) => a - b);
+  cache.years.forEach(y => {
+    const s = _rawGet(RECORD_SHARD + y);
+    cache.shards[y] = Array.isArray(s) ? s : [];
+  });
+  return cache;
+}
+
+function getRecordsRaw() {
+  const c = _loadRecords();
+  return [].concat(...c.years.map(y => c.shards[y]));
+}
 function getRecords() { return getRecordsRaw().filter(r => !r.deleted); }
-function saveRecords(list) { backend.set(KEYS.RECORDS, list); }
+function saveRecords(list) { _writeRecords(_loadRecords(), list || []); }
 
 // ── 勋章 ──
 function getBadges() { return _get(KEYS.BADGES, []); }
-function saveBadges(list) { backend.set(KEYS.BADGES, list); }
+function saveBadges(list) { _set(KEYS.BADGES, list); }
 
 function getSettings() { return _get(KEYS.SETTINGS, {}); }
-function saveSettings(s) { backend.set(KEYS.SETTINGS, s); }
+function saveSettings(s) { _set(KEYS.SETTINGS, s); }
 
 // ── 跟读教室（本地记录，音频不参与云同步）──
 function getReadings() { return _get(KEYS.READINGS, []); }
-function saveReadings(list) { backend.set(KEYS.READINGS, list); }
+function saveReadings(list) { _set(KEYS.READINGS, list); }
 
 // ── 错题本（口算 + 小卷）──
 // 条目会升盒、销账（原地修改），不能并集合并：两本共用一个整体时间戳，同步时新者胜
 function getMathWrong() { return _get(KEYS.MATH_WRONG, []); }
 function saveMathWrong(list) {
-  backend.set(KEYS.MATH_WRONG, list);
+  _set(KEYS.MATH_WRONG, list);
   _bumpStamp(KEYS.WRONG_STAMP);
 }
 function getQuizWrong() { return _get(KEYS.QUIZ_WRONG, []); }
 function saveQuizWrong(list) {
-  backend.set(KEYS.QUIZ_WRONG, list);
+  _set(KEYS.QUIZ_WRONG, list);
   _bumpStamp(KEYS.WRONG_STAMP);
 }
 function getWrongStamp() { return _get(KEYS.WRONG_STAMP, 0); }
 // 同步合并专用：保留远端时间戳，不重新盖章
 function saveWrongRaw(math, quiz, stamp) {
-  backend.set(KEYS.MATH_WRONG, math || []);
-  backend.set(KEYS.QUIZ_WRONG, quiz || []);
-  backend.set(KEYS.WRONG_STAMP, stamp || 0);
+  _set(KEYS.MATH_WRONG, math || []);
+  _set(KEYS.QUIZ_WRONG, quiz || []);
+  _set(KEYS.WRONG_STAMP, stamp || 0);
 }
 
 // ── 每周一卷历史（本地）──
 function getQuizHistory() { return _get(KEYS.QUIZ_HISTORY, []); }
-function saveQuizHistory(list) { backend.set(KEYS.QUIZ_HISTORY, list); }
+function saveQuizHistory(list) { _set(KEYS.QUIZ_HISTORY, list); }
 
 // ── 任务管理（家长：目标覆盖 + 自定义任务，本地）──
 function getTaskOverrides() { return _get(KEYS.TASK_OVERRIDES, { targets: {}, customs: [] }); }
@@ -117,10 +198,10 @@ function getTaskOverrides() { return _get(KEYS.TASK_OVERRIDES, { targets: {}, cu
 function saveTaskOverrides(o) {
   if (!o) return;
   const prev = (_get(KEYS.TASK_OVERRIDES, {}) || {}).updatedAt || 0;
-  backend.set(KEYS.TASK_OVERRIDES, { ...o, updatedAt: Math.max(Date.now(), prev + 1) });
+  _set(KEYS.TASK_OVERRIDES, { ...o, updatedAt: Math.max(Date.now(), prev + 1) });
 }
 // 同步合并专用：保留远端时间戳，不重新盖章
-function saveTaskOverridesRaw(o) { if (o) backend.set(KEYS.TASK_OVERRIDES, o); }
+function saveTaskOverridesRaw(o) { if (o) _set(KEYS.TASK_OVERRIDES, o); }
 
 // ── 奖励小铺（奖品架 + 兑换账本，本地）──
 // 时间戳严格递增（Date.now() 同毫秒连续写入时至少 +1）：
@@ -128,35 +209,35 @@ function saveTaskOverridesRaw(o) { if (o) backend.set(KEYS.TASK_OVERRIDES, o); }
 function _bumpStamp(key) {
   const prev = _get(key, 0) || 0;
   const next = Math.max(Date.now(), prev + 1);
-  backend.set(key, next);
+  _set(key, next);
   return next;
 }
 function getRewards() { return _get(KEYS.REWARDS, []); }
 // 写奖品架/账本统一盖整体时间戳（同步冲突以新者为准）
 function saveRewards(list) {
-  backend.set(KEYS.REWARDS, list);
+  _set(KEYS.REWARDS, list);
   _bumpStamp(KEYS.SHOP_STAMP);
 }
 function getRedemptions() { return _get(KEYS.REDEMPTIONS, []); }
 function saveRedemptions(list) {
-  backend.set(KEYS.REDEMPTIONS, list);
+  _set(KEYS.REDEMPTIONS, list);
   _bumpStamp(KEYS.SHOP_STAMP);
 }
 function getShopStamp() { return _get(KEYS.SHOP_STAMP, 0); }
 // 同步合并专用：保留远端时间戳，不重新盖章
 function saveShopRaw(rewards, redemptions, stamp) {
-  backend.set(KEYS.REWARDS, rewards || []);
-  backend.set(KEYS.REDEMPTIONS, redemptions || []);
-  backend.set(KEYS.SHOP_STAMP, stamp || 0);
+  _set(KEYS.REWARDS, rewards || []);
+  _set(KEYS.REDEMPTIONS, redemptions || []);
+  _set(KEYS.SHOP_STAMP, stamp || 0);
 }
 
 // ── 口算会话历史（本地）──
 function getDrillHistory() { return _get(KEYS.DRILL_HISTORY, []); }
-function saveDrillHistory(list) { backend.set(KEYS.DRILL_HISTORY, list); }
+function saveDrillHistory(list) { _set(KEYS.DRILL_HISTORY, list); }
 
 // ── 错题复习日志（本地）──
 function getReviewLog() { return _get(KEYS.REVIEW_LOG, []); }
-function saveReviewLog(list) { backend.set(KEYS.REVIEW_LOG, list); }
+function saveReviewLog(list) { _set(KEYS.REVIEW_LOG, list); }
 
 // 孩子端本地回复表情（回复即已读），云端 cheerReact 异步跟上
 function reactCheerLocal(id, reaction) {
@@ -166,15 +247,15 @@ function reactCheerLocal(id, reaction) {
 
 // ── 每周小目标 ──
 function getGoals() { return _get(KEYS.GOALS, {}); }
-function saveGoals(map) { backend.set(KEYS.GOALS, map); }
+function saveGoals(map) { _set(KEYS.GOALS, map); }
 
 // ── 计时打卡（本机，不同步）──
 function getTimer() { return _get(KEYS.TIMER, null); }
-function saveTimer(t) { if (t) backend.set(KEYS.TIMER, t); else backend.remove(KEYS.TIMER); }
+function saveTimer(t) { if (t) _set(KEYS.TIMER, t); else _remove(KEYS.TIMER); }
 
 // ── 家长留言（孩子端缓存）──
 function getCheers() { return _get(KEYS.CHEERS, []); }
-function saveCheers(list) { backend.set(KEYS.CHEERS, list); }
+function saveCheers(list) { _set(KEYS.CHEERS, list); }
 // 本地先标已读（横幅立刻换下一条），云端 cheerRead 异步跟上
 function markCheersRead(ids) {
   const now = Date.now();
@@ -185,7 +266,7 @@ function markCheersRead(ids) {
 function getSyncState() {
   return _get(KEYS.SYNC, { lastPullAt: 0, lastPushAt: 0 });
 }
-function saveSyncState(s) { backend.set(KEYS.SYNC, s); }
+function saveSyncState(s) { _set(KEYS.SYNC, s); }
 
 // ── 家长端：孩子数据缓存 ──
 function getChildProfile() { return _get(KEYS.CHILD_PROFILE, null); }
@@ -200,36 +281,41 @@ function getChildGoals() { return _get(KEYS.CHILD_GOALS, {}); }
 // practice / wrongBook 缺省（旧版云函数不返回）时保留已有缓存
 function saveChildData(profile, records, badges, practice, wrongBook) {
   if (wrongBook) {
-    backend.set(KEYS.CHILD_MATH_WRONG, wrongBook.math || []);
-    backend.set(KEYS.CHILD_QUIZ_WRONG, wrongBook.quiz || []);
+    _set(KEYS.CHILD_MATH_WRONG, wrongBook.math || []);
+    _set(KEYS.CHILD_QUIZ_WRONG, wrongBook.quiz || []);
   }
-  if (profile) backend.set(KEYS.CHILD_PROFILE, profile);
-  if (records) backend.set(KEYS.CHILD_RECORDS, records);
-  if (badges) backend.set(KEYS.CHILD_BADGES, badges);
+  if (profile) _set(KEYS.CHILD_PROFILE, profile);
+  if (records) _set(KEYS.CHILD_RECORDS, records);
+  if (badges) _set(KEYS.CHILD_BADGES, badges);
   if (practice) {
-    backend.set(KEYS.CHILD_DRILL, practice.drill || []);
-    backend.set(KEYS.CHILD_QUIZ, practice.quiz || []);
-    backend.set(KEYS.CHILD_REVIEW, practice.review || []);
-    backend.set(KEYS.CHILD_GOALS, practice.goals || {});
+    _set(KEYS.CHILD_DRILL, practice.drill || []);
+    _set(KEYS.CHILD_QUIZ, practice.quiz || []);
+    _set(KEYS.CHILD_REVIEW, practice.review || []);
+    _set(KEYS.CHILD_GOALS, practice.goals || {});
   }
 }
 
 function clearChildData() {
-  backend.remove(KEYS.CHILD_PROFILE);
-  backend.remove(KEYS.CHILD_RECORDS);
-  backend.remove(KEYS.CHILD_BADGES);
-  backend.remove(KEYS.CHILD_DRILL);
-  backend.remove(KEYS.CHILD_QUIZ);
-  backend.remove(KEYS.CHILD_REVIEW);
-  backend.remove(KEYS.CHILD_MATH_WRONG);
-  backend.remove(KEYS.CHILD_QUIZ_WRONG);
-  backend.remove(KEYS.CHILD_GOALS);
+  _remove(KEYS.CHILD_PROFILE);
+  _remove(KEYS.CHILD_RECORDS);
+  _remove(KEYS.CHILD_BADGES);
+  _remove(KEYS.CHILD_DRILL);
+  _remove(KEYS.CHILD_QUIZ);
+  _remove(KEYS.CHILD_REVIEW);
+  _remove(KEYS.CHILD_MATH_WRONG);
+  _remove(KEYS.CHILD_QUIZ_WRONG);
+  _remove(KEYS.CHILD_GOALS);
 }
 
-function clearAll() { Object.keys(KEYS).forEach(k => backend.remove(KEYS[k])); }
+function clearAll() {
+  const c = _loadRecords();
+  c.years.forEach(y => _remove(RECORD_SHARD + y));
+  Object.keys(KEYS).forEach(k => _remove(KEYS[k]));
+  recCache = null;
+}
 
 module.exports = {
-  KEYS, init,
+  KEYS, init, getStorageError,
   getProfile, saveProfile, saveProfileRaw,
   getRecords, getRecordsRaw, saveRecords,
   getBadges, saveBadges,

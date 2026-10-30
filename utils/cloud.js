@@ -80,6 +80,8 @@ function notifyParents(title, body) {
   return call('family', { action: 'notify', title, body });
 }
 function grantParentSub(n) { return call('family', { action: 'grantParentSub', n }); }
+// 家长端：订阅每周一的周报推送（weeklyReport 定时云函数发送）
+function grantWeekly(n) { return call('family', { action: 'grantWeekly', n }); }
 function familyConfig() { return call('family', { action: 'config' }); }
 
 // ── 家长鼓励留言 ──
@@ -108,11 +110,11 @@ function remindDisable() { return call('remind', { action: 'disable' }); }
 
 // 请求订阅并按接受数量登记配额；templateId 从云函数配置读取（单一配置源）
 // 返回 {ok, accepted, degraded?, error?}
-function subscribeAndGrant(kind) { // kind: 'remind' | 'parent'
+function subscribeAndGrant(kind) { // kind: 'remind' | 'parent' | 'weekly'
   const conf = kind === 'remind' ? remindConfig() : familyConfig();
   return conf.then(c => {
     if (!c || c.ok === false) return { ok: false, degraded: c && c.degraded, error: c && c.error };
-    const tmpl = c.templateId;
+    const tmpl = kind === 'weekly' ? c.weeklyTemplateId : c.templateId;
     if (!tmpl || tmpl.indexOf('REPLACE_') === 0) {
       return { ok: false, error: '模板 ID 未配置' };
     }
@@ -122,7 +124,8 @@ function subscribeAndGrant(kind) { // kind: 'remind' | 'parent'
         success: r => {
           const accepted = r[tmpl] === 'accept' ? 1 : 0;
           if (!accepted) return resolve({ ok: false, error: '未授权订阅' });
-          const grant = kind === 'remind' ? remindGrant(accepted, c.hour) : grantParentSub(accepted);
+          const grant = kind === 'remind' ? remindGrant(accepted, c.hour)
+            : kind === 'weekly' ? grantWeekly(accepted) : grantParentSub(accepted);
           grant.then(g => resolve({ ok: g && g.ok !== false, accepted }));
         },
         fail: e => resolve({ ok: false, error: (e && e.errMsg) || '订阅失败' }),
@@ -134,7 +137,7 @@ function subscribeAndGrant(kind) { // kind: 'remind' | 'parent'
 module.exports = {
   CLOUD_ENV, init, isAvailable, call,
   syncAll, resetCloud,
-  familyCreate, familyJoin, familyLeave, familyRefresh, notifyParents, grantParentSub, familyConfig,
+  familyCreate, familyJoin, familyLeave, familyRefresh, notifyParents, grantParentSub, grantWeekly, familyConfig,
   cheerSend, cheerList, cheerRead, cheerReact,
   remindConfig, remindGrant, remindStatus, remindDisable, subscribeAndGrant,
   REMIND_PAGE,

@@ -3,7 +3,7 @@ const cloud = require('wx-server-sdk');
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
 const _ = db.command;
-const { NOTIFY_TEMPLATE_ID } = require('./config.js');
+const { NOTIFY_TEMPLATE_ID, WEEKLY_TEMPLATE_ID } = require('./config.js');
 const CHEER = require('./lib/cheer.js');
 
 const DAY_MS = 24 * 3600 * 1000;
@@ -140,6 +140,16 @@ exports.main = async (event) => {
     return { ok: true };
   }
 
+  // 家长端：订阅每周一的周报推送（一次授权一次推送，上限 3）
+  if (action === 'grantWeekly') {
+    const fam = await findMyFamily(OPENID);
+    if (!fam || fam.ownerOpenid === OPENID) return { ok: false, error: '仅家长可订阅' };
+    const members = (fam.members || []).map(m =>
+      m.openid === OPENID ? { ...m, weeklyQuota: Math.min(3, (m.weeklyQuota || 0) + (Number(event.n) || 1)) } : m);
+    await db.collection('families').doc(fam._id).update({ data: { members } });
+    return { ok: true };
+  }
+
   // 孩子端：达成里程碑后推送给家长
   if (action === 'notify') {
     const fam = await findMyFamily(OPENID);
@@ -234,7 +244,7 @@ exports.main = async (event) => {
   }
 
   if (action === 'config') {
-    return { ok: true, templateId: NOTIFY_TEMPLATE_ID };
+    return { ok: true, templateId: NOTIFY_TEMPLATE_ID, weeklyTemplateId: WEEKLY_TEMPLATE_ID };
   }
 
   return { ok: false, error: 'unknown action' };

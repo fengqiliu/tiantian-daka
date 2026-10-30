@@ -1946,6 +1946,25 @@ t('cancel 清除；isTimerTask 只认时长类任务', () => {
   assert(!TM.isTimerTask('habit_sleep'), '完成类不计时');
 });
 
+console.log('— 自定义任务的生效日期 —');
+t('自定义任务从添加当天起出现，不追溯到过去；旧版没有 from 的照常每天出现', () => {
+  reset();
+  const custom = { id: 'custom_p', section: 'fun', name: '练钢琴', emoji: '🎹', type: 'duration', unit: '分钟', target: 20, from: '2026-10-20' };
+  const legacy = { id: 'custom_old', section: 'fun', name: '围棋', emoji: '⚫', type: 'done', target: 1 };
+  T.setOverrideProvider(() => ({ targets: {}, customs: [custom, legacy], updatedAt: 1 }));
+  try {
+    const has = (date, id) => T.generateDailyTasks(2, date).some(x => x.id === id);
+    assert.strictEqual(has('2026-10-19', 'custom_p'), false, '添加前一天不出现');
+    assert.strictEqual(has('2026-10-20', 'custom_p'), true, '添加当天出现');
+    assert.strictEqual(has('2026-10-28', 'custom_p'), true);
+    assert.strictEqual(has('2026-07-15', 'custom_p'), false, '假期模板同样不追溯');
+    assert.strictEqual(has('2025-01-01', 'custom_old'), true, '旧版自定义任务不受影响');
+    assert(T.getTaskDef('custom_p'), '任务定义仍可查（历史记录显示名称）');
+  } finally {
+    T.setOverrideProvider(null);
+  }
+});
+
 console.log('— 学期成长报告 —');
 const TERM = require('../utils/term');
 t('periodAt：由校历推出学期与假期；暑假后是第一学期、寒假后是第二学期', () => {
@@ -2020,6 +2039,132 @@ t('termSummary：已结束的学期统计到学期末；没有数据也不报错
   assert.deepStrictEqual(s.highlights, []);
   const future = TERM.termSummary({ records: [], grade: 1 }, TERM.periodAt('2027-03-10'), '2026-10-31');
   assert.strictEqual(future.notStarted, true, '还没开始的学期');
+});
+
+console.log('— 周报推送摘要（云函数共用）—');
+const WB = require('../utils/week-brief');
+t('cnToday：不论服务器时区，都按北京时间取日期', () => {
+  assert.strictEqual(WB.cnToday(Date.UTC(2026, 9, 25, 16, 30)), '2026-10-26', 'UTC 周日 16:30 = 北京周一 00:30');
+  assert.strictEqual(WB.cnToday(Date.UTC(2026, 9, 26, 0, 0)), '2026-10-26', '北京周一 08:00');
+  assert.strictEqual(WB.lastWeekMonday('2026-10-26'), '2026-10-19');
+});
+t('brief：上周打卡/达成天数与星星，推送文案不超过 20 字', () => {
+  reset();
+  ['2026-10-19', '2026-10-20', '2026-10-21'].forEach(d => seedDay(d, 1, mustIds(d)(1)));
+  seedDay('2026-10-23', 1, ['pe_rope']);
+  seedDay('2026-10-26', 1, mustIds('2026-10-26')(1)); // 下周，不算
+  const b = WB.brief(store.getRecords(), 1, '2026-10-19');
+  assert.deepStrictEqual([b.checkinDays, b.achievedDays], [4, 3]);
+  assert(b.stars > 0);
+  assert(Array.from(b.text).length <= 20, b.text);
+  assert(b.text.indexOf('打卡4天') > -1 && b.text.indexOf('达成3天') > -1, b.text);
+});
+t('云函数 lib：weeklyReport 的共享文件与 utils/ 一致', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const root = path.join(__dirname, '..');
+  ['tasks.js', 'date.js', 'calendar-config.js', 'week-brief.js'].forEach(f => {
+    const lib = path.join(root, 'cloudfunctions/weeklyReport/lib', f);
+    assert(fs.existsSync(lib), '缺少 ' + f);
+    assert.strictEqual(fs.readFileSync(lib, 'utf8'), fs.readFileSync(path.join(root, 'utils', f), 'utf8'), f + ' 漂移');
+  });
+});
+
+console.log('— 存储：打卡记录按年分片 + 读缓存 + 写失败可见 —');
+// 模拟 wx storage：存 JSON 字符串，记录每个键的读写次数；failKeys 中的键写入时抛错（模拟超 1MB）
+function fakeWxBackend(failKeys) {
+  const data = {};
+  const stats = { gets: {}, sets: {} };
+  return {
+    data, stats,
+    get(k) { stats.gets[k] = (stats.gets[k] || 0) + 1; return data[k] === undefined ? undefined : JSON.parse(data[k]); },
+    set(k, v) {
+      stats.sets[k] = (stats.sets[k] || 0) + 1;
+      if ((failKeys || []).includes(k)) throw new Error('setStorageSync:fail exceed max size');
+      data[k] = JSON.stringify(v);
+    },
+    remove(k) { delete data[k]; },
+  };
+}
+const rec2 = (date, taskId, extra) => ({ id: date + '#' + taskId, date, taskId, value: { type: 'done', n: 1 }, stars: 2, note: '', updatedAt: 1, ...extra });
+function withBackend(b, fn) {
+  store.init(b);
+  try { return fn(); } finally { store.init(); }
+}
+t('按年分片：跨年的记录写进各自的年键，读回来合在一起；不再写单一大键', () => {
+  const b = fakeWxBackend();
+  withBackend(b, () => {
+    store.saveRecords([rec2('2025-12-31', 'pe_rope'), rec2('2026-01-01', 'pe_rope'), rec2('2026-10-05', 'math_calc')]);
+    assert.deepStrictEqual(Object.keys(b.data).sort(), ['records_2025', 'records_2026', 'records_years']);
+    assert.deepStrictEqual(JSON.parse(b.data.records_years), [2025, 2026]);
+    assert.deepStrictEqual(store.getRecordsRaw().map(r => r.date), ['2025-12-31', '2026-01-01', '2026-10-05']);
+  });
+});
+t('旧版单一 records 键：首次读取自动迁移到年分片并删除旧键', () => {
+  const b = fakeWxBackend();
+  b.data.records = JSON.stringify([rec2('2025-11-01', 'pe_rope'), rec2('2026-03-01', 'pe_rope')]);
+  withBackend(b, () => {
+    assert.strictEqual(store.getRecordsRaw().length, 2);
+    assert.strictEqual(b.data.records, undefined, '旧键已删除');
+    assert(b.data.records_2025 && b.data.records_2026);
+    assert.strictEqual(store.getRecords().length, 2);
+  });
+});
+t('只改了今年：保存时只重写今年的分片', () => {
+  const b = fakeWxBackend();
+  withBackend(b, () => {
+    store.saveRecords([rec2('2025-05-01', 'pe_rope'), rec2('2026-05-01', 'pe_rope')]);
+    b.stats.sets = {};
+    const raw = store.getRecordsRaw();
+    raw.push(rec2('2026-05-02', 'pe_rope'));
+    store.saveRecords(raw);
+    assert.deepStrictEqual(Object.keys(b.stats.sets), ['records_2026'], '去年的分片没有重写');
+  });
+});
+t('读缓存：重复读取不再反序列化；改动返回的数组不影响缓存', () => {
+  const b = fakeWxBackend();
+  withBackend(b, () => {
+    store.saveRecords([rec2('2026-05-01', 'pe_rope')]);
+    store.init(Object.assign({}, b)); // 模拟重新打开小程序：缓存清空
+    b.stats.gets = {};
+    store.getRecordsRaw(); store.getRecordsRaw(); store.getRecords();
+    assert.strictEqual(b.stats.gets.records_2026, 1, '同一分片只从存储读一次');
+    const a = store.getRecordsRaw();
+    a.push(rec2('2026-05-09', 'x'));
+    a[0] = null;
+    assert.strictEqual(store.getRecordsRaw().length, 1, '调用方改自己的副本不污染缓存');
+    assert.strictEqual(store.getRecordsRaw()[0].taskId, 'pe_rope');
+  });
+});
+t('一年真实规模：每个分片远小于微信 1MB 单键上限', () => {
+  const b = fakeWxBackend();
+  withBackend(b, () => {
+    store.saveProfile({ role: 'child', grade: 5, onboarded: true });
+    require('./perf-fixture').seedYear('2027-12-31', 3 * 365, 5);
+    const sizes = Object.keys(b.data).filter(k => /^records_\d{4}$/.test(k)).map(k => b.data[k].length);
+    assert(sizes.length >= 3, '三年数据分成至少 3 片');
+    assert(Math.max(...sizes) < 700 * 1024, '最大分片 ' + Math.round(Math.max(...sizes) / 1024) + 'KB');
+  });
+});
+t('写入失败（超限）不丢当前会话的数据，并记录错误供页面提示', () => {
+  const b = fakeWxBackend(['records_2026']);
+  withBackend(b, () => {
+    assert.strictEqual(store.getStorageError(), null);
+    store.saveRecords([rec2('2026-05-01', 'pe_rope')]);
+    assert.strictEqual(store.getRecords().length, 1, '本次会话里还能读到');
+    const err = store.getStorageError();
+    assert(err && err.key === 'records_2026', JSON.stringify(err));
+    assert(/exceed/.test(err.message));
+  });
+});
+t('一键清空：分片与年索引一并删除', () => {
+  const b = fakeWxBackend();
+  withBackend(b, () => {
+    store.saveRecords([rec2('2025-05-01', 'pe_rope'), rec2('2026-05-01', 'pe_rope')]);
+    store.clearAll();
+    assert.deepStrictEqual(Object.keys(b.data).filter(k => k.startsWith('records')), []);
+    assert.deepStrictEqual(store.getRecordsRaw(), []);
+  });
 });
 
 chain.then(() => {

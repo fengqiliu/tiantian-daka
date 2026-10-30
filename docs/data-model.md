@@ -1,6 +1,6 @@
 # 数据模型
 
-> 对应版本 v0.23.0。本地存储在 `utils/store.js`（键名以 `KEYS` 为准），同步在 `utils/sync.js` ⇄ `cloudfunctions/sync`，家长端在 `cloudfunctions/family`。
+> 对应版本 v0.24.0。本地存储在 `utils/store.js`（键名以 `KEYS` 为准），同步在 `utils/sync.js` ⇄ `cloudfunctions/sync`，家长端在 `cloudfunctions/family`。
 
 ## 1. 本地存储
 
@@ -11,7 +11,7 @@
 | Key | 内容 | 结构 / 说明 | 同步 | 备份 |
 | --- | --- | --- | --- | --- |
 | `ttdr_profile` | 资料 | 单对象，见 §1.3；保存时盖 `updatedAt` | ✓ 新者胜 | ✓ |
-| `ttdr_records` | 打卡记录 | 数组，见 §1.4；删除为墓碑 | ✓ 增量 | ✓ |
+| `ttdr_records_YYYY` + `ttdr_records_years` | 打卡记录（按年分片，见 §1.4） | 每年一个数组 + 年份索引；删除为墓碑；旧版单一 `ttdr_records` 首次读取时自动迁移 | ✓ 增量 | ✓ |
 | `ttdr_badges` | 已获得勋章 | `[{ id, earnedAt }]` | ✓ 并集 | ✓ |
 | `ttdr_settings` | 设置 | `{ lastBackupAt, cheerFrom, ... }` | — | ✓ |
 | `ttdr_readings` | 跟读录音记录 | 音频文件只存本机，自动保留最近 7 天 | — | ✓ |
@@ -72,7 +72,8 @@
 - **补打卡**（0.21.0）：补卡记录额外带 `"makeup": true, "makeupAt": <补卡操作时间>`，`stars` 固定 1；只能补昨天/前天，每周最多补 2 天（按 `makeupAt` 所在周计）。
 - **`value.type` 冗余存储**：即便未来任务定义调整，历史记录仍可正确展示。
 - **不存任务名/板块**：从 `taskId` 经 `utils/tasks.js` 反查；反查失败时兜底显示 id。
-- 体量估算：清单每天 11-16 项（见 [content-tasks.md](content-tasks.md)），一年最多约 6000 条，wx storage（单 key 1MB）足够。
+- **按年分片存储**（0.24.0）：一年的记录约 350-400KB（模拟一年 2600 条约 340KB），而微信单键上限 1MB，单一大键约 2-3 年就会写入失败。现按年拆成 `records_2026`、`records_2027` …，每片只装一年；保存时只重写有变化的年份；已解析的分片缓存在内存里（只有本进程写存储），一个页面刷新时每个分片最多读一次。`node scripts/bench.js` 可复现测量。
+- **写入失败可见**：任何键写入失败（超出单键 1MB / 总量 10MB）时，本次会话仍从内存读到刚写的数据，并记录错误；「我的」页提示"手机存储空间不足……请马上导出备份"。此前失败会被静默吞掉，关掉小程序后数据丢失。
 
 ### 1.5 派生量（全部实时计算，不冗余存储）
 
@@ -103,10 +104,11 @@
 | `login` | — | 初始化用户档案；自愈创建 `users` / `checkins` / `badges` / `families` / `cheers` 集合 |
 | `sync` | `push` / `pull` / `reset` | 同步（§2.3）；`reset` 为一键清空云端 |
 | `family` | `create` / `join` / `summary` / `leave` | 邀请码绑定与家长拉取孩子摘要 |
-| | `grantParentSub` / `notify` / `config` | 家长订阅配额与勋章里程碑通知 |
+| | `grantParentSub` / `grantWeekly` / `notify` / `config` | 家长订阅配额（里程碑 / 周报）与勋章里程碑通知 |
 | | `cheer` / `cheers` / `cheerRead` / `cheerReact` | 家长留言、列表、已读、孩子表情回复 |
 | `remind` | `config` / `grant` / `status` / `disable` | 每日提醒订阅配额管理 |
 | `dailyRemind` | 定时触发 | 每天 20:00（`config.json` 的 `0 0 20 * * * *`）给有配额且当天还有任务没打卡的用户发提醒 |
+| `weeklyReport` | 定时触发 | 每周一 08:00（`0 0 8 * * 1 *`）给订阅了周报的家长推送孩子上周摘要（打卡 / 达成天数 / 星星），日期按北京时间计算（服务器可能是 UTC） |
 
 ### 2.3 同步协议（`utils/sync.js` ⇄ `cloudfunctions/sync`）
 
@@ -133,7 +135,7 @@
 | `users` | `{ openid, profile, taskOverrides, shop, practice: { drill[], quiz[], review[], goals }, wrongBook: { math[], quiz[], updatedAt }, remindEnabled, remindQuota, remindHour, createdAt }` | `login` 首次调用自动创建 |
 | `checkins` | 本地 record + `openid` | 推荐索引：`(openid+updatedAt)`、`(openid+date)` |
 | `badges` | `{ openid, id, earnedAt }` | 并集写入 |
-| `families` | `{ code, ownerOpenid, ownerProfile, members:[{openid, parentSubQuota, joinedAt}], createdAt }` | `code` 为 6 位邀请码（去除易混淆字符 0/O/1/I/L） |
+| `families` | `{ code, ownerOpenid, ownerProfile, members:[{openid, parentSubQuota, weeklyQuota, joinedAt}], createdAt }` | `code` 为 6 位邀请码（去除易混淆字符 0/O/1/I/L） |
 | `cheers` | `{ ownerOpenid, fromOpenid, from, text, recordId, recordLabel, createdAt, readAt, reaction, reactedAt }` | 家长鼓励留言与孩子的表情回复，只经 `family` 云函数读写；建议集合权限设为「所有用户不可读写」。推荐索引：`(ownerOpenid+createdAt)`、`(fromOpenid+createdAt)` |
 
 ### 2.5 家人绑定与留言流程
@@ -163,8 +165,9 @@
 | --- | --- | --- |
 | 每日打卡提醒 | `dailyRemind` 定时触发 | 当天还有任务没打卡时：昵称 + "还有 N 项任务没打卡"（全部完成则不发） |
 | 里程碑通知（家长） | 孩子打卡后评估出新勋章 | 孩子昵称 + 勋章名/描述 |
+| 周报推送（家长） | `weeklyReport` 每周一 08:00 | 「小豆上周周报」+「打卡6天·达成5天·⭐38」，点开进入报告页；家长在首页周报卡订阅（`family.grantWeekly`） |
 
-模板 ID 配置在 `cloudfunctions/remind/config.js` 与 `cloudfunctions/dailyRemind/config.js`（两处必须是同一个提醒模板）、`cloudfunctions/family/config.js`（家长通知模板）；占位符 `REPLACE_...` 未替换时相关功能自动跳过。`thing1/thing2` 字段名需与申请的模板一致。
+模板 ID 配置在 `cloudfunctions/remind/config.js` 与 `cloudfunctions/dailyRemind/config.js`（两处必须是同一个提醒模板）、`cloudfunctions/family/config.js`（家长通知模板 `NOTIFY_TEMPLATE_ID`；周报模板 `WEEKLY_TEMPLATE_ID` 须与 `cloudfunctions/weeklyReport/config.js` 相同）；占位符 `REPLACE_...` 未替换时相关功能自动跳过。`thing1/thing2` 字段名需与申请的模板一致。
 
 ### 2.7 共享逻辑
 
@@ -175,5 +178,6 @@
 | `dailyRemind` | `tasks.js` / `date.js` / `calendar-config.js` | 判定"今天是否全部完成"与客户端清单一致 |
 | `sync` | `history-merge.js` | 练习记录、复习日志、周目标的合并规则 |
 | `family` | `cheer.js` | 留言称呼、常用语、长度与回复表情校验 |
+| `weeklyReport` | `tasks.js` / `date.js` / `calendar-config.js` / `week-brief.js` | 上周摘要与孩子端清单一致、按北京时间取日期 |
 
 修改这些源文件后需重跑脚本并重新上传对应云函数；`node scripts/sync-cloud-libs.js --check` 只校验不写入，客户端测试也会校验 lib 与源文件一致。

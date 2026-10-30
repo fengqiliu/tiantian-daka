@@ -379,6 +379,36 @@ t('绑定 → 家长看孩子进度/日历/错题本 → 留言 → 孩子表情
     });
 });
 
+console.log('— 周报推送订阅 —');
+t('家长首页订阅周报：模板未配置时提示；配置后授权成功累加配额', () => {
+  cloud.init('test-env');
+  CM.setOpenid('kid1');
+  return CM.load('login').main({}).then(() => cloud.familyCreate()).then(res => {
+    CM.setOpenid('mom');
+    return CM.load('family').main({ action: 'join', code: res.code });
+  }).then(() => {
+    store.saveProfile({ role: 'parent', onboarded: true });
+    const home = load('pages/index/index');
+    home.onSubscribeWeekly();
+    return H.flush().then(() => {
+      assert.strictEqual(ui.toasts.pop(), '模板 ID 未配置', '占位模板时不打扰家长');
+      CM.setConfig('family', { NOTIFY_TEMPLATE_ID: 'tmpl-n', WEEKLY_TEMPLATE_ID: 'tmpl-weekly' });
+      home.onSubscribeWeekly();
+      return H.flush();
+    }).then(() => {
+      assert.strictEqual(ui.toasts.pop(), '已订阅，下周一早上推送');
+      const m = CM.db.families[0].members.find(x => x.openid === 'mom');
+      assert.strictEqual(m.weeklyQuota, 1);
+      ui.subscribeAnswer = 'reject';
+      home.onSubscribeWeekly();
+      return H.flush();
+    }).then(() => {
+      assert.strictEqual(ui.toasts.pop(), '未授权订阅');
+      assert.strictEqual(CM.db.families[0].members.find(x => x.openid === 'mom').weeklyQuota, 1, '拒绝不加配额');
+    });
+  });
+});
+
 console.log('— 学期成长报告 —');
 t('成长页入口 → 学期报告：当前学期、可往前翻、不能翻到未来；家长端读孩子数据', () => {
   child(2);
@@ -410,6 +440,202 @@ t('成长页入口 → 学期报告：当前学期、可往前翻、不能翻到
   const pp = load('pages/term/term');
   pp.onLoad();
   assert.deepStrictEqual([pp.data.role, pp.data.s.checkinDays], ['parent', 1]);
+});
+
+console.log('— 任务管理 —');
+function withOverrides(fn) {
+  T.setOverrideProvider(() => store.getTaskOverrides()); // 与 app.js 启动时一致
+  try { return fn(); } finally { T.setOverrideProvider(null); }
+}
+t('调整目标：保存后今日清单用新目标，恢复默认后回到原值；完成类任务不能调', () => withOverrides(() => {
+  child(2);
+  const p = load('pages/tasks-manage/tasks-manage');
+  p.onLoad();
+  const def = T.generateDailyTasks(2, today()).find(x => x.id === 'pe_rope').target;
+  p.onEdit(tap({ id: 'pe_rope' }));
+  p.onEditPlus(); p.onEditPlus();
+  p.onEditSave();
+  assert.strictEqual(T.generateDailyTasks(2, today()).find(x => x.id === 'pe_rope').target, def + 20);
+  assert.strictEqual(ui.toasts.pop(), '已保存 ✓');
+  p.onEdit(tap({ id: 'pe_rope' }));
+  p.onEditReset();
+  assert.strictEqual(T.generateDailyTasks(2, today()).find(x => x.id === 'pe_rope').target, def);
+  p.onEdit(tap({ id: 'habit_sleep' }));
+  assert.strictEqual(ui.toasts.pop(), '该任务完成即可，无需调整');
+}));
+t('添加自定义任务：今天起出现在清单里，不追溯到过去的完成率；可以删除', () => withOverrides(() => {
+  child(2);
+  const p = load('pages/tasks-manage/tasks-manage');
+  p.onLoad();
+  p.onToggleForm();
+  p.onFormSubmit();
+  assert.strictEqual(ui.toasts.pop(), '先给任务起个名字');
+  p.onFormName(input('练钢琴'));
+  p.onFormType(tap({ key: 'duration' }));
+  p.onFormSubmit();
+  assert.strictEqual(ui.toasts.pop(), '已添加，今天起出现在清单里 ✓');
+  const custom = store.getTaskOverrides().customs[0];
+  assert.strictEqual(custom.from, today(), '记录生效日期');
+  assert(T.generateDailyTasks(2, today()).some(x => x.id === custom.id), '今天的清单里有');
+  assert(!T.generateDailyTasks(2, D.addDays(today(), -1)).some(x => x.id === custom.id), '昨天的清单里没有');
+  const REPORT = require('../utils/report');
+  const rate = REPORT.taskRates([], 2, 30, today()).find(a => a.id === custom.id);
+  assert.strictEqual(rate.appeared, 1, '近 30 天只出现了今天这 1 次，不会显示 0/30');
+  p.onDelCustom(tap({ id: custom.id }));
+  assert.strictEqual(store.getTaskOverrides().customs.length, 0);
+  assert(!T.generateDailyTasks(2, today()).some(x => x.id === custom.id));
+}));
+
+console.log('— 古诗与跟读 —');
+t('古诗：同一天背两首后重新进入页面，两首都显示已背，不能重复计数', () => {
+  child(1);
+  let p = load('pages/poems/poems');
+  p.onLoad();
+  const [a, b] = p.data.poems;
+  p.onRecite(tap({ id: a.id }));
+  p.onRecite(tap({ id: b.id }));
+  assert.strictEqual(store.getRecords().find(r => r.taskId === 'chinese_poem').value.n, 2);
+  p = load('pages/poems/poems'); // 重新进入
+  p.onLoad();
+  assert.strictEqual(p.data.poems.find(x => x.id === a.id).doneToday, true, '第一首仍显示已背');
+  assert.strictEqual(p.data.poems.find(x => x.id === b.id).doneToday, true, '第二首仍显示已背');
+  p.onRecite(tap({ id: a.id }));
+  assert.strictEqual(ui.toasts.pop(), '今天这首已经背过啦');
+  assert.strictEqual(store.getRecords().find(r => r.taskId === 'chinese_poem').value.n, 2, '没有重复计数');
+});
+t('跟读教室：录一句 → 保存录音 → 回放 → 完成打卡', () => {
+  child(1);
+  const p = load('pages/read-aloud/read-aloud');
+  p.onLoad();
+  assert.strictEqual(p.data.canFinish, false);
+  const first = p.data.cards[0];
+  p.onRecord(tap({ id: first.id }));
+  assert.strictEqual(ui.recorder.starts, 1);
+  p.onRecord(tap({ id: p.data.cards[1].id }));
+  assert.strictEqual(ui.toasts.pop(), '先完成当前录音哦');
+  p.onStop();
+  ui.recorder.fireStop({ tempFilePath: 'tmp://a.mp3', duration: 3200 });
+  assert.strictEqual(p.data.recordingId, '');
+  assert.strictEqual(p.data.recordedCount, 1);
+  assert.strictEqual(p.data.canFinish, true);
+  p.onPlay(tap({ id: first.id }));
+  assert(/readaloud\/.*\.mp3$/.test(ui.played), '播放保存到用户目录的录音：' + ui.played);
+  p.onFinish();
+  const rec = store.getRecords().find(r => r.taskId === 'english_listen');
+  assert(rec, '完成跟读打卡');
+  assert(/跟读教室 1\//.test(rec.note));
+  assert(ui.navs.includes('back'));
+});
+t('跟读教室：麦克风权限被拒时引导去设置', () => {
+  child(1);
+  const p = load('pages/read-aloud/read-aloud');
+  p.onLoad();
+  p.onRecord(tap({ id: p.data.cards[0].id }));
+  ui.recorder.fireError({ errMsg: 'operateRecorder:fail auth deny' });
+  assert.strictEqual(ui.modals.pop(), '无法录音');
+  assert.strictEqual(ui.openedSetting, 1);
+  assert.strictEqual(p.data.recordingId, '', '录音状态复位');
+});
+
+console.log('— 我的：资料、备份、身份 —');
+t('改年级后今日清单跟着变', () => {
+  child(1);
+  const p = load('pages/profile/profile');
+  p.onShow();
+  p.pickGrade(tap({ grade: 5 }));
+  p.save();
+  assert.strictEqual(store.getProfile().grade, 5);
+  const rope = T.generateDailyTasks(5, today()).find(x => x.id === 'pe_rope');
+  const home = load('pages/index/index');
+  home.onShow();
+  const tasks = home.data.sections.reduce((a, s) => a.concat(s.tasks), []);
+  assert.strictEqual(tasks.find(x => x.id === 'pe_rope').targetLabel.indexOf(String(rope.target)) > -1, true);
+});
+t('导出到剪贴板 → 清空 → 从剪贴板导入，数据恢复；坏数据给出原因', () => {
+  child(2);
+  C.upsertRecord(today(), 'pe_rope', 100, 3, '');
+  const p = load('pages/profile/profile');
+  p.onShow();
+  p.exportData();
+  const text = ui.clipboard;
+  assert.strictEqual(JSON.parse(text).app, 'tiantian-daka');
+  store.clearAll();
+  child(2);
+  const p2 = load('pages/profile/profile');
+  p2.onShow();
+  p2.importData();
+  assert.strictEqual(ui.modals.pop(), '确认导入');
+  assert.strictEqual(store.getRecords().length, 1, '记录恢复');
+  assert.strictEqual(ui.toasts.pop(), '恢复完成 ✓');
+  ui.clipboard = '不是备份';
+  p2.importData();
+  assert.strictEqual(ui.modals.pop(), '导入失败');
+});
+t('切换到家长模式再切回来，孩子的年级不变', () => {
+  child(1);
+  let p = load('pages/profile/profile');
+  p.onShow();
+  p.switchRole();
+  assert.strictEqual(store.getProfile().role, 'parent');
+  p = load('pages/profile/profile');
+  p.onShow();
+  p.switchRole();
+  assert.strictEqual(store.getProfile().role, 'child');
+  assert.strictEqual(store.getProfile().grade, 1, '年级应恢复为 1，而不是默认的 3');
+});
+
+console.log('— 存储读取与写入失败 —');
+t('每个页面刷新时，每个打卡记录年分片最多从存储读一次（一年数据）', () => {
+  // 计数后端：包一层内存存储，统计每个键被读的次数
+  const mem = {};
+  const reads = {};
+  const counting = {
+    get(k) { reads[k] = (reads[k] || 0) + 1; return mem[k]; },
+    set(k, v) { mem[k] = JSON.parse(JSON.stringify(v)); },
+    remove(k) { delete mem[k]; },
+  };
+  store.init(counting);
+  try {
+    store.saveProfile({ role: 'child', grade: 3, nickname: '小豆', onboarded: true });
+    require('./perf-fixture').seedYear(today(), 365, 3);
+    const R = require('../utils/report');
+    const pages = {
+      index: () => load('pages/index/index').refreshChild(store.getProfile()),
+      calendar: () => load('pages/calendar/calendar').onShow(),
+      growth: () => load('pages/growth/growth').onShow(),
+      report: () => { const p = load('pages/report/report'); p.setData({ weekMonday: R.lastWeekMonday(today()) }); p.refresh(); },
+      term: () => load('pages/term/term').onLoad(),
+      profile: () => load('pages/profile/profile').onShow(),
+    };
+    Object.keys(pages).forEach(name => {
+      store.init(counting); // 冷缓存：模拟刚打开小程序
+      Object.keys(reads).forEach(k => delete reads[k]);
+      pages[name]();
+      const shards = Object.keys(reads).filter(k => /^records_\d{4}$/.test(k));
+      assert(shards.length >= 1, name + ' 应读到记录分片');
+      shards.forEach(k => assert.strictEqual(reads[k], 1, name + ' 读了 ' + k + ' ' + reads[k] + ' 次'));
+    });
+  } finally {
+    store.init();
+  }
+});
+t('存储写入失败时「我的」页提示导出备份', () => {
+  const mem = {};
+  store.init({
+    get(k) { return mem[k]; },
+    set(k, v) { if (/^records_/.test(k)) throw new Error('setStorageSync:fail exceed max size'); mem[k] = v; },
+    remove(k) { delete mem[k]; },
+  });
+  try {
+    child(2);
+    C.upsertRecord(today(), 'pe_rope', 100, 2, '');
+    const p = load('pages/profile/profile');
+    p.onShow();
+    assert(/存储空间不足/.test(p.data.backupHint), p.data.backupHint);
+    assert.strictEqual(store.getRecords().length, 1, '当前会话数据还在');
+  } finally {
+    store.init();
+  }
 });
 
 console.log('— 报告 —');

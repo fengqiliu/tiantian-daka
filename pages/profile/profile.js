@@ -6,7 +6,7 @@ const BACKUP = require('../../utils/backup');
 const RESET = require('../../utils/reset');
 
 const AVATARS = ['🐱', '🦊', '🐰', '🐻', '🐸', '🦁', '🐼', '🐷'];
-const APP_VERSION = '0.23.0';
+const APP_VERSION = '0.24.0';
 
 Page({
   data: {
@@ -44,9 +44,12 @@ Page({
     const grade = s.grade;
     // 备份提醒：有数据且 7 天未备份时温和提示
     const lastBackupAt = (store.getSettings() || {}).lastBackupAt || 0;
-    const backupHint = records.length >= 20 && Date.now() - lastBackupAt > 7 * 24 * 3600 * 1000
-      ? '已积累 ' + records.length + ' 条打卡记录，建议先导出备份'
-      : '';
+    // 存储写入失败（手机存储空间不足等）优先提示：本次会话数据还在，但关掉小程序可能丢失
+    const backupHint = store.getStorageError()
+      ? '手机存储空间不足，部分数据可能没保存成功，请马上导出备份'
+      : records.length >= 20 && Date.now() - lastBackupAt > 7 * 24 * 3600 * 1000
+        ? '已积累 ' + records.length + ' 条打卡记录，建议先导出备份'
+        : '';
     this.setData({
       profile,
       role: s.role,
@@ -162,7 +165,12 @@ Page({
         : '切换回「孩子模式」打卡。数据互不影响，随时可再切换。',
       success: res => {
         if (!res.confirm) return;
-        store.saveProfile({ ...this.data.profile, role: toRole, grade: toRole === 'parent' ? 0 : (this.data.profile.grade || 3) });
+        // 家长身份 grade 为 0，切过去时把孩子的年级存到 childGrade，切回时恢复
+        // （之前切回时 grade 已是 0，回落成默认 3 年级，整张任务清单都变了）
+        const prof = this.data.profile;
+        store.saveProfile(toRole === 'parent'
+          ? { ...prof, role: 'parent', grade: 0, childGrade: prof.grade || prof.childGrade || 3 }
+          : { ...prof, role: 'child', grade: prof.childGrade || prof.grade || 3 });
         wx.reLaunch({ url: '/pages/index/index' });
       },
     });

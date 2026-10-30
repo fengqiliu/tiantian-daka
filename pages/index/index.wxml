@@ -62,6 +62,7 @@
         <view class="muted weekly-line">{{weekly.line}}</view>
         <view class="weekly-item" wx:if="{{weekly.highlight}}">🌟 {{weekly.highlight}}</view>
         <view class="weekly-item" wx:if="{{weekly.attention}}">💡 {{weekly.attention}}</view>
+        <view class="weekly-sub" catchtap="onSubscribeWeekly">🔔 每周一早上推送周报到微信</view>
       </view>
 
       <view class="card row">

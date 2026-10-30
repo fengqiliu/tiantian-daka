@@ -306,6 +306,14 @@ Page({
     wx.navigateTo({ url: '/pages/report/report' });
   },
 
+  // 家长订阅周报推送（一次授权推送一次，可多次授权累计，上限 3）
+  onSubscribeWeekly() {
+    cloud.subscribeAndGrant('weekly').then(res => {
+      if (res && res.ok) wx.showToast({ title: '已订阅，下周一早上推送', icon: 'none' });
+      else wx.showToast({ title: (res && res.error) || '订阅失败', icon: 'none' });
+    });
+  },
+
   onBindInput(e) { this.setData({ bindCode: e.detail.value }); },
 
   onBind() {

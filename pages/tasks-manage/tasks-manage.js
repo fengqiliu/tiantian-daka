@@ -154,12 +154,13 @@ Page({
       unit: formType === 'duration' ? '分钟' : formType === 'count' ? '个' : '',
       target: formType === 'done' ? 1 : formTarget,
       desc: '自定义任务',
+      from: D.todayStr(), // 从今天起出现，不追溯到过去的清单
     });
     store.saveTaskOverrides(o);
     cloud.syncAll();
     this.setData({ formOpen: false, formName: '', formTarget: 20 });
     this.refresh();
-    wx.showToast({ title: '已添加，明天开始生效 ✓', icon: 'none' });
+    wx.showToast({ title: '已添加，今天起出现在清单里 ✓', icon: 'none' });
   },
 
   onDelCustom(e) {
