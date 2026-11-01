@@ -118,10 +118,10 @@
       <view class="muted">{{masteryLine}}</view>
     </view>
     <block wx:if="{{mastery.length}}">
-      <view class="row wb-item" wx:for="{{mastery}}" wx:key="name" wx:for-item="m">
+      <view class="row wb-item" wx:for="{{mastery}}" wx:key="name" wx:for-item="m" data-subject="{{m.subject}}" data-unit="{{m.unit}}" data-can="{{m.canPractice}}" bindtap="onPracticeUnit">
         <view class="flex1 wb-text">{{m.name}}<text class="rp-wrong" wx:if="{{m.wrongOpen}}"> · 错题 {{m.wrongOpen}}</text></view>
         <view class="muted">{{m.text}}</view>
-        <view class="rp-mark {{m.status}}">{{m.mark}}</view>
+        <view class="rp-mark {{m.status}}">{{m.mark}}{{m.canPractice ? ' ›' : ''}}</view>
       </view>
       <view class="muted rp-empty">按小卷和期末冲刺的全部作答累计；答满 3 题才判断，正确率 80% 以上算掌握</view>
     </block>

@@ -29,6 +29,7 @@ Page({
     totalStars: 0,
     streak: 0,
     reviewDue: 0,
+    exam: null, // 期末倒计时卡
     reviewDone: false,
     cheer: null, // { cheer, unread }：家长留言横幅
     reactions: CHEER.REACTIONS,
@@ -108,7 +109,23 @@ Page({
       cheer: CHEER.banner(store.getCheers()),
       goal: this.goalView(store.getGoals(), goalData, today),
       timing: this.timingView(),
+      exam: this.examView(tasks, records, today),
     });
+  },
+
+  // 期末倒计时卡：今日清单里有「期末冲刺」（一年级、放假前 3 周）时显示
+  examView(tasks, records, today) {
+    const cd = CAL.examCountdown(today);
+    if (!cd || !tasks.some(t => t.id === 'exam_sprint')) return null;
+    return {
+      title: '距离' + cd.name + '还有 ' + cd.daysLeft + ' 天',
+      emoji: cd.emoji,
+      done: records.some(r => r.taskId === 'exam_sprint'),
+    };
+  },
+
+  goSprint() {
+    wx.navigateTo({ url: '/pages/quiz/quiz?mode=sprint' });
   },
 
   // 进行中的计时（首页只在打开时刷新，精确读秒在任务页）

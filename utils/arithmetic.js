@@ -108,6 +108,35 @@ function generate(level, n, rng, excludeKeys) {
   return out;
 }
 
+// 答错时的方法提示（对齐一年级上册第五、六单元与一下的破十法），不适用的题返回 ''
+function hintOf(p) {
+  if (!p || p.kind !== 'result') return '';
+  const { a, b } = p;
+  if (p.op === '+') {
+    // 进位加：两个一位数凑十（把小数分成"凑十的数"和"剩下的数"）
+    if (a <= 9 && b <= 9 && a + b > 10) {
+      const big = Math.max(a, b), small = Math.min(a, b), need = 10 - big, rest = small - need;
+      return `凑十：把 ${small} 分成 ${need} 和 ${rest}，${big}+${need}=10，10+${rest}=${a + b}`;
+    }
+    // 十几加几（不进位）
+    if (a > 10 && a < 20 && b <= 9 && a % 10 + b <= 9) {
+      const ones = a % 10 + b;
+      return `先算个位：${a % 10}+${b}=${ones}，再算 10+${ones}=${a + b}`;
+    }
+    return '';
+  }
+  if (p.op === '-' && a > 10 && a <= 20) {
+    if (b === 10) return `拿走 1 个十：${a}-10=${a - 10}`;
+    if (a < 20 && b >= 1 && b <= a % 10) {
+      const ones = a % 10 - b;
+      return `先算个位：${a % 10}-${b}=${ones}，再算 10+${ones}=${a - b}`;
+    }
+    // 退位减（一下）：破十法，从 10 里减，再加上个位
+    if (a < 20 && b > a % 10 && b <= 9) return `破十法：10-${b}=${10 - b}，${10 - b}+${a % 10}=${a - b}`;
+  }
+  return '';
+}
+
 // 判定
 function check(problem, input) {
   return Number(input) === problem.answer;
@@ -180,7 +209,7 @@ function getSessions() { return store.getDrillHistory(); }
 
 module.exports = {
   LEVELS, LEVEL_ORDER,
-  randInt, generate, check, textOf,
+  randInt, generate, check, textOf, hintOf,
   markResult, buildSession, recommendByGrade,
   saveSession, getSessions,
 };

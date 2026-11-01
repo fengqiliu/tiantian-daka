@@ -20,4 +20,20 @@ function holidayAt(dateStr) {
   return null;
 }
 
-module.exports = { HOLIDAYS, holidayAt };
+// 期末倒计时：dateStr 距下一个假期开始还有 1..days 天时返回 { name, emoji, start, daysLeft }，否则 null
+// （期末考试一般在放假前一两周，提前 3 周开始复习冲刺）
+const COUNTDOWN_DAYS = 21;
+function examCountdown(dateStr, days) {
+  if (!dateStr || holidayAt(dateStr)) return null;
+  const limit = days || COUNTDOWN_DAYS;
+  const dayMs = 24 * 3600 * 1000;
+  const ts = s => Date.UTC(+s.slice(0, 4), +s.slice(5, 7) - 1, +s.slice(8, 10));
+  for (const h of HOLIDAYS) {
+    if (h.start <= dateStr) continue;
+    const daysLeft = Math.round((ts(h.start) - ts(dateStr)) / dayMs);
+    return daysLeft <= limit ? { name: h.name, emoji: h.emoji, start: h.start, daysLeft } : null;
+  }
+  return null;
+}
+
+module.exports = { HOLIDAYS, COUNTDOWN_DAYS, holidayAt, examCountdown };

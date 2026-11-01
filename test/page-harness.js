@@ -2,7 +2,7 @@
 // - Page() 捕获定义对象，实例的 setData 合并进 data（与小程序一致的浅合并）
 // - wx.* 记录 toast / modal / 跳转等，modal 与 actionSheet 的选择可预设
 // - wx.cloud.callFunction 接到真实云函数代码 + 内存数据库（cloud-mock）
-// - setTimeout 立即执行、setInterval 交给测试手动触发、Date.now 可冻结
+// - setTimeout 立即执行、setInterval 交给测试手动触发、Date.now 可冻结、"今天"可固定（setToday）
 const path = require('path');
 const CM = require('./cloud-mock');
 
@@ -111,9 +111,19 @@ function load(route) {
 }
 
 function setNow(ms) { Date.now = () => ms; }
-function restoreNow() { Date.now = realNow; }
+// 把"今天"固定到某个日期（10:00）：无参 new Date() 与 Date.now() 都返回该时刻
+const RealDate = Date;
+function setToday(dateStr) {
+  const ms = new RealDate(dateStr + 'T10:00:00').getTime();
+  class FrozenDate extends RealDate {
+    constructor(...args) { if (args.length) super(...args); else super(ms); }
+    static now() { return ms; }
+  }
+  global.Date = FrozenDate;
+}
+function restoreNow() { global.Date = RealDate; Date.now = realNow; }
 
 // 让 Promise 链（云调用）跑完
 function flush() { return new Promise(r => setImmediate(r)).then(() => new Promise(r => setImmediate(r))); }
 
-module.exports = { ui, resetUI, load, setNow, restoreNow, flush, CM };
+module.exports = { ui, resetUI, load, setNow, setToday, restoreNow, flush, CM };

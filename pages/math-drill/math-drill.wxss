@@ -57,3 +57,12 @@
 
 .md-done { text-align: center; padding: 48rpx 32rpx; }
 .md-done-emoji { font-size: 96rpx; margin-bottom: 12rpx; }
+
+.md-hint {
+  margin-top: 12rpx;
+  padding: 14rpx 20rpx;
+  background: #FFF4D6;
+  border-radius: 16rpx;
+  font-size: 28rpx;
+  color: #8A5A00;
+}

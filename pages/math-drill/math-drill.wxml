@@ -20,6 +20,7 @@
       <view class="md-q {{feedback === 'wrong' ? 'wrong' : feedback === 'right' ? 'right' : ''}}">
         {{feedback === 'wrong' ? wrongText : problems[idx].text}}
       </view>
+      <view class="md-hint" wx:if="{{feedback === 'wrong' && hint}}">💡 {{hint}}</view>
       <view class="md-input">{{input || '_'}}</view>
     </view>
 

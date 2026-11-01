@@ -29,6 +29,12 @@ const DEFS = {
     target: { low: 30, mid: 40, high: 60 },
     desc: '按计划推进假期作业，每天固定时间做一点，开学前从容完成，不搞最后突击。',
   },
+  // ── 学习（期末复习：一年级放假前 3 周，见 calendar-config.examCountdown）──
+  exam_sprint: {
+    section: 'study', name: '期末冲刺', emoji: '🏁', type: 'done', unit: '',
+    target: { low: 1, mid: 1, high: 1 },
+    desc: '做一份「期末冲刺」小卷：全册每个单元都会抽到，错得多的单元多练。做完自动打卡，看看哪个单元还要再练。',
+  },
   // ── 语文 ──
   chinese_read: {
     section: 'chinese', name: '课文朗读', emoji: '📖', type: 'duration', unit: '分钟',
@@ -249,6 +255,8 @@ function _generateDailyTasksUncached(grade, dateStr) {
       if (dow === 0) list.push(pick('chinese_diary')); // 周日：写周记
     }
   }
+  // 期末复习：小卷题库是一年级上册内容，先只给一年级加自选「期末冲刺」
+  if (Number(grade) === 1 && CAL.examCountdown(dateStr)) list.push(pick('exam_sprint'));
   return applyOverrides(list.filter(Boolean));
 }
 

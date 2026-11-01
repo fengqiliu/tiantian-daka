@@ -6,7 +6,10 @@ const RV = require('../../utils/review');
 
 const LEVEL_NAME = {};
 Object.keys(AR.LEVELS).forEach(k => { LEVEL_NAME[k] = AR.LEVELS[k].name; });
+const QB = require('../../utils/quiz-bank');
+
 const SUBJECT_NAME = { math: '数学', chinese: '语文', english: '英语' };
+const SUBJECT_ORDER = ['math', 'chinese', 'english'];
 
 Page({
   data: {
@@ -39,18 +42,25 @@ Page({
         key: w.key,
         text: AR.textOf(w.problem),
         answer: w.problem.answer,
+        hint: AR.hintOf(w.problem),
         wrongCount: w.wrongCount,
         schedule: this._schedule(w, today),
       });
     });
     const mathGroups = Object.keys(byLevel).map(name => ({ name, items: byLevel[name] }));
 
-    // 小卷错题：按科目分组
+    // 小卷错题：按「科目 · 单元」分组（数学→语文→英语，单元升序，期末在最后），孩子端可只练这一组
     const quizWrong = s.quizWrong;
-    const bySubject = {};
+    const byUnit = {};
     quizWrong.forEach(w => {
-      const name = SUBJECT_NAME[w.subject] || w.subject;
-      (bySubject[name] = bySubject[name] || []).push({
+      const unit = w.question.unit;
+      const key = w.subject + '#' + unit;
+      const grp = byUnit[key] || (byUnit[key] = {
+        key, subject: w.subject, unit,
+        name: (SUBJECT_NAME[w.subject] || w.subject) + ' · ' + QB.unitLabel(unit),
+        items: [],
+      });
+      grp.items.push({
         key: w.key,
         text: w.question.prompt,
         answer: w.question.answerText || (w.question.answers || []).join('、'),
@@ -58,7 +68,8 @@ Page({
         schedule: this._schedule(w, today),
       });
     });
-    const quizGroups = Object.keys(bySubject).map(name => ({ name, items: bySubject[name] }));
+    const quizGroups = Object.values(byUnit)
+      .sort((a, b) => SUBJECT_ORDER.indexOf(a.subject) - SUBJECT_ORDER.indexOf(b.subject) || a.unit - b.unit);
 
     this.setData({
       mathGroups,
@@ -72,6 +83,13 @@ Page({
 
   goReview() {
     wx.navigateTo({ url: '/pages/review/review' });
+  },
+
+  // 只练这个单元的错题（家长端只读，不跳转）
+  onPracticeUnit(e) {
+    if (this.data.readOnly) return;
+    const { subject, unit } = e.currentTarget.dataset;
+    wx.navigateTo({ url: '/pages/quiz/quiz?subject=' + subject + '&unit=' + unit + '&wrong=1' });
   },
 
   onClearMath() {

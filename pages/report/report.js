@@ -47,6 +47,13 @@ Page({
     this.refresh();
   },
 
+  // 孩子端：从「再练练」的单元直接开这个单元的小卷（家长端只看不练）
+  onPracticeUnit(e) {
+    const { subject, unit, can } = e.currentTarget.dataset;
+    if (this.data.role === 'parent' || can === false) return;
+    wx.navigateTo({ url: '/pages/quiz/quiz?subject=' + subject + '&unit=' + unit });
+  },
+
   onRange(e) {
     this.setData({ range: Number(e.currentTarget.dataset.days) });
     this.refresh();
@@ -97,6 +104,7 @@ Page({
         name: row.subjectName + row.label,
         text: row.total ? row.correct + '/' + row.total + ' · ' + row.rate + '%' : '还没有作答记录',
         mark: MARK[row.status],
+        canPractice: s.role !== 'parent' && row.status === 'practice', // 孩子端点「再练练」直接开这个单元的小卷
       }))
       .sort((a, b) => (a.status === 'practice' ? 0 : 1) - (b.status === 'practice' ? 0 : 1));
     const needCount = mastery.filter(row => row.status === 'practice').length;

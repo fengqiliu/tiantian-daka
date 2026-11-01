@@ -125,6 +125,19 @@ function buildSprint(subject, n, rng) {
   return { cards, total: cards.length };
 }
 
+// 错题专练：只出某科某单元的错题（按到期先后，最多 n 题）
+function buildWrongQuiz(subject, unit, rng, n) {
+  rng = rng || Math.random;
+  const u = Number(unit);
+  const items = store.getQuizWrong()
+    .filter(w => w.subject === subject && w.question.unit === u)
+    .sort((a, b) => ((a.due || '') < (b.due || '') ? -1 : (a.due || '') > (b.due || '') ? 1 : 0))
+    .slice(0, n || 10)
+    .map(w => w.question);
+  const cards = shuffle(items, rng).map(q => instantiate(q, rng));
+  return { cards, total: cards.length };
+}
+
 // 冲刺卷分单元结果：results 为 [{ unit, ok }]，按单元汇总，正确率 ≥80% 记为掌握
 const MASTERED_MIN = 0.8;
 function unitBreakdown(results) {
@@ -157,4 +170,4 @@ function saveHistory(entry) {
 
 function getHistory() { return store.getQuizHistory(); }
 
-module.exports = { GRADES, verdict, subjects, poolFor, buildQuiz, buildSprint, unitBreakdown, instantiate, gradeMulti, markResult, saveHistory, getHistory };
+module.exports = { GRADES, verdict, subjects, poolFor, buildQuiz, buildSprint, buildWrongQuiz, unitBreakdown, instantiate, gradeMulti, markResult, saveHistory, getHistory };

@@ -15,3 +15,7 @@
 .wb-empty { text-align: center; padding: 12rpx 0; }
 .wb-due { color: #9A948B; font-size: 22rpx; margin-top: 4rpx; }
 .wb-review { margin: 0 32rpx 20rpx; }
+
+.wb-group-row { align-items: center; }
+.wb-practice { font-size: 24rpx; color: #FF8A00; padding: 8rpx 0 8rpx 16rpx; }
+.wb-hint { margin-top: 6rpx; font-size: 24rpx; color: #8A5A00; }

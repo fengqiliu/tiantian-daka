@@ -19,6 +19,7 @@
           <view class="flex1">
             <view class="wb-text">{{q.text}}</view>
             <view class="wb-due">{{q.schedule}}</view>
+            <view class="wb-hint" wx:if="{{q.hint}}">💡 {{q.hint}}</view>
           </view>
           <view class="wb-answer">答案 {{q.answer}}</view>
           <view class="wb-count">错 {{q.wrongCount}} 次</view>
@@ -34,8 +35,11 @@
       <view class="wb-clear" bindtap="onClearQuiz" wx:if="{{quizCount && !readOnly}}">清空</view>
     </view>
     <block wx:if="{{quizGroups.length}}">
-      <view wx:for="{{quizGroups}}" wx:key="name" wx:for-item="grp">
-        <view class="muted wb-group">{{grp.name}}</view>
+      <view wx:for="{{quizGroups}}" wx:key="key" wx:for-item="grp">
+        <view class="row wb-group-row">
+          <view class="muted wb-group flex1">{{grp.name}}（{{grp.items.length}}）</view>
+          <view class="wb-practice" wx:if="{{!readOnly}}" data-subject="{{grp.subject}}" data-unit="{{grp.unit}}" bindtap="onPracticeUnit">只练这组 ›</view>
+        </view>
         <view class="row wb-item" wx:for="{{grp.items}}" wx:key="key" wx:for-item="q">
           <view class="flex1">
             <view class="wb-text">{{q.text}}</view>

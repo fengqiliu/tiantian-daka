@@ -168,6 +168,18 @@
       </view>
     </view>
 
+    <view wx:if="{{exam}}" class="card task-card row {{exam.done ? 'task-done' : ''}}" bindtap="goSprint">
+      <view class="task-emoji" style="background: #E8F1FF;">🏁</view>
+      <view class="flex1 task-info">
+        <view class="task-name">{{exam.emoji}} {{exam.title}}</view>
+        <view class="muted">{{exam.done ? '今天的期末冲刺完成啦，明天继续' : '期末复习：做一份期末冲刺卷，看看哪个单元还要再练'}}</view>
+      </view>
+      <view class="task-right">
+        <view wx:if="{{!exam.done}}" class="review-go">去冲刺</view>
+        <text wx:else class="task-stars">✓</text>
+      </view>
+    </view>
+
     <view wx:if="{{reviewDue > 0 || reviewDone}}" class="card task-card row {{reviewDue ? '' : 'task-done'}}" bindtap="goReview">
       <view class="task-emoji" style="background: #FFF1DC;">🧠</view>
       <view class="flex1 task-info">

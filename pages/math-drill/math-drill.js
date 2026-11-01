@@ -19,6 +19,7 @@ Page({
     correctCount: 0,
     feedback: '', // '' | 'right' | 'wrong'
     wrongText: '',
+    hint: '', // 答错时的方法提示（凑十 / 破十等）
     phase: 'drill', // drill | done
     stars: 0,
   },
@@ -86,17 +87,19 @@ Page({
       this.setData({ answered, correctCount, feedback: 'right' });
       this._pendingAdvance = setTimeout(() => this.advance(answered), 350);
     } else {
+      const hint = AR.hintOf(p); // 进位加凑十等方法提示：有提示时多停一会儿让孩子看完
       this.setData({
         answered, correctCount, feedback: 'wrong',
         wrongText: p.text + '  正确答案 ' + p.answer,
+        hint,
       });
-      this._pendingAdvance = setTimeout(() => this.advance(answered), 1100);
+      this._pendingAdvance = setTimeout(() => this.advance(answered), hint ? 2600 : 1100);
     }
   },
 
   advance(answered) {
     this._pendingAdvance = null;
-    this.setData({ feedback: '', input: '', wrongText: '' });
+    this.setData({ feedback: '', input: '', wrongText: '', hint: '' });
     if (answered >= this.data.total) {
       const acc = answered ? this.data.correctCount / answered : 0;
       this.setData({ phase: 'done', stars: acc === 1 ? 3 : acc >= 0.8 ? 2 : 1 });

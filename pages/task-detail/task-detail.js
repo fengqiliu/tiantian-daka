@@ -251,6 +251,10 @@ Page({
     wx.navigateTo({ url: '/pages/math-drill/math-drill' });
   },
 
+  goSprint() {
+    wx.navigateTo({ url: '/pages/quiz/quiz?mode=sprint' });
+  },
+
   onRemove() {
     const { task } = this.data;
     wx.showModal({

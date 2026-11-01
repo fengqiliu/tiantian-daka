@@ -393,6 +393,25 @@ t('校历：区间内外与边界判断', () => {
   assert.strictEqual(CAL.holidayAt('2026-11-11'), null);          // 学期中
   assert.strictEqual(CAL.holidayAt('2026-08-15').name, '暑假');
 });
+t('期末倒计时：假期开始前 21 天内返回剩余天数，假期中与更早都为 null', () => {
+  assert.strictEqual(CAL.examCountdown('2027-01-01'), null, '22 天前还不提示');
+  assert.deepStrictEqual(CAL.examCountdown('2027-01-02'), { name: '寒假', emoji: '❄️', start: '2027-01-23', daysLeft: 21 });
+  assert.strictEqual(CAL.examCountdown('2027-01-22').daysLeft, 1);
+  assert.strictEqual(CAL.examCountdown('2027-01-23'), null, '假期第一天');
+  assert.strictEqual(CAL.examCountdown('2026-10-31'), null);
+  assert.strictEqual(CAL.examCountdown('2027-06-20').name, '暑假');
+});
+t('期末冲刺任务：一年级在倒计时期间多一项自选「期末冲刺」，必做仍为 4 项', () => {
+  const inWindow = T.generateDailyTasks(1, '2027-01-05');
+  const sprint = inWindow.find(x => x.id === 'exam_sprint');
+  assert(sprint && !sprint.must, '自选任务');
+  assert.strictEqual(sprint.type, 'done');
+  assert.strictEqual(inWindow.filter(x => x.must).length, 4);
+  assert(T.generateDailyTasks(1, '2027-01-09').some(x => x.id === 'exam_sprint'), '周末也有');
+  assert(!T.generateDailyTasks(1, '2026-12-01').some(x => x.id === 'exam_sprint'), '窗口外没有');
+  assert(!T.generateDailyTasks(3, '2027-01-05').some(x => x.id === 'exam_sprint'), '题库是一年级内容，其他年级不出');
+  assert(!T.generateDailyTasks(1, '2027-01-25').some(x => x.id === 'exam_sprint'), '假期里没有');
+});
 t('假期生成：4 必做（作业/阅读/口算减量/户外120），无整理书包，轮换正确', () => {
   assert.strictEqual(D.dayOfWeek('2027-01-27'), 3, '测试日期应为周三');
   const ts = T.generateDailyTasks(3, '2027-01-27'); // 寒假周三
@@ -757,6 +776,28 @@ t('期末卷：unit 90 显示为「期末」，周报"反复错的题型"同样�
   const REPORT = require('../utils/report');
   const g = REPORT.stubbornGroup([], [{ subject: 'math', wrongCount: 5, question: { unit: QBANK.FINAL_UNIT } }]);
   assert.strictEqual(g.name, '数学期末');
+});
+t('口算提示：进位加凑十、十几加几、不退位减、减整十、退位减破十，其余不提示', () => {
+  const h = (a, op, b) => AR.hintOf({ kind: 'result', a, op, b, c: null, answer: op === '+' ? a + b : a - b });
+  assert.strictEqual(h(9, '+', 6), '凑十：把 6 分成 1 和 5，9+1=10，10+5=15');
+  assert.strictEqual(h(6, '+', 9), '凑十：把 6 分成 1 和 5，9+1=10，10+5=15', '大数凑十');
+  assert.strictEqual(h(8, '+', 2), '', '正好凑成 10 不用提示');
+  assert.strictEqual(h(12, '+', 5), '先算个位：2+5=7，再算 10+7=17');
+  assert.strictEqual(h(18, '-', 6), '先算个位：8-6=2，再算 10+2=12');
+  assert.strictEqual(h(18, '-', 10), '拿走 1 个十：18-10=8');
+  assert.strictEqual(h(13, '-', 8), '破十法：10-8=2，2+3=5');
+  assert.strictEqual(h(5, '+', 3), '');
+  assert.strictEqual(h(45, '+', 38), '');
+  assert.strictEqual(AR.hintOf({ kind: 'missing', a: 3, op: '+', b: null, c: 9, answer: 6 }), '');
+});
+t('错题专练：只出指定单元的错题', () => {
+  reset();
+  const u5 = QZ.poolFor('math').filter(q => q.unit === 5).slice(0, 3);
+  const u6 = QZ.poolFor('math').filter(q => q.unit === 6).slice(0, 2);
+  u5.concat(u6).forEach(q => QZ.markResult(q, false, '2026-10-30'));
+  const s = QZ.buildWrongQuiz('math', 5, seededRng(4));
+  assert.deepStrictEqual(s.cards.map(c => c.id).sort(), u5.map(q => q.id).sort());
+  assert.strictEqual(QZ.buildWrongQuiz('english', 2).total, 0);
 });
 t('题库与知识库对齐：每道题的单元都有试卷数据，index.json 收录全部数据文件', () => {
   const fs = require('fs');

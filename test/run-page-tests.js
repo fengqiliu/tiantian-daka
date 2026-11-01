@@ -26,8 +26,10 @@ function reset() {
   CM.reset();
   H.resetUI();
   H.restoreNow();
+  H.setToday(TEST_TODAY); // 固定在一个上学日：清单随星期变化（周末无跳绳、阅读加量），测试不能随运行日期变
   cloud.init(''); // 默认纯本地模式；需要云的用例自行 cloud.init('test-env')
 }
+const TEST_TODAY = '2026-10-28'; // 周三，学期中
 const today = () => D.todayStr();
 const child = (grade) => store.saveProfile({ role: 'child', grade: grade || 2, nickname: '小豆', onboarded: true });
 const tap = data => ({ currentTarget: { dataset: data } });
@@ -250,6 +252,87 @@ t('小卷历史按单元记下答题数；家长报告显示各单元掌握情�
   assert.strictEqual(row.text, h.correct + '/' + h.total + ' · ' + row.rate + '%');
   assert(row.wrongOpen > 0, '带上错题本未销账题数');
   assert.strictEqual(rp.data.masteryLine, '1 个单元需要再练');
+});
+t('期末倒计时：一年级寒假前首页出倒计时卡，做完冲刺卷自动完成「期末冲刺」打卡', () => {
+  H.setToday('2027-01-12');
+  child(1);
+  let home = load('pages/index/index');
+  home.onShow();
+  assert.deepStrictEqual(home.data.exam, { title: '距离寒假还有 11 天', emoji: '❄️', done: false });
+  home.goSprint();
+  assert.strictEqual(ui.navs.pop(), '/pages/quiz/quiz?mode=sprint');
+  const p = load('pages/quiz/quiz');
+  p.onLoad({ mode: 'sprint' });
+  assert.deepStrictEqual([p.data.mode, p.data.phase], ['sprint', 'play']);
+  while (p.data.phase === 'play') {
+    const c = p.data.cards[p.data.idx];
+    if (c.type === 'multi') { c.answerSet.forEach(i => p.onOption(tap({ index: i }))); p.onMultiSubmit(); } else p.onOption(tap({ index: c.answerIndex }));
+  }
+  const rec = store.getRecords().find(r => r.taskId === 'exam_sprint');
+  assert(rec, '冲刺卷完成后打卡');
+  assert.strictEqual(rec.stars, 3, '全对 3 星');
+  home = load('pages/index/index');
+  home.onShow();
+  assert.strictEqual(home.data.exam.done, true);
+  H.setToday('2026-11-10');
+  home = load('pages/index/index');
+  home.onShow();
+  assert.strictEqual(home.data.exam, null, '窗口外不显示');
+});
+t('口算答错进位加：显示凑十提示', () => {
+  child(1);
+  const p = load('pages/math-drill/math-drill');
+  p.onLoad();
+  p.setData({ problems: [{ kind: 'result', a: 9, op: '+', b: 6, c: null, answer: 15, id: '9+6=', text: '9 + 6 = ?' }], idx: 0, total: 1 });
+  p.onKey(tap({ d: '1' })); p.onKey(tap({ d: '4' }));
+  const shown = [];
+  const orig = p.setData;
+  p.setData = function (patch) { if (patch.hint) shown.push(patch.hint); orig.call(this, patch); };
+  p.onConfirm();
+  assert.deepStrictEqual(shown, ['凑十：把 6 分成 1 和 5，9+1=10，10+5=15']);
+});
+t('错题本：小卷错题按「科目 · 单元」分组，可只练这个单元的错题', () => {
+  child(1);
+  const u5 = QZ.poolFor('math').filter(q => q.unit === 5).slice(0, 2);
+  const fin = QZ.poolFor('math').filter(q => q.unit === 90).slice(0, 1);
+  u5.concat(fin).forEach(q => QZ.markResult(q, false));
+  const AR = require('../utils/arithmetic');
+  AR.markResult({ kind: 'result', a: 9, op: '+', b: 6, c: null, answer: 15, id: '9+6=' }, false, 'add20carry');
+  const wb = load('pages/wrong-book/wrong-book');
+  wb.onShow();
+  assert.deepStrictEqual(wb.data.quizGroups.map(g => [g.name, g.items.length]), [['数学 · 第5单元', 2], ['数学 · 期末', 1]]);
+  assert.strictEqual(wb.data.mathGroups[0].items[0].hint, '凑十：把 6 分成 1 和 5，9+1=10，10+5=15', '口算错题带提示');
+  wb.onPracticeUnit(tap({ subject: 'math', unit: 5 }));
+  assert.strictEqual(ui.navs.pop(), '/pages/quiz/quiz?subject=math&unit=5&wrong=1');
+  const p = load('pages/quiz/quiz');
+  p.onLoad({ subject: 'math', unit: '5', wrong: '1' });
+  assert.strictEqual(p.data.phase, 'play');
+  assert.deepStrictEqual(p.data.cards.map(c => c.id).sort(), u5.map(q => q.id).sort());
+});
+t('报告：「再练练」的单元点一下（孩子端）直接开这个单元的小卷；家长端不跳转', () => {
+  child(1);
+  QZ.saveHistory({ subject: 'math', total: 5, correct: 1, label: '继续加油', units: [{ unit: 6, total: 5, correct: 1 }] });
+  let rp = load('pages/report/report');
+  rp.onLoad();
+  const row = rp.data.mastery.find(x => x.name === '数学第6单元');
+  assert(row.canPractice);
+  rp.onPracticeUnit(tap({ subject: 'math', unit: 6 }));
+  assert.strictEqual(ui.navs.pop(), '/pages/quiz/quiz?subject=math&unit=6');
+  const p = load('pages/quiz/quiz');
+  p.onLoad({ subject: 'math', unit: '6' });
+  assert.deepStrictEqual([p.data.selected, p.data.selectedUnit, p.data.phase], ['math', 6, 'play']);
+  p.data.cards.forEach(c => assert.strictEqual(c.unit, 6));
+  // 家长端
+  const hist = QZ.getHistory();
+  store.clearAll();
+  store.saveProfile({ role: 'parent', grade: 0, nickname: '妈妈', onboarded: true });
+  store.saveChildData({ role: 'child', grade: 1 }, [], [], { drill: [], quiz: hist, review: [], goals: {} }, { math: [], quiz: [] });
+  rp = load('pages/report/report');
+  rp.onLoad();
+  assert.strictEqual(rp.data.mastery[0].canPractice, false);
+  const before = ui.navs.length;
+  rp.onPracticeUnit(tap({ subject: 'math', unit: 6 }));
+  assert.strictEqual(ui.navs.length, before, '家长端不跳转');
 });
 t('期末冲刺：20 题覆盖全册各单元，做完按单元给出掌握情况', () => {
   child(1);
