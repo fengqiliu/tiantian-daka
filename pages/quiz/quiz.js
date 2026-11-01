@@ -30,6 +30,7 @@ Page({
     feedback: '', // '' | 'right' | 'wrong'
     optStates: [], // 当前题每个选项的状态：'' | 'sel' | 'right' | 'wrong'
     footHint: '选出正确的一项',
+    explain: '', // 答错时的解析（为什么）
     verdict: null,
     mode: 'unit', // unit：按科目/单元组 10 题 | sprint：期末冲刺 20 题 | wrong：只练某单元错题
     breakdown: [], // 冲刺卷分单元结果
@@ -159,8 +160,9 @@ Page({
     const answered = this.data.answered + 1;
     const correctCount = this.data.correctCount + (ok ? 1 : 0);
     this._setSingleStates(card, idx, ok);
-    this.setData({ answered, correctCount, feedback: ok ? 'right' : 'wrong' });
-    this._t = setTimeout(() => this.advance(answered), ok ? 600 : 1400);
+    const explain = ok ? '' : QZ.explainOf(card); // 答错说一句"为什么"，有解析时多停一会儿
+    this.setData({ answered, correctCount, feedback: ok ? 'right' : 'wrong', explain });
+    this._t = setTimeout(() => this.advance(answered), ok ? 600 : explain ? 2800 : 1400);
   },
 
   onMultiSubmit() {
@@ -181,8 +183,9 @@ Page({
       if (picked.indexOf(i) > -1) return 'wrong';
       return '';
     });
-    this.setData({ answered, correctCount, feedback: ok ? 'right' : 'wrong', optStates: states });
-    this._t = setTimeout(() => this.advance(answered), ok ? 900 : 1800);
+    const explain = ok ? '' : QZ.explainOf(card);
+    this.setData({ answered, correctCount, feedback: ok ? 'right' : 'wrong', optStates: states, explain });
+    this._t = setTimeout(() => this.advance(answered), ok ? 900 : explain ? 2800 : 1800);
   },
 
   // 多选题当前选中项（按题缓存；set 传入时为写入）
@@ -209,7 +212,7 @@ Page({
     this._pickedFor = null;
     this._pickedCache = [];
     this.setData({
-      feedback: '', optStates: [],
+      feedback: '', optStates: [], explain: '',
       footHint: this._card() && this._card().type === 'multi' ? '可多选，选完点提交' : '选出正确的一项',
     });
     if (answered >= this.data.total) {

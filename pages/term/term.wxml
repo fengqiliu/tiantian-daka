@@ -52,7 +52,16 @@
     <view class="card">
       <view class="h2 tm-sec">✏️ 练习</view>
       <view class="tm-line">🧮 口算挑战 {{s.drill.count}} 次{{drillTrend}}</view>
-      <view class="tm-line">📝 每周一卷 {{s.quizCount}} 份 · 🧠 错题复习 {{s.reviewDays}} 天</view>
+      <view class="tm-line">📝 每周一卷 {{s.quizCount}} 份{{s.sprintCount ? '（期末冲刺 ' + s.sprintCount + ' 份）' : ''}} · 🧠 错题复习 {{s.reviewDays}} 天</view>
+    </view>
+
+    <view class="card" wx:if="{{unitRows.length}}">
+      <view class="h2 tm-sec">📚 各单元掌握（{{s.masteredUnits}} 个掌握）</view>
+      <view class="row tm-unit" wx:for="{{unitRows}}" wx:key="name">
+        <view class="flex1">{{item.name}}</view>
+        <view class="muted">{{item.text}}</view>
+        <view class="tm-mark {{item.status}}">{{item.mark}}</view>
+      </view>
     </view>
 
     <view class="card" wx:if="{{s.badges.length}}">

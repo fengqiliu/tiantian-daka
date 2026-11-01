@@ -790,6 +790,38 @@ t('口算提示：进位加凑十、十几加几、不退位减、减整十、�
   assert.strictEqual(h(45, '+', 38), '');
   assert.strictEqual(AR.hintOf({ kind: 'missing', a: 3, op: '+', b: null, c: 9, answer: 6 }), '');
 });
+t('错题解析：比大小先算再比，读音分平翘舌 / 前后鼻 / 声调，标调给口诀，手写解析优先', () => {
+  const q = id => QBANK.bank.find(x => x.id === id);
+  assert.strictEqual(QZ.explainOf(q('math-u6-a3-1')), '12 + 5 = 17，17 < 18，所以填 <');
+  assert.strictEqual(QZ.explainOf(q('math-u6-a3-6')), '8 + 4 = 12，6 + 6 = 12，12 = 12，所以填 =');
+  assert.strictEqual(QZ.explainOf(q('math-u5-a3-1')), '12 < 15，所以填 <');
+  assert.strictEqual(QZ.explainOf(q('chinese-u6-a2-2')), '“书”读 shū，sh 是翘舌音');
+  assert.strictEqual(QZ.explainOf(q('chinese-u6-a2-1')), '“森”读 sēn，s 是平舌音');
+  assert.strictEqual(QZ.explainOf(q('chinese-u7-a2-2')), '“影”读 yǐng，ing 是后鼻韵母');
+  assert.strictEqual(QZ.explainOf(q('chinese-u7-a2-1')), '“弯”读 wān，注意是第一声');
+  assert.strictEqual(QZ.explainOf(q('chinese-u4-a5-1')), '“帽子”读 mào zi，注意是第四声');
+  assert.strictEqual(QZ.explainOf(q('chinese-u5-a2-1')), '“秋”读 qiū');
+  assert.strictEqual(QZ.explainOf(q('chinese-u4-b4-1')), '标调口诀：有 a 不放过，没 a 找 o e，i u 并列标在后');
+  assert(/4 \+ 2 - 1 = 5/.test(QZ.explainOf(q('math-final-b3-4'))), '手写解析');
+  assert.strictEqual(QZ.explainOf(q('english-u2-a3-1')), '');
+  // 覆盖：所有比大小、读音、标调题都有解析
+  QBANK.bank.filter(x => /○/.test(x.prompt) || /读：$|正确拼音是：$|声调标对了/.test(x.prompt))
+    .forEach(x => assert(QZ.explainOf(x), '缺解析: ' + x.id));
+});
+t('单元星图：全册每个单元都列出，按答题量与正确率点亮 0-3 颗星', () => {
+  const hist = [
+    { subject: 'math', units: [{ unit: 2, total: 2, correct: 2 }, { unit: 5, total: 3, correct: 1 }] },
+    { subject: 'math', units: [{ unit: 6, total: 5, correct: 4 }, { unit: 7, total: 10, correct: 9 }, { unit: 90, total: 10, correct: 8 }] },
+  ];
+  const map = QZ.starMap(hist);
+  assert.deepStrictEqual(map.map(s => s.subject), ['math', 'chinese', 'english']);
+  const math = map[0];
+  assert.deepStrictEqual(math.units.map(u => [u.label, u.stars]), [
+    ['第2单元', 0], ['第3单元', 0], ['第4单元', 0], ['第5单元', 1], ['第6单元', 2], ['第7单元', 3], ['期末', 2],
+  ]);
+  assert.strictEqual(math.lit, 4, '点亮（≥1 星）的单元数');
+  assert.strictEqual(map[2].units.length, 6, '英语 Unit 1-6');
+});
 t('错题专练：只出指定单元的错题', () => {
   reset();
   const u5 = QZ.poolFor('math').filter(q => q.unit === 5).slice(0, 3);
@@ -1467,7 +1499,16 @@ t('勋章「错题克星」：累计复习 7 天获得，+10⭐ 计入总星', (
   assert(B.evaluate([], profile).find(b => b.id === 'review_7'), '7 天获得');
   assert.strictEqual(C.BADGE_BONUS.review_7, 10);
   assert.strictEqual(C.totalStars([], 1, store.getBadges()), 10);
-  assert.strictEqual(B.BADGE_DEFS.length, 18);
+  assert.strictEqual(B.BADGE_DEFS.length, 19);
+});
+t('勋章「单元点灯人」：任意一科全册单元都达到 2 颗星', () => {
+  reset();
+  const profile = { grade: 1 };
+  for (let u = 1; u <= 5; u++) QZ.saveHistory({ subject: 'english', total: 5, correct: 5, label: '优秀', units: [{ unit: u, total: 5, correct: 5 }] });
+  assert(!B.evaluate([], profile).find(b => b.id === 'units_lit'), 'Unit 6 还没点亮');
+  QZ.saveHistory({ subject: 'english', total: 5, correct: 4, label: '良好', units: [{ unit: 6, total: 5, correct: 4 }] });
+  assert(B.evaluate([], profile).find(b => b.id === 'units_lit'), '英语 6 个单元都 2 星');
+  assert.strictEqual(C.BADGE_BONUS.units_lit, 10);
 });
 t('备份包含复习日志；旧备份（无 reviewLog）仍可导入', () => {
   reset();
@@ -2213,6 +2254,27 @@ t('termSummary：只统计本学期（进行中则到今天），累计量/连�
   assert(s.highlights.length > 0 && s.highlights.length <= 4);
   assert(s.highlights.some(h => h.includes('口算正确率')), JSON.stringify(s.highlights));
 });
+t('termSummary：本学期各单元掌握与期末冲刺次数，学期外的小卷不算', () => {
+  const P0 = TERM.periodAt('2026-09-15');
+  const ts = d => new Date(d + 'T10:00:00').getTime();
+  const data = {
+    records: [], grade: 1,
+    quizHistory: [
+      { subject: 'math', total: 20, correct: 18, at: ts('2026-12-20'), sprint: true, units: [{ unit: 5, total: 10, correct: 10 }, { unit: 6, total: 10, correct: 8 }] },
+      { subject: 'math', total: 5, correct: 2, at: ts('2026-10-10'), units: [{ unit: 6, total: 5, correct: 2 }] },
+      { subject: 'english', total: 5, correct: 5, at: ts('2026-08-10'), units: [{ unit: 1, total: 5, correct: 5 }] }, // 暑假
+    ],
+  };
+  const s = TERM.termSummary(data, P0, '2026-12-31');
+  assert.strictEqual(s.sprintCount, 1);
+  assert.deepStrictEqual(s.units.map(u => [u.subjectName + u.label, u.correct, u.total, u.status]), [
+    ['数学第5单元', 10, 10, 'mastered'], ['数学第6单元', 10, 15, 'practice'],
+  ]);
+  assert.strictEqual(s.masteredUnits, 1);
+  assert(s.highlights.some(h => h === '小卷里掌握了 1 个单元'), JSON.stringify(s.highlights));
+  const empty = TERM.termSummary({ records: [], grade: 1 }, TERM.periodAt('2027-03-10'), '2026-10-31');
+  assert.deepStrictEqual([empty.sprintCount, empty.units, empty.masteredUnits], [0, [], 0]);
+});
 t('termSummary：已结束的学期统计到学期末；没有数据也不报错', () => {
   reset();
   const P1 = TERM.periodAt('2026-03-10');
@@ -2240,6 +2302,27 @@ t('brief：上周打卡/达成天数与星星，推送文案不超过 20 字', (
   assert(b.stars > 0);
   assert(Array.from(b.text).length <= 20, b.text);
   assert(b.text.indexOf('打卡4天') > -1 && b.text.indexOf('达成3天') > -1, b.text);
+});
+t('brief：有本周练过、正确率不到 80% 的单元时推送带上「再练」，仍不超过 20 字', () => {
+  reset();
+  ['2026-10-19', '2026-10-20'].forEach(d => seedDay(d, 1, mustIds(d)(1)));
+  const ts = d => new Date(d + 'T10:00:00').getTime();
+  const quiz = [
+    { subject: 'math', at: ts('2026-10-21'), units: [{ unit: 6, total: 5, correct: 2 }, { unit: 5, total: 5, correct: 4 }] },
+    { subject: 'english', at: ts('2026-10-12'), units: [{ unit: 2, total: 5, correct: 0 }] }, // 上上周，不算
+  ];
+  const b = WB.brief(store.getRecords(), 1, '2026-10-19', quiz);
+  assert.strictEqual(b.weakUnit, '数学第6单元');
+  assert(b.text.indexOf('再练数学第6单元') > -1, b.text);
+  assert(Array.from(b.text).length <= 20, b.text);
+  // 与家长报告同一规则：周报"需关注"里提示的也是这个单元
+  const g = REPORT.weeklyDigest({ records: store.getRecords(), grade: 1, quizHistory: quiz.map(q => ({ ...q, total: 10, correct: 6 })) }, '2026-10-19');
+  assert(g.attention.some(a => a.indexOf('「' + b.weakUnit + '」') === 0), JSON.stringify(g.attention));
+  const fin = WB.brief([], 1, '2026-10-19', [{ subject: 'math', at: ts('2026-10-21'), units: [{ unit: 90, total: 4, correct: 1 }] }]);
+  assert.strictEqual(fin.weakUnit, '数学期末', '期末卷标签与 quiz-bank.unitLabel 一致');
+  const none = WB.brief(store.getRecords(), 1, '2026-10-19');
+  assert.strictEqual(none.weakUnit, null);
+  assert(none.text.indexOf('再练') === -1);
 });
 t('云函数 lib：weeklyReport 的共享文件与 utils/ 一致', () => {
   const fs = require('fs');

@@ -75,6 +75,24 @@
   <view wx:else class="card empty muted">本周还没有打卡记录，快去开始吧！</view>
 
   <view class="sec-header row" style="padding: 8rpx 32rpx 16rpx;">
+    <text class="h2">🗺️ 单元星图</text>
+  </view>
+  <view class="card" wx:for="{{starMap}}" wx:key="subject" wx:for-item="sub">
+    <view class="row sm-head">
+      <view class="h2 flex1">{{sub.name}}</view>
+      <view class="muted">{{sub.summary}}</view>
+    </view>
+    <view class="sm-grid">
+      <view class="sm-unit {{u.stars ? 'lit' : ''}}" wx:for="{{sub.units}}" wx:key="unit" wx:for-item="u"
+        data-subject="{{sub.subject}}" data-unit="{{u.unit}}" bindtap="onStarUnit">
+        <view class="sm-label">{{u.label}}</view>
+        <view class="sm-stars">{{u.starText}}</view>
+      </view>
+    </view>
+  </view>
+  <view class="muted sm-tip">小卷答满 3 题点亮 1 颗星；正确率 80% 以上 2 颗、90% 以上 3 颗。一科全部单元 2 颗星得「单元点灯人」勋章</view>
+
+  <view class="sec-header row" style="padding: 8rpx 32rpx 16rpx;">
     <text class="h2">勋章墙</text>
   </view>
   <view class="wall">

@@ -32,7 +32,7 @@ exports.main = async (event) => {
       .limit(200)
       .get()).data.filter(r => !r.deleted && r.date < nextMonday);
     tasksLib.setOverrideProvider(() => owner.taskOverrides || null); // 与孩子端清单一致
-    const b = WB.brief(recs, owner.profile.grade || 3, monday);
+    const b = WB.brief(recs, owner.profile.grade || 3, monday, (owner.practice && owner.practice.quiz) || []);
     const title = ((owner.profile.nickname || '孩子').slice(0, 10) + '上周周报').slice(0, 20);
 
     for (const m of fam.members || []) {

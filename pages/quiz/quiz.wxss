@@ -62,3 +62,13 @@
 }
 .qz-bd-tag { font-size: 24rpx; color: #E5484D; }
 .qz-bd-tag.ok { color: #2F9E44; }
+
+.qz-explain {
+  margin: 8rpx 0 16rpx;
+  padding: 16rpx 22rpx;
+  background: #FFF4D6;
+  border-radius: 16rpx;
+  font-size: 28rpx;
+  color: #8A5A00;
+  line-height: 1.5;
+}

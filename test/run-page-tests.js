@@ -334,6 +334,56 @@ t('报告：「再练练」的单元点一下（孩子端）直接开这个单�
   rp.onPracticeUnit(tap({ subject: 'math', unit: 6 }));
   assert.strictEqual(ui.navs.length, before, '家长端不跳转');
 });
+t('小卷答错显示「为什么」，答对不显示', () => {
+  child(1);
+  const p = load('pages/quiz/quiz');
+  p.onLoad({ subject: 'math', unit: '6' });
+  const shown = [];
+  const orig = p.setData;
+  p.setData = function (patch) { if ('explain' in patch) shown.push(patch.explain); orig.call(this, patch); };
+  const idx = p.data.cards.findIndex(c => /○/.test(c.prompt));
+  p.setData({ idx });
+  const c = p.data.cards[idx];
+  p.onOption(tap({ index: (c.answerIndex + 1) % c.options.length }));
+  assert(shown.some(x => /所以填/.test(x)), JSON.stringify(shown));
+  const right = p.data.cards[p.data.idx];
+  shown.length = 0;
+  if (right && right.type !== 'multi') {
+    p.onOption(tap({ index: right.answerIndex }));
+    assert(!shown.some(Boolean), '答对不显示解析');
+  }
+});
+t('成长页单元星图：全册单元按星级点亮，点单元直达小卷；家长端只看', () => {
+  child(1);
+  QZ.saveHistory({ subject: 'math', total: 10, correct: 10, label: '优秀', units: [{ unit: 5, total: 10, correct: 10 }] });
+  let g = load('pages/growth/growth');
+  g.onShow();
+  const math = g.data.starMap.find(s => s.subject === 'math');
+  const u5 = math.units.find(u => u.unit === 5);
+  assert.deepStrictEqual([u5.stars, u5.starText], [3, '★★★']);
+  assert.strictEqual(math.units.find(u => u.unit === 6).starText, '☆☆☆');
+  assert.strictEqual(math.summary, '已点亮 1/7 个单元');
+  g.onStarUnit(tap({ subject: 'math', unit: 6 }));
+  assert.strictEqual(ui.navs.pop(), '/pages/quiz/quiz?subject=math&unit=6');
+  const hist = QZ.getHistory();
+  store.clearAll();
+  store.saveProfile({ role: 'parent', grade: 0, nickname: '妈妈', onboarded: true });
+  store.saveChildData({ role: 'child', grade: 1 }, [], [], { drill: [], quiz: hist, review: [], goals: {} }, { math: [], quiz: [] });
+  g = load('pages/growth/growth');
+  g.onShow();
+  assert.strictEqual(g.data.starMap[0].units.find(u => u.unit === 5).stars, 3, '家长端读孩子缓存');
+  const before = ui.navs.length;
+  g.onStarUnit(tap({ subject: 'math', unit: 6 }));
+  assert.strictEqual(ui.navs.length, before, '家长端不跳转');
+});
+t('学期报告：显示本学期各单元掌握与期末冲刺次数', () => {
+  child(1);
+  QZ.saveHistory({ subject: 'math', total: 20, correct: 18, label: '优秀', sprint: true, units: [{ unit: 5, total: 10, correct: 10 }, { unit: 6, total: 10, correct: 8 }] });
+  const p = load('pages/term/term');
+  p.onLoad();
+  assert.strictEqual(p.data.s.sprintCount, 1);
+  assert.deepStrictEqual(p.data.unitRows.map(u => [u.name, u.mark]), [['数学第5单元', '👍 掌握'], ['数学第6单元', '👍 掌握']]);
+});
 t('期末冲刺：20 题覆盖全册各单元，做完按单元给出掌握情况', () => {
   child(1);
   const p = load('pages/quiz/quiz');

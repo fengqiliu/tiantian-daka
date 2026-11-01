@@ -87,7 +87,7 @@ function termSummary(data, period, today) {
   if (today < period.start) {
     return { ...base, notStarted: true, inProgress: false, to: period.start, checkinDays: 0, achievedDays: 0, stars: 0, bestStreak: 0,
       totals: { rope: 0, readingMinutes: 0, outdoorMinutes: 0, poems: 0, calc: 0 }, badges: [], goalsAchieved: 0,
-      drill: { count: 0, firstAccuracy: null, lastAccuracy: null }, quizCount: 0, reviewDays: 0, highlights: [] };
+      drill: { count: 0, firstAccuracy: null, lastAccuracy: null }, quizCount: 0, sprintCount: 0, units: [], masteredUnits: 0, reviewDays: 0, highlights: [] };
   }
   const to = today < period.end ? today : period.end;
   const inRange = d => d >= period.start && d <= to;
@@ -121,6 +121,11 @@ function termSummary(data, period, today) {
     lastAccuracy: half ? _accuracy(sessions.slice(-half)) : null,
   };
 
+  // 小卷：本时段的单元掌握（只看这段时间的作答，不含错题本当前状态）与期末冲刺次数
+  const quizIn = (data.quizHistory || []).filter(q => inTs(q.at));
+  const units = REPORT.unitMastery(quizIn, []);
+  const masteredUnits = units.filter(u => u.status === 'mastered').length;
+
   const bestStreak = _longestRun(records.map(r => r.date));
   const highlights = [];
   if (ov.checkinDays) highlights.push('坚持打卡 ' + ov.checkinDays + ' 天，最长连续 ' + bestStreak + ' 天');
@@ -129,6 +134,7 @@ function termSummary(data, period, today) {
   }
   if (totals.rope) highlights.push('跳绳累计 ' + totals.rope + ' 个');
   if (totals.readingMinutes >= 60) highlights.push('课外阅读 ' + Math.round(totals.readingMinutes / 6) / 10 + ' 小时');
+  if (masteredUnits) highlights.push('小卷里掌握了 ' + masteredUnits + ' 个单元');
   if (badges.length) highlights.push('获得 ' + badges.length + ' 枚新勋章');
   if (goalsAchieved) highlights.push('完成 ' + goalsAchieved + ' 个周目标');
 
@@ -145,7 +151,10 @@ function termSummary(data, period, today) {
     badges,
     goalsAchieved,
     drill,
-    quizCount: (data.quizHistory || []).filter(q => inTs(q.at)).length,
+    quizCount: quizIn.length,
+    sprintCount: quizIn.filter(q => q.sprint).length,
+    units,
+    masteredUnits,
     reviewDays: (data.reviewLog || []).filter(x => inRange(x.date)).length,
     highlights: highlights.slice(0, 4),
   };

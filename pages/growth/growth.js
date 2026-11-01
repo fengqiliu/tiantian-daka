@@ -79,8 +79,25 @@ Page({
       wrongHint,
       termHint: TERM.periodAt(D.todayStr()).label + ' · 打卡、累计与勋章总结',
       role: s.role,
+      starMap: this.starMapView(s.quizHistory),
       shopHint,
     });
+  },
+
+  // 单元星图：每科全册单元，星级见 utils/quiz.js starsOf
+  starMapView(quizHistory) {
+    return QZ.starMap(quizHistory).map(sub => ({
+      ...sub,
+      summary: '已点亮 ' + sub.lit + '/' + sub.units.length + ' 个单元',
+      units: sub.units.map(u => ({ ...u, starText: '★'.repeat(u.stars) + '☆'.repeat(3 - u.stars) })),
+    }));
+  },
+
+  // 点单元直接练这个单元（家长端只看）
+  onStarUnit(e) {
+    if (this.data.role === 'parent') return;
+    const { subject, unit } = e.currentTarget.dataset;
+    wx.navigateTo({ url: '/pages/quiz/quiz?subject=' + subject + '&unit=' + unit });
   },
 
   goQuiz() {

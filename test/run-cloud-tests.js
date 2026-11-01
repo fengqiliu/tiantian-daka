@@ -634,6 +634,21 @@ t('weeklyReport：给有配额的家长推送孩子上周摘要，扣配额；�
   await fn.main({ Type: 'Timer', today: '2026-10-26' });
   assert.strictEqual(m1().weeklyQuota, 0, '43101 清零');
 });
+t('weeklyReport：孩子上周有薄弱单元时，推送摘要带上「再练…」', async () => {
+  const family = await twoFamilies();
+  CM.setConfig('weeklyReport', { WEEKLY_TEMPLATE_ID: 'tmpl-weekly-test' });
+  CM.setOpenid('kid1');
+  const at = new Date('2026-10-21T02:00:00Z').getTime(); // 北京时间 10-21 10:00
+  await CM.load('sync').main({ action: 'push', profile: { nickname: '小豆', grade: 1, updatedAt: 1 },
+    records: [rec('2026-10-19#pe_rope')],
+    practice: { drill: [], quiz: [{ subject: 'math', total: 5, correct: 2, label: '继续加油', at, units: [{ unit: 6, total: 5, correct: 2 }] }], review: [] } });
+  CM.setOpenid('parent1'); await family.main({ action: 'grantWeekly', n: 1 });
+  const r = await CM.load('weeklyReport').main({ Type: 'Timer', today: '2026-10-26' });
+  assert.strictEqual(r.sent, 1);
+  const text = CM.sent[0].data.thing2.value;
+  assert(text.indexOf('再练数学第6单元') > -1, text);
+  assert(Array.from(text).length <= 20, text);
+});
 t('周报模板 ID 契约：family 与 weeklyReport 两处 config 必须同源', () => {
   const famConf = require('../cloudfunctions/family/config.js');
   const wkConf = require('../cloudfunctions/weeklyReport/config.js');

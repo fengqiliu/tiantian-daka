@@ -14,3 +14,8 @@
 .tm-badges { display: flex; flex-wrap: wrap; gap: 12rpx; }
 .tm-badge { background: #FFF1DC; border-radius: 999rpx; padding: 8rpx 20rpx; font-size: 26rpx; }
 .tm-foot { text-align: center; padding: 12rpx 0 24rpx; }
+
+.tm-unit { padding: 12rpx 0; border-bottom: 2rpx solid #F2EDE3; font-size: 28rpx; }
+.tm-mark { margin-left: 16rpx; font-size: 24rpx; color: #A39E93; min-width: 120rpx; text-align: right; }
+.tm-mark.mastered { color: #2F9E44; }
+.tm-mark.practice { color: #E5484D; }

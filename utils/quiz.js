@@ -138,6 +138,96 @@ function buildWrongQuiz(subject, unit, rng, n) {
   return { cards, total: cards.length };
 }
 
+// ── 错题解析：答错时说一句"为什么"（题目自带 explain 优先，其余按题型规则生成，不适用返回 ''）──
+const TONE_MARKS = { a: 'āáǎà', o: 'ōóǒò', e: 'ēéěè', i: 'īíǐì', u: 'ūúǔù', ü: 'ǖǘǚǜ' };
+const TONE_NAME = ['轻声', '第一声', '第二声', '第三声', '第四声'];
+function _plain(s) {
+  return s.replace(/[āáǎàōóǒòēéěèīíǐìūúǔùǖǘǚǜ]/g, ch => Object.keys(TONE_MARKS).find(k => TONE_MARKS[k].indexOf(ch) > -1));
+}
+function _toneOf(s) {
+  for (const k of Object.keys(TONE_MARKS)) {
+    for (let i = 0; i < 4; i++) if (s.indexOf(TONE_MARKS[k][i]) > -1) return i + 1;
+  }
+  return 0;
+}
+const INITIAL = /^(zh|ch|sh|[bpmfdtnlgkhjqxrzcsyw])/;
+
+// 读音二选一：找出正确读音和另一项第一个不同的音节，判断差在平翘舌、前后鼻还是声调
+function _explainPinyin(word, ans, other) {
+  const sa = ans.split(' '), so = other.split(' ');
+  const i = sa.findIndex((x, k) => x !== so[k]);
+  if (i < 0) return '';
+  const a = sa[i], o = so[i] || '', pa = _plain(a), po = _plain(o);
+  const head = '“' + word + '”读 ' + ans;
+  if (pa === po) return head + '，注意是' + TONE_NAME[_toneOf(a)];
+  const init = (INITIAL.exec(pa) || [''])[0];
+  if (/^(zh|ch|sh)/.test(pa) && po === pa.replace(/^(z|c|s)h/, '$1')) return head + '，' + init + ' 是翘舌音';
+  if (/^(z|c|s)/.test(pa) && pa === po.replace(/^(z|c|s)h/, '$1')) return head + '，' + init + ' 是平舌音';
+  const rhyme = pa.slice(init.length);
+  if (/ng$/.test(pa) && po === pa.slice(0, -1)) return head + '，' + rhyme + ' 是后鼻韵母';
+  if (/n$/.test(pa) && po === pa + 'g') return head + '，' + rhyme + ' 是前鼻韵母';
+  return head;
+}
+
+// 比大小：有算式的一边先算出得数，再比较
+function _explainCompare(prompt, answer) {
+  const m = /^(.+) ○ (.+)$/.exec(prompt);
+  if (!m) return '';
+  const val = s => s.split(' ').reduce((acc, tok, k, arr) => (k === 0 ? Number(tok) : /^[+-]$/.test(tok) ? acc : arr[k - 1] === '+' ? acc + Number(tok) : acc - Number(tok)), 0);
+  const parts = [];
+  [m[1], m[2]].forEach(side => { if (/[+-]/.test(side)) parts.push(side + ' = ' + val(side)); });
+  parts.push(val(m[1]) + ' ' + answer + ' ' + val(m[2]));
+  return parts.join('，') + '，所以填 ' + answer;
+}
+
+function explainOf(q) {
+  if (!q) return '';
+  if (q.explain) return q.explain;
+  const p = q.prompt || '';
+  if (/○/.test(p) && (q.options || []).indexOf('<') > -1) return _explainCompare(p, q.answerText);
+  if (/声调标对了/.test(p)) return '标调口诀：有 a 不放过，没 a 找 o e，i u 并列标在后';
+  const m = /^“(.+?)”的“(.+?)”读：$/.exec(p) || /^“(.+?)”的正确拼音是：$/.exec(p);
+  if (m && q.type === 'choice') {
+    const other = q.options.find(o => o !== q.answerText);
+    return _explainPinyin(m[2] || m[1], q.answerText, other || '');
+  }
+  return '';
+}
+
+// ── 单元汇总与星图 ──
+// 小卷历史（0.27.0 起每条带 units）按「科目#单元」累计答题数与答对数
+function unitTally(history) {
+  const by = {};
+  (history || []).forEach(h => (h.units || []).forEach(u => {
+    const key = h.subject + '#' + u.unit;
+    const row = by[key] || (by[key] = { subject: h.subject, unit: u.unit, total: 0, correct: 0, wrongOpen: 0 });
+    row.total += u.total || 0;
+    row.correct += u.correct || 0;
+  }));
+  return by;
+}
+
+// 单元星级：答满 3 题 1 星；≥5 题且 ≥80% 2 星；≥10 题且 ≥90% 3 星
+function starsOf(total, correct) {
+  const rate = total ? correct / total : 0;
+  if (total >= 10 && rate >= 0.9) return 3;
+  if (total >= 5 && rate >= 0.8) return 2;
+  return total >= 3 ? 1 : 0;
+}
+
+const STAR_SUBJECTS = [{ key: 'math', name: '数学' }, { key: 'chinese', name: '语文' }, { key: 'english', name: '英语' }];
+// 星图：题库里每科的全部单元（没练过的 0 星）
+function starMap(history) {
+  const tally = unitTally(history);
+  return STAR_SUBJECTS.map(s => {
+    const units = [...new Set(poolFor(s.key).map(q => q.unit))].sort((a, b) => a - b).map(unit => {
+      const t = tally[s.key + '#' + unit] || { total: 0, correct: 0 };
+      return { unit, label: unitLabel(unit), total: t.total, correct: t.correct, stars: starsOf(t.total, t.correct) };
+    });
+    return { subject: s.key, name: s.name, units, lit: units.filter(u => u.stars > 0).length };
+  });
+}
+
 // 冲刺卷分单元结果：results 为 [{ unit, ok }]，按单元汇总，正确率 ≥80% 记为掌握
 const MASTERED_MIN = 0.8;
 function unitBreakdown(results) {
@@ -170,4 +260,4 @@ function saveHistory(entry) {
 
 function getHistory() { return store.getQuizHistory(); }
 
-module.exports = { GRADES, verdict, subjects, poolFor, buildQuiz, buildSprint, buildWrongQuiz, unitBreakdown, instantiate, gradeMulti, markResult, saveHistory, getHistory };
+module.exports = { GRADES, verdict, subjects, poolFor, buildQuiz, buildSprint, buildWrongQuiz, unitBreakdown, explainOf, unitTally, starsOf, starMap, instantiate, gradeMulti, markResult, saveHistory, getHistory };

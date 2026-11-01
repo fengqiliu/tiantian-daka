@@ -5,6 +5,7 @@ const B = require('./badges');
 const AR = require('./arithmetic');
 const GOALS = require('./goals');
 const QB = require('./quiz-bank');
+const QZ = require('./quiz');
 
 const SUBJECT_NAME = { math: '数学', chinese: '语文', english: '英语' };
 const STUBBORN_MIN = 3; // 错满 3 次算"反复错"
@@ -117,16 +118,8 @@ const MASTERY_MIN = 3;
 const MASTERY_PCT = 80;
 const SUBJECT_ORDER = ['math', 'chinese', 'english'];
 
-function _unitTally(history) {
-  const by = {};
-  (history || []).forEach(h => (h.units || []).forEach(u => {
-    const key = h.subject + '#' + u.unit;
-    const row = by[key] || (by[key] = { subject: h.subject, unit: u.unit, total: 0, correct: 0, wrongOpen: 0 });
-    row.total += u.total || 0;
-    row.correct += u.correct || 0;
-  }));
-  return by;
-}
+// 累计规则与单元星图同源（utils/quiz.js unitTally）
+const _unitTally = history => QZ.unitTally(history);
 
 function _masteryRow(row) {
   const rate = row.total ? Math.round((row.correct / row.total) * 100) : null;

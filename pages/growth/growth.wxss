@@ -45,3 +45,17 @@
   font-weight: 600;
   color: #FF8A00;
 }
+
+.sm-head { margin-bottom: 16rpx; }
+.sm-grid { display: flex; flex-wrap: wrap; gap: 14rpx; }
+.sm-unit {
+  width: calc((100% - 42rpx) / 4);
+  background: #F7F2E8;
+  border-radius: 18rpx;
+  padding: 14rpx 0;
+  text-align: center;
+}
+.sm-unit.lit { background: #FFF4D6; }
+.sm-label { font-size: 24rpx; color: #6B655B; }
+.sm-stars { font-size: 28rpx; color: #F59F00; letter-spacing: 2rpx; }
+.sm-tip { padding: 0 32rpx 24rpx; font-size: 22rpx; }

@@ -3,6 +3,8 @@ const D = require('../../utils/date');
 const CTX = require('../../utils/context');
 const TERM = require('../../utils/term');
 
+const UNIT_MARK = { mastered: '👍 掌握', practice: '💪 再练练', few: '题还少' };
+
 Page({
   data: {
     s: null,            // TERM.termSummary 结果
@@ -29,6 +31,12 @@ Page({
       drillTrend: s.drill.firstAccuracy === null ? '' : ' · 正确率 ' + s.drill.firstAccuracy + '% → ' + s.drill.lastAccuracy + '%',
       readingHours: Math.round(s.totals.readingMinutes / 6) / 10,
       outdoorHours: Math.round(s.totals.outdoorMinutes / 6) / 10,
+      unitRows: s.units.map(u => ({
+        name: u.subjectName + u.label,
+        text: u.total ? u.correct + '/' + u.total + ' · ' + u.rate + '%' : '',
+        mark: UNIT_MARK[u.status],
+        status: u.status,
+      })),
     });
   },
 

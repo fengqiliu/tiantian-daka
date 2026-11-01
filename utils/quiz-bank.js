@@ -4,6 +4,7 @@
 // type: 'choice'（options + answerText；shuffle:true 表示每次作答打乱选项顺序）
 //       'judge'（判断题，统一渲染为 √/× 两选项）
 //       'multi'（多选：options + answers，须全部选对）
+// explain（可选）：答错时显示的手写解析；没有时按题型规则生成（utils/quiz.js explainOf）
 // unit: 单元号；期末综合模拟卷记为 FINAL_UNIT（90），界面显示为“期末”。
 const FINAL_UNIT = 90;
 
@@ -177,9 +178,11 @@ module.exports = {
     { id: 'math-final-b3-2', subject: 'math', unit: 90, type: 'choice', shuffle: true,
       prompt: '得数等于 15 的算式是：', options: ['8 + 6', '9 + 6', '18 - 4'], answerText: '9 + 6', source: '数学·期末模拟 B卷' },
     { id: 'math-final-b3-3', subject: 'math', unit: 90, type: 'choice', shuffle: true,
-      prompt: '用凑十法算 7 + 8，正确的是：', options: ['7 + 3 + 5', '7 + 1 + 7', '8 + 8'], answerText: '7 + 3 + 5', source: '数学·期末模拟 B卷' },
+      prompt: '用凑十法算 7 + 8，正确的是：', options: ['7 + 3 + 5', '7 + 1 + 7', '8 + 8'], answerText: '7 + 3 + 5', source: '数学·期末模拟 B卷',
+      explain: '凑十：先算 7 + 3 = 10，再加 8 剩下的 5，10 + 5 = 15' },
     { id: 'math-final-b3-4', subject: 'math', unit: 90, type: 'choice', shuffle: true,
-      prompt: '小朋友排一队，从右数第 2 个和从左数第 4 个是同一个人，这一队有几人？', options: ['4', '5', '6'], answerText: '5', source: '数学·期末模拟 B卷' },
+      prompt: '小朋友排一队，从右数第 2 个和从左数第 4 个是同一个人，这一队有几人？', options: ['4', '5', '6'], answerText: '5', source: '数学·期末模拟 B卷',
+      explain: '从左数第 4 个，说明他左边有 3 人；从右数第 2 个，说明他右边有 1 人。一共 4 + 2 - 1 = 5 人（他被数了两次，要减 1）' },
     { id: 'math-final-b3-5', subject: 'math', unit: 90, type: 'judge',
       prompt: '20 可以看成 2 个十。', answerText: '√', source: '数学·期末模拟 B卷' },
     { id: 'math-final-b3-6', subject: 'math', unit: 90, type: 'judge',
@@ -311,11 +314,13 @@ module.exports = {
     { id: 'chinese-u7-b3-1', subject: 'chinese', unit: 7, type: 'choice', shuffle: true,
       prompt: '下面哪一组词都是方位词？', options: ['前 后 左 右', '月 星 云 雨', '手 脑 眼 耳'], answerText: '前 后 左 右', source: '语文·第七单元 B卷' },
     { id: 'chinese-u7-b8-1', subject: 'chinese', unit: 7, type: 'choice', shuffle: true,
-      prompt: '早晨，太阳在你的左边，影子在你的：', options: ['右边', '左边'], answerText: '右边', source: '语文·第七单元 B卷' },
+      prompt: '早晨，太阳在你的左边，影子在你的：', options: ['右边', '左边'], answerText: '右边', source: '语文·第七单元 B卷',
+      explain: '影子总在光的相反方向：太阳在左边，影子就在右边' },
 
     // ── 语文 · 第八单元（A卷 一、加点字读音 / 三、笔顺规则）──
     { id: 'chinese-u8-a2-1', subject: 'chinese', unit: 8, type: 'choice', shuffle: true,
-      prompt: '“尾巴”的“巴”读：', options: ['ba（轻声）', 'bā'], answerText: 'ba（轻声）', source: '语文·第八单元 A卷' },
+      prompt: '“尾巴”的“巴”读：', options: ['ba（轻声）', 'bā'], answerText: 'ba（轻声）', source: '语文·第八单元 A卷',
+      explain: '“尾巴”的“巴”在这里读轻声，不标声调' },
     { id: 'chinese-u8-a2-2', subject: 'chinese', unit: 8, type: 'choice', shuffle: true,
       prompt: '“数不清”的“数”读：', options: ['shǔ', 'shù'], answerText: 'shǔ', source: '语文·第八单元 A卷' },
     { id: 'chinese-u8-a2-3', subject: 'chinese', unit: 8, type: 'choice', shuffle: true,

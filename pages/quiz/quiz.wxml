@@ -49,6 +49,7 @@
       >{{item}}</view>
     </view>
     <view class="btn-ghost qz-multi-submit" wx:if="{{cards[idx].type === 'multi' && !feedback}}" bindtap="onMultiSubmit">✅ 提交本题</view>
+    <view class="qz-explain" wx:if="{{feedback === 'wrong' && explain}}">💡 {{explain}}</view>
     <view class="muted qz-foot">{{footHint}}{{feedback === 'wrong' ? ' · 绿色是正确答案，已记入错题本' : feedback === 'right' ? ' · 答对啦！' : ''}}</view>
   </block>
 
