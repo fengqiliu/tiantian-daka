@@ -3,7 +3,10 @@
 const store = require('./store');
 const D = require('./date');
 const REVIEW = require('./review');
-const { bank: BANK, unitLabel } = require('./quiz-bank');
+const { bank: BANK } = require('./quiz-bank');
+const SUBJ = require('./subjects');
+
+const { unitLabel } = SUBJ;
 
 const GRADES = [
   { min: 0.9, label: '优秀', emoji: '🌟' },
@@ -215,11 +218,10 @@ function starsOf(total, correct) {
   return total >= 3 ? 1 : 0;
 }
 
-const STAR_SUBJECTS = [{ key: 'math', name: '数学' }, { key: 'chinese', name: '语文' }, { key: 'english', name: '英语' }];
 // 星图：题库里每科的全部单元（没练过的 0 星）
 function starMap(history) {
   const tally = unitTally(history);
-  return STAR_SUBJECTS.map(s => {
+  return SUBJ.SUBJECTS.map(s => {
     const units = [...new Set(poolFor(s.key).map(q => q.unit))].sort((a, b) => a - b).map(unit => {
       const t = tally[s.key + '#' + unit] || { total: 0, correct: 0 };
       return { unit, label: unitLabel(unit), total: t.total, correct: t.correct, stars: starsOf(t.total, t.correct) };

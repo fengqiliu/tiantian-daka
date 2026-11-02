@@ -384,6 +384,31 @@ t('学期报告：显示本学期各单元掌握与期末冲刺次数', () => {
   assert.strictEqual(p.data.s.sprintCount, 1);
   assert.deepStrictEqual(p.data.unitRows.map(u => [u.name, u.mark]), [['数学第5单元', '👍 掌握'], ['数学第6单元', '👍 掌握']]);
 });
+t('错题复习：答错口算显示凑十提示，答错小卷显示「为什么」', () => {
+  child(1);
+  const AR = require('../utils/arithmetic');
+  const yest = D.addDays(today(), -1); // 昨天答错 → 今天到期
+  AR.markResult({ kind: 'result', a: 9, op: '+', b: 6, c: null, answer: 15, id: '9+6=' }, false, 'add20carry', yest);
+  const cmp = QZ.poolFor('math').find(q => q.id === 'math-u6-a3-1');
+  QZ.markResult(cmp, false, yest);
+  const p = load('pages/review/review');
+  const shown = [];
+  const orig = p.setData;
+  p.setData = function (patch) { if (patch.explain) shown.push(patch.explain); orig.call(this, patch); };
+  p.onLoad();
+  while (p.data.phase === 'play') {
+    const c = p.data.cards[p.data.idx];
+    if (c.source === 'math') { p.onKey(tap({ d: '1' })); p.onConfirm(); } else p.onOption(tap({ index: (c.answerIndex + 1) % c.options.length }));
+  }
+  assert.deepStrictEqual(shown.sort(), ['12 + 5 = 17，17 < 18，所以填 <', '凑十：把 6 分成 1 和 5，9+1=10，10+5=15']);
+});
+t('错题本：小卷错题带「为什么」', () => {
+  child(1);
+  QZ.markResult(QZ.poolFor('math').find(q => q.id === 'math-u6-a3-1'), false);
+  const wb = load('pages/wrong-book/wrong-book');
+  wb.onShow();
+  assert.strictEqual(wb.data.quizGroups[0].items[0].explain, '12 + 5 = 17，17 < 18，所以填 <');
+});
 t('期末冲刺：20 题覆盖全册各单元，做完按单元给出掌握情况', () => {
   child(1);
   const p = load('pages/quiz/quiz');
@@ -763,6 +788,23 @@ t('口算挑战：级别里有进位加和不退位减，一年级按学期进�
   const keys = p.data.levels.map(l => l.key);
   assert(keys.includes('add20carry') && keys.includes('sub20nb'));
   assert.strictEqual(p.data.level, AR.recommendByGrade(1, today()));
+});
+t('跟读教室：听力原文是加练，录了不计入打卡句数', () => {
+  child(1);
+  const p = load('pages/read-aloud/read-aloud');
+  p.onLoad();
+  p.onPickUnit(tap({ unit: 3 }));
+  assert.strictEqual(p.data.listenCards.length, 7);
+  assert.strictEqual(p.data.listenCards[0].text, 'Pencil.');
+  const id = p.data.listenCards[0].id;
+  assert.strictEqual(id, 'u3-l1');
+  p.onRecord(tap({ id }));
+  p.onStop();
+  ui.recorder.fireStop({ tempFilePath: 'tmp://l.mp3', duration: 1500 });
+  assert.deepStrictEqual([p.data.recordedCount, p.data.listenRecorded, p.data.canFinish], [0, 1, false]);
+  assert.strictEqual(p.data.listenCards[0].status, 'recorded');
+  p.onPlay(tap({ id }));
+  assert(/u3-l1\.mp3$/.test(ui.played), ui.played);
 });
 t('跟读教室：麦克风权限被拒时引导去设置', () => {
   child(1);

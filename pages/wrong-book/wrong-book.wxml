@@ -44,6 +44,7 @@
           <view class="flex1">
             <view class="wb-text">{{q.text}}</view>
             <view class="wb-due">{{q.schedule}}</view>
+            <view class="wb-hint" wx:if="{{q.explain}}">💡 {{q.explain}}</view>
           </view>
           <view class="wb-answer">答案 {{q.answer}}</view>
           <view class="wb-count">错 {{q.wrongCount}} 次</view>

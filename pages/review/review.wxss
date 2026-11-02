@@ -56,3 +56,14 @@
   border-radius: 999rpx;
   padding: 10rpx 28rpx;
 }
+
+.rv-explain {
+  margin-top: 16rpx;
+  padding: 14rpx 20rpx;
+  background: #FFF4D6;
+  border-radius: 16rpx;
+  font-size: 28rpx;
+  color: #8A5A00;
+  line-height: 1.5;
+  text-align: left;
+}

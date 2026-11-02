@@ -4,10 +4,9 @@ const T = require('./tasks');
 const B = require('./badges');
 const AR = require('./arithmetic');
 const GOALS = require('./goals');
-const QB = require('./quiz-bank');
 const QZ = require('./quiz');
 
-const SUBJECT_NAME = { math: '数学', chinese: '语文', english: '英语' };
+const SUBJ = require('./subjects');
 const STUBBORN_MIN = 3; // 错满 3 次算"反复错"
 
 // 近 days 天逐个任务的出现/完成次数与完成率（升序，最常被跳过的排最前）
@@ -105,7 +104,7 @@ function stubbornGroup(mathWrong, quizWrong) {
   });
   (quizWrong || []).filter(w => (w.wrongCount || 0) >= STUBBORN_MIN).forEach(w => {
     const q = w.question || {};
-    const name = (SUBJECT_NAME[w.subject] || w.subject) + (q.unit ? QB.unitLabel(q.unit) : '');
+    const name = SUBJ.nameOf(w.subject) + (q.unit ? SUBJ.unitLabel(q.unit) : '');
     groups[name] = (groups[name] || 0) + 1;
   });
   const best = Object.keys(groups).sort((a, b) => groups[b] - groups[a])[0];
@@ -116,7 +115,6 @@ function stubbornGroup(mathWrong, quizWrong) {
 // 答题少于 MASTERY_MIN 题不下结论（'few'）；正确率 ≥ MASTERY_PCT 为掌握，否则需要再练
 const MASTERY_MIN = 3;
 const MASTERY_PCT = 80;
-const SUBJECT_ORDER = ['math', 'chinese', 'english'];
 
 // 累计规则与单元星图同源（utils/quiz.js unitTally）
 const _unitTally = history => QZ.unitTally(history);
@@ -126,8 +124,8 @@ function _masteryRow(row) {
   const status = row.total < MASTERY_MIN ? 'few' : rate >= MASTERY_PCT ? 'mastered' : 'practice';
   return {
     ...row,
-    subjectName: SUBJECT_NAME[row.subject] || row.subject,
-    label: QB.unitLabel(row.unit),
+    subjectName: SUBJ.nameOf(row.subject),
+    label: SUBJ.unitLabel(row.unit),
     rate, status,
   };
 }
@@ -142,7 +140,7 @@ function unitMastery(quizHistory, quizWrong) {
     row.wrongOpen++;
   });
   return Object.values(by)
-    .sort((a, b) => SUBJECT_ORDER.indexOf(a.subject) - SUBJECT_ORDER.indexOf(b.subject) || a.unit - b.unit)
+    .sort(SUBJ.compareUnits)
     .map(_masteryRow);
 }
 

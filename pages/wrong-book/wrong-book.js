@@ -6,10 +6,8 @@ const RV = require('../../utils/review');
 
 const LEVEL_NAME = {};
 Object.keys(AR.LEVELS).forEach(k => { LEVEL_NAME[k] = AR.LEVELS[k].name; });
-const QB = require('../../utils/quiz-bank');
-
-const SUBJECT_NAME = { math: '数学', chinese: '语文', english: '英语' };
-const SUBJECT_ORDER = ['math', 'chinese', 'english'];
+const SUBJ = require('../../utils/subjects');
+const QZ = require('../../utils/quiz');
 
 Page({
   data: {
@@ -57,19 +55,20 @@ Page({
       const key = w.subject + '#' + unit;
       const grp = byUnit[key] || (byUnit[key] = {
         key, subject: w.subject, unit,
-        name: (SUBJECT_NAME[w.subject] || w.subject) + ' · ' + QB.unitLabel(unit),
+        name: SUBJ.nameOf(w.subject) + ' · ' + SUBJ.unitLabel(unit),
         items: [],
       });
       grp.items.push({
         key: w.key,
         text: w.question.prompt,
         answer: w.question.answerText || (w.question.answers || []).join('、'),
+        explain: QZ.explainOf(w.question),
         wrongCount: w.wrongCount,
         schedule: this._schedule(w, today),
       });
     });
     const quizGroups = Object.values(byUnit)
-      .sort((a, b) => SUBJECT_ORDER.indexOf(a.subject) - SUBJECT_ORDER.indexOf(b.subject) || a.unit - b.unit);
+      .sort(SUBJ.compareUnits);
 
     this.setData({
       mathGroups,

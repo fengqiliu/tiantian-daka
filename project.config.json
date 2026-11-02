@@ -29,7 +29,16 @@
   },
   "simulatorPluginLibVersion": {},
   "packOptions": {
-    "ignore": [],
+    "ignore": [
+      { "type": "folder", "value": "content" },
+      { "type": "folder", "value": "test" },
+      { "type": "folder", "value": "scripts" },
+      { "type": "folder", "value": "docs" },
+      { "type": "folder", "value": "design" },
+      { "type": "file", "value": "README.md" },
+      { "type": "file", "value": "CHANGELOG.md" },
+      { "type": "file", "value": "LICENSE" }
+    ],
     "include": []
   },
   "editorSetting": {}

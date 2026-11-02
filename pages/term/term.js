@@ -3,7 +3,7 @@ const D = require('../../utils/date');
 const CTX = require('../../utils/context');
 const TERM = require('../../utils/term');
 
-const UNIT_MARK = { mastered: '👍 掌握', practice: '💪 再练练', few: '题还少' };
+const SUBJ = require('../../utils/subjects');
 
 Page({
   data: {
@@ -34,7 +34,7 @@ Page({
       unitRows: s.units.map(u => ({
         name: u.subjectName + u.label,
         text: u.total ? u.correct + '/' + u.total + ' · ' + u.rate + '%' : '',
-        mark: UNIT_MARK[u.status],
+        mark: SUBJ.MASTERY_MARK[u.status],
         status: u.status,
       })),
     });

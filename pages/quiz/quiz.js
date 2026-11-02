@@ -1,7 +1,6 @@
 const store = require('../../utils/store');
 const D = require('../../utils/date');
 const QZ = require('../../utils/quiz');
-const QB = require('../../utils/quiz-bank');
 const T = require('../../utils/tasks');
 const C = require('../../utils/checkin');
 const B = require('../../utils/badges');
@@ -9,11 +8,9 @@ const cloud = require('../../utils/cloud');
 
 const SPRINT_SIZE = 20;
 
-const SUBJECT_META = {
-  math: { name: '数学', emoji: '🧮' },
-  chinese: { name: '语文', emoji: '📕' },
-  english: { name: '英语', emoji: '🔤' },
-};
+const SUBJ = require('../../utils/subjects');
+const SUBJECT_META = {};
+SUBJ.SUBJECTS.forEach(s => { SUBJECT_META[s.key] = s; });
 
 Page({
   data: {
@@ -88,7 +85,7 @@ Page({
 
   _unitsFor(subject) {
     return [...new Set(QZ.poolFor(subject).map(q => q.unit))].sort((a, b) => a - b)
-      .map(value => ({ value, label: QB.unitLabel(value) }));
+      .map(value => ({ value, label: SUBJ.unitLabel(value) }));
   },
 
   onPick(e) {
@@ -227,7 +224,8 @@ Page({
       });
       const sprintStars = sprint ? this._checkinSprint() : 0;
       cloud.syncAll(); // 小卷历史上云，家长报告可见（节流 1 分钟，静默失败）
-      this.setData({ phase: 'done', verdict: v, breakdown: sprint ? breakdown : [] });
+      const rows = breakdown.map(row => ({ ...row, mark: SUBJ.MASTERY_MARK[row.mastered ? 'mastered' : 'practice'] }));
+      this.setData({ phase: 'done', verdict: v, breakdown: sprint ? rows : [] });
       if (sprintStars) wx.showToast({ title: '期末冲刺打卡 +' + sprintStars + ' ⭐', icon: 'none' });
       this.refreshMeta();
     } else {

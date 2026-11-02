@@ -4,14 +4,14 @@
 
 > 小学生 1-5 年级每日学习 / 运动 / 娱乐打卡微信小程序（上海小学版）
 > 语文 · 数学 · 英语 + 跳绳户外 + 非屏幕娱乐，任务按年级自动生成，坚持看得见。
-> 当前功能版本 **v0.29.0**：在打卡闭环之上（含计时打卡与家长确认的补打卡），已有练习（跟读 / 口算 / 小卷 / 古诗，一年级上册内容按单元收齐）、错题解析与间隔复习、单元星图与期末冲刺、每周小目标、奖励小铺、家长报告与周报、学期成长报告、家长鼓励留言；版本详情见 [CHANGELOG.md](CHANGELOG.md)。
+> 当前功能版本 **v0.30.0**：在打卡闭环之上（含计时打卡与家长确认的补打卡），已有练习（跟读 / 口算 / 小卷 / 古诗，一年级上册内容按单元收齐）、错题解析与间隔复习、单元星图与期末冲刺、每周小目标、奖励小铺、家长报告与周报、学期成长报告、家长鼓励留言；版本详情见 [CHANGELOG.md](CHANGELOG.md)。
 
 ## 当前状态
 
 - **本地功能已实现**：每日任务、打卡激励、计时打卡、补打卡、日历、跟读、口算、小卷（含期末冲刺）、古诗、错题本（按单元专练）与间隔复习、单元星图、期末复习倒计时、每周小目标、任务管理、奖励小铺、家长报告与周报、学期成长报告、数据备份恢复。
 - **学习内容**：上海一年级上册 23 套单元卷 / 期末卷已转录为结构化知识库（[content/exams/](content/exams/README.md)），小卷题库 189 题、跟读 Unit 1-6 都由它而来；一年级下册等试卷提供后再扩充。
 - **云端代码已实现，需部署验证**：多设备同步、家人绑定与家长只读视图、家长鼓励留言与孩子表情回复、每日提醒与里程碑通知、一键清空云端。当前 `utils/cloud.js` 的 `CLOUD_ENV` 为空，默认以纯本地模式运行。
-- **测试资产**：182 项客户端逻辑用例、56 项云函数用例、44 项页面流程用例，外加页面静态检查，`node scripts/run-all.js` 一键运行，GitHub Actions 每次推送自动跑；均无需安装依赖。云函数与页面测试使用内存桩，不能替代真实微信云环境与双手机联调。
+- **测试资产**：184 项客户端逻辑用例、56 项云函数用例、47 项页面流程用例，外加页面静态检查与代码包体积检查，`node scripts/run-all.js` 一键运行，GitHub Actions 每次推送自动跑；均无需安装依赖。云函数与页面测试使用内存桩，不能替代真实微信云环境与双手机联调。
 - **试用阶段**：按 [7 天真机试用指南](docs/trial-guide.md) 验证孩子与家长端流程，收集内容和交互反馈。
 
 ## 功能一览
@@ -27,7 +27,7 @@
 - **激励体系**：星星、5 级称号、19 枚勋章（打卡类 + 练习类）、连续打卡（今天未打不打断连击）；只和昨天的自己比，没有排行榜
 - **单元星图**：成长页列出每科全册单元，小卷练得越多越准点亮越多星（0-3 颗），点单元直接练；一科全部 2 颗星得「单元点灯人」勋章
 - **学习练习**：
-  - 英语跟读教室：一上 Unit 1-6 分单元逐句录音，默认接着上次的单元
+  - 英语跟读教室：一上 Unit 1-6 分单元逐句录音，默认接着上次的单元；另有单元卷「听力原文」加练（家长读、孩子跟录，不计入打卡句数）
   - 口算挑战：沪教版进度分级（含 20以内进位加 / 不退位减），一年级按学期月份推荐级别；答错显示凑十 / 破十方法提示
   - 每周一卷：判断 / 选择 / 多选，可按单元或「期末」练，等第制评价；答错说一句「为什么」（比大小先算再比、读音分平翘舌 / 前后鼻 / 声调）
   - 期末冲刺卷：全册每个单元都抽到，错得多的单元多练，做完看各单元掌握；一年级放假前 3 周首页倒计时，做完自动打卡
@@ -95,6 +95,7 @@ tiantian-daka/
 │   ├── term.js                      # 学期成长报告：由校历推出学期/假期 + 时段汇总
 │   ├── cheer.js                     # 鼓励留言常用语/称呼/校验/回复表情（与 family 云函数共用）
 │   ├── week-brief.js                # 周报推送摘要 + 北京时间日期（与 weeklyReport 云函数共用）
+│   ├── subjects.js                  # 学科名 / 顺序、单元标签（期末）、掌握标记的唯一来源（与 weeklyReport 云函数共用）
 │   ├── backup.js                    # JSON 备份：序列化/校验/恢复
 │   ├── reset.js                     # 一键清空：先清云端、成功后清本机
 │   ├── store.js                     # 存储适配层（wx storage / 内存）：打卡记录按年分片 + 读缓存、写失败可见、家长端孩子数据缓存
@@ -113,13 +114,14 @@ tiantian-daka/
 │   ├── run-all.js                   # 一键跑全部检查（本地与 CI 共用）
 │   ├── bench.js                     # 性能基准：一年数据下各页面耗时、记录分片读取次数
 │   ├── check-pages.js               # 页面静态检查：四件套、事件绑定、跳转目标
+│   ├── check-package.js             # 代码包体积：按 packOptions.ignore 计算上传包，限 2MB
 │   └── sync-cloud-libs.js           # 把 utils/ 共享逻辑复制到各云函数 lib/（--check 只校验漂移）
 ├── .github/workflows/test.yml       # CI：Node 18 / 22 × UTC / 北京时间
 ├── content/exams/                   # 试卷知识库（上海 2024 新教材一上单元卷 + 期末卷 PDF + 结构化数据）
 ├── test/
-│   ├── run-tests.js                 # 客户端单元测试（182 项，node 直接运行）
+│   ├── run-tests.js                 # 客户端单元测试（184 项，node 直接运行）
 │   ├── run-cloud-tests.js           # 云函数测试（56 项，内存数据库桩）
-│   ├── run-page-tests.js            # 页面流程测试（44 项，加载真实页面按用户操作驱动）
+│   ├── run-page-tests.js            # 页面流程测试（47 项，加载真实页面按用户操作驱动）
 │   ├── page-harness.js              # 页面测试桩：Page / wx 桩、可冻结时钟与"今天"（默认固定为上学日）、wx.cloud 接内存云函数
 │   ├── perf-fixture.js              # 一年规模的模拟数据（性能基准与存储测试用）
 │   └── cloud-mock.js                # wx-server-sdk 内存桩（openid 隔离 / 订阅配额 / 内容安全 / 删除）
@@ -141,11 +143,12 @@ node scripts/run-all.js          # 一键跑下面全部检查（CI 也用它）
 
 | 检查 | 命令 | 覆盖 |
 | --- | --- | --- |
-| 客户端逻辑 | `node test/run-tests.js` | 182 项：任务生成、打卡统计、激励、同步引擎、练习（含题库与知识库对齐、解析覆盖）、复习、周目标、补卡、计时、报告等纯逻辑 |
+| 客户端逻辑 | `node test/run-tests.js` | 184 项：任务生成、打卡统计、激励、同步引擎、练习（含题库与知识库对齐、解析覆盖）、复习、周目标、补卡、计时、报告等纯逻辑 |
 | 云函数 | `node test/run-cloud-tests.js` | 56 项：内存数据库桩替代 `wx-server-sdk`，含 openid 隔离、订阅配额、内容安全、一键清空 |
-| 页面流程 | `node test/run-page-tests.js` | 44 项：在 Node 里加载真实页面、按用户操作顺序调用页面方法，含家长 ⇄ 孩子联动（走真实云函数代码） |
+| 页面流程 | `node test/run-page-tests.js` | 47 项：在 Node 里加载真实页面、按用户操作顺序调用页面方法，含家长 ⇄ 孩子联动（走真实云函数代码） |
 | 页面静态检查 | `node scripts/check-pages.js` | 每个页面四件套齐全、WXML 事件绑定在 JS 里都有方法、跳转目标都在 `app.json` 里 |
 | 云函数 lib 漂移 | `node scripts/sync-cloud-libs.js --check` | 云函数 `lib/` 与 `utils/` 源文件一致 |
+| 代码包体积 | `node scripts/check-package.js`（`--list` 看明细） | 按 `project.config.json` 的 `packOptions.ignore` 算出上传包，超过主包 2MB 或误排除了运行必需文件就失败 |
 
 推送到 GitHub 后，`.github/workflows/test.yml` 会在 Node 18 / 22、UTC 与北京时间下各跑一遍。测试覆盖不到的：WXML 渲染与样式、真机录音、真实云环境与双手机联调——这些仍需按[试用指南](docs/trial-guide.md)与下方接入指南在真机上验证。
 
@@ -168,7 +171,7 @@ node scripts/run-all.js          # 一键跑下面全部检查（CI 也用它）
 6. 申请订阅消息模板：mp.weixin.qq.com → 订阅消息 → 选用"打卡提醒"类模板（含两个"事物"字段）→ 把提醒模板 ID 填入 `cloudfunctions/remind/config.js` 与 `cloudfunctions/dailyRemind/config.js`（两处必须是**同一个**模板 ID，否则订阅成功但定时任务发不出消息），把家长通知模板 ID 填入 `cloudfunctions/family/config.js` 的 `NOTIFY_TEMPLATE_ID`；周报模板 ID 同时填入 `cloudfunctions/family/config.js` 与 `cloudfunctions/weeklyReport/config.js` 的 `WEEKLY_TEMPLATE_ID`（两处必须相同）；字段名不同则同步修改对应 `index.js` 的 `data` 字段
 7. 真机验证（两部手机）：孩子端「我的 → 家人绑定」显示邀请码 → 家长手机输入绑定；孩子打卡后家长首页应看到进度；家长发一条留言，孩子首页应出现「妈妈说」卡片；孩子端点「开启提醒」授权一次，当晚 20:00 未完成时应收到消息
 
-> 以后修改了 `utils/tasks.js`、`utils/history-merge.js`、`utils/cheer.js`、`utils/week-brief.js` 等共享文件，都要重新运行第 3 步并重新上传对应云函数；提交前用 `--check` 确认无漂移。
+> 以后修改了 `utils/tasks.js`、`utils/history-merge.js`、`utils/cheer.js`、`utils/week-brief.js`、`utils/subjects.js` 等共享文件，都要重新运行第 3 步并重新上传对应云函数；提交前用 `--check` 确认无漂移。
 
 ## 参与开发
 
@@ -176,8 +179,8 @@ node scripts/run-all.js          # 一键跑下面全部检查（CI 也用它）
 
 1. **先写失败的测试**：纯逻辑写进 `test/run-tests.js`，云函数写进 `test/run-cloud-tests.js`，页面交互写进 `test/run-page-tests.js`；确认它先失败，再写实现让它通过。
 2. **逻辑放在 `utils/`**：页面只做展示与调用，规则都写成可在 Node 里测的纯函数；页面统一从 `utils/context.js` 的 `scope()` 取数，家长端才能自动切到孩子数据。
-3. **改了共享文件**（`utils/tasks.js`、`date.js`、`calendar-config.js`、`history-merge.js`、`cheer.js`、`week-brief.js`）要跑 `node scripts/sync-cloud-libs.js`，并在变更日志里注明需要重新上传哪个云函数。
-4. **提交前跑 `node scripts/run-all.js`**，全部通过再提交；推送后 CI 会在 Node 18 / 22、UTC 与北京时间下再跑一遍。
+3. **改了共享文件**（`utils/tasks.js`、`date.js`、`calendar-config.js`、`history-merge.js`、`cheer.js`、`week-brief.js`、`subjects.js`）要跑 `node scripts/sync-cloud-libs.js`，并在变更日志里注明需要重新上传哪个云函数。
+4. **提交前跑 `node scripts/run-all.js`**，全部通过再提交（含代码包体积：新增非小程序目录要加进 `project.config.json` 的 `packOptions.ignore`）；推送后 CI 会在 Node 18 / 22、UTC 与北京时间下再跑一遍。
 5. **发版时同步三处版本号**：`CHANGELOG.md`（新增一节，写清新增 / 修复 / 部署提示）、本 README 顶部的「当前功能版本」、`pages/profile/profile.js` 的 `APP_VERSION`（「我的」页底部显示）。
 6. 涉及文档的改动同时更新 `docs/` 下对应文件，保持文档与代码一致。
 
@@ -226,6 +229,7 @@ node scripts/run-all.js          # 一键跑下面全部检查（CI 也用它）
 - **0.27.0 ✅**：家长报告「各单元掌握」（小卷按单元累计正确率 + 错题本题数，需再练的排前）；周报需关注提示本周最薄弱的单元
 - **0.28.0 ✅**：口算答错显示凑十 / 破十方法提示；错题本按单元分组、可只练一组；一年级放假前 3 周首页期末倒计时 + 每日自选「期末冲刺」（做完自动打卡）；报告「再练练」的单元一点直达小卷
 - **0.29.0 ✅**：小卷答错显示「为什么」（比大小先算再比、读音分平翘舌 / 前后鼻 / 声调、标调口诀）；成长页单元星图 +「单元点灯人」勋章；学期报告加各单元掌握与期末冲刺次数；周报推送带薄弱单元
+- **0.30.0 ✅**：修复代码包体积（试卷 PDF / 测试 / 文档会被打进上传包，约 46MB → 386KB）+ 体积检查；学科常量收拢到 `utils/subjects.js`；错题复习与错题本也显示提示 / 解析；跟读教室加「听力原文」加练
 - **近期验收**：部署全部云函数、双手机验证绑定 / 同步 / 留言、确认订阅提醒送达；执行 7 天真机试用
 - **待定**：一年级下册题库与跟读内容（等下册单元试卷转录）
 - **1.0.0**：班级打卡圈 + 教师点评（⛔ 待云环境与组织流程）、英语发音评测（待付费评测服务）

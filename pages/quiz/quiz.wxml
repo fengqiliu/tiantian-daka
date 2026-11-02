@@ -62,7 +62,7 @@
         <view class="qz-bd-row" wx:for="{{breakdown}}" wx:key="unit">
           <view>{{item.label}}</view>
           <view class="muted">{{item.correct}}/{{item.total}}</view>
-          <view class="qz-bd-tag {{item.mastered ? 'ok' : ''}}">{{item.mastered ? '👍 掌握' : '💪 再练练'}}</view>
+          <view class="qz-bd-tag {{item.mastered ? 'ok' : ''}}">{{item.mark}}</view>
         </view>
       </view>
       <view class="btn-primary" style="margin-top: 32rpx;" bindtap="onAgain">再来一组</view>

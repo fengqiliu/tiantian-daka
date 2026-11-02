@@ -33,6 +33,7 @@ const steps = [
     return bad.length ? 'JSON 解析失败：\n  ' + bad.map(f => path.relative(root, f)).join('\n  ') : null;
   } },
   { name: '页面静态检查', cmd: ['scripts/check-pages.js'] },
+  { name: '代码包体积', cmd: ['scripts/check-package.js'] },
   { name: '云函数 lib 漂移', cmd: ['scripts/sync-cloud-libs.js', '--check'] },
   { name: '客户端逻辑测试', cmd: ['test/run-tests.js'] },
   { name: '云函数测试', cmd: ['test/run-cloud-tests.js'] },

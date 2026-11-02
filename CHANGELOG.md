@@ -5,6 +5,31 @@
 > 项目：天天小达人 —— 上海小学 1-5 年级每日学习 / 运动 / 娱乐打卡微信小程序
 > 仓库：https://github.com/fengqiliu/tiantian-daka
 
+## [0.30.0] - 2026-11-02
+
+### 修复
+
+- **代码包会超过微信 2MB 上限，「预览」「上传」失败**：`project.config.json` 的 `packOptions.ignore` 为空，试卷 PDF（含本地未入库的扫描练习册）、测试、脚本、文档都会被打进上传包，合计约 46MB。现排除 `content/`、`test/`、`scripts/`、`docs/`、`design/` 与 README / CHANGELOG / LICENSE，上传包约 386KB（压缩前）
+  - 新增 `scripts/check-package.js`（已加入 `run-all` 与 CI）：按 `packOptions.ignore` 规则算出上传文件，超过 2MB、或运行必需的文件（app.* / pages / utils / custom-tab-bar / sitemap.json）被误排除时失败；`--list` 列出明细
+
+### 新增
+
+- **错题复习也给提示**：今日错题复习里答错口算显示凑十 / 破十提示，答错小卷题显示「为什么」；错题本里的小卷错题也带解析
+- **跟读教室「听力原文」加练**：每个单元下方列出该单元测试卷的听力原文（A 卷在前、B 卷补充、去重），家长读一句、孩子跟录；单独计数，不计入打卡句数和星级
+
+### 变更
+
+- **学科常量收拢到 `utils/subjects.js`**：学科名 / 顺序 / emoji、单元标签（期末 = 90）、掌握标记（👍 掌握 / 💪 再练练 / 题还少）原先在 6 个页面和 3 个模块里各写一份，现只有一份；`quiz-bank.js` 直接复用，`week-brief.js` 不再单独维护期末标签。行为不变
+- 跟读听力原文从知识库复制进 `utils/english-content.js`（`content/` 不再进上传包），有测试守护两边一致
+
+### 部署
+
+- `utils/subjects.js` 新加入 weeklyReport 云函数 lib，`week-brief.js` 有改动：需重新上传 **weeklyReport**
+
+### 测试
+
+- 逻辑测试 182 → 184 项、页面测试 44 → 47 项；`run-all` 新增「代码包体积」一项
+
 ## [0.29.0] - 2026-11-01
 
 ### 新增

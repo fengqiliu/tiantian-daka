@@ -6,11 +6,7 @@
 //       'multi'（多选：options + answers，须全部选对）
 // explain（可选）：答错时显示的手写解析；没有时按题型规则生成（utils/quiz.js explainOf）
 // unit: 单元号；期末综合模拟卷记为 FINAL_UNIT（90），界面显示为“期末”。
-const FINAL_UNIT = 90;
-
-function unitLabel(unit) {
-  return unit === FINAL_UNIT ? '期末' : '第' + unit + '单元';
-}
+const { FINAL_UNIT, unitLabel } = require('./subjects');
 
 module.exports = {
   FINAL_UNIT,

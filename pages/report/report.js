@@ -9,7 +9,7 @@ const CTX = require('../../utils/context');
 
 const LEVEL_NAME = {};
 Object.keys(AR.LEVELS).forEach(k => { LEVEL_NAME[k] = AR.LEVELS[k].name; });
-const SUBJECT_NAME = { math: '数学', chinese: '语文', english: '英语' };
+const SUBJ = require('../../utils/subjects');
 
 Page({
   data: {
@@ -93,17 +93,16 @@ Page({
       .map(h => ({
         ...h,
         dateLabel: D.dateLabel(D.formatDate(new Date(h.at))),
-        subjectName: SUBJECT_NAME[h.subject] || h.subject,
+        subjectName: SUBJ.nameOf(h.subject),
       }));
 
     // 各单元掌握：按全部小卷历史累计（不随 7/30 天切换），需要再练的排前面
-    const MARK = { mastered: '👍 掌握', practice: '💪 再练练', few: '题还少' };
     const mastery = REPORT.unitMastery(s.quizHistory, s.quizWrong)
       .map(row => ({
         ...row,
         name: row.subjectName + row.label,
         text: row.total ? row.correct + '/' + row.total + ' · ' + row.rate + '%' : '还没有作答记录',
-        mark: MARK[row.status],
+        mark: SUBJ.MASTERY_MARK[row.status],
         canPractice: s.role !== 'parent' && row.status === 'practice', // 孩子端点「再练练」直接开这个单元的小卷
       }))
       .sort((a, b) => (a.status === 'practice' ? 0 : 1) - (b.status === 'practice' ? 0 : 1));

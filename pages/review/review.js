@@ -7,7 +7,7 @@ const B = require('../../utils/badges');
 const RV = require('../../utils/review');
 const cloud = require('../../utils/cloud');
 
-const SUBJECT_NAME = { math: '数学', chinese: '语文', english: '英语' };
+const SUBJ = require('../../utils/subjects');
 
 Page({
   data: {
@@ -20,6 +20,7 @@ Page({
     input: '',
     feedback: '', // '' | 'right' | 'wrong'
     wrongText: '',
+    explain: '', // 答错时的方法提示 / 解析
     optStates: [],
     mastered: 0,
     promoted: 0,
@@ -45,7 +46,7 @@ Page({
     // 统一成会话卡：口算走数字键盘，小卷走选项（选项每次重新打乱）
     const cards = queue.map(it => (it.source === 'math'
       ? { source: 'math', key: it.key, level: it.level, problem: it.problem, tag: '口算', text: AR.textOf(it.problem) }
-      : { ...QZ.instantiate(it.question, Math.random), source: 'quiz', key: it.key, tag: (SUBJECT_NAME[it.question.subject] || '') + '小卷' }));
+      : { ...QZ.instantiate(it.question, Math.random), source: 'quiz', key: it.key, tag: SUBJ.nameOf(it.question.subject) + '小卷' }));
     this._picked = [];
     this.setData({
       phase: 'play', cards, total: cards.length,
@@ -70,9 +71,14 @@ Page({
       mastered: this.data.mastered + (res === 'mastered' ? 1 : 0),
       promoted: this.data.promoted + (res === 'promoted' ? 1 : 0),
       feedback: ok ? 'right' : 'wrong',
+      // 答错时说明方法：口算给凑十 / 破十提示，小卷给「为什么」
+      explain: ok ? '' : c.source === 'math' ? AR.hintOf(c.problem) : QZ.explainOf(c),
     });
     return answered;
   },
+
+  // 判分后停留时长：答对短、答错长，有提示时再长一点让孩子看完
+  _delay(ok, base) { return ok ? base[0] : this.data.explain ? 2800 : base[1]; },
 
   // ── 口算：数字键盘 ──
   onKey(e) {
@@ -91,7 +97,7 @@ Page({
     const ok = AR.check(c.problem, this.data.input);
     if (!ok) this.setData({ wrongText: c.text + '  正确答案 ' + c.problem.answer });
     const answered = this._record(ok);
-    this._t = setTimeout(() => this.advance(answered), ok ? 450 : 1400);
+    this._t = setTimeout(() => this.advance(answered), this._delay(ok, [450, 1400]));
   },
 
   // ── 小卷：单选立即判分，多选点提交 ──
@@ -110,7 +116,7 @@ Page({
       optStates: c.options.map((_, i) => (i === c.answerIndex ? 'right' : i === idx && !ok ? 'wrong' : '')),
     });
     const answered = this._record(ok);
-    this._t = setTimeout(() => this.advance(answered), ok ? 600 : 1400);
+    this._t = setTimeout(() => this.advance(answered), this._delay(ok, [600, 1400]));
   },
 
   onMultiSubmit() {
@@ -125,13 +131,13 @@ Page({
       optStates: c.options.map((_, i) => (c.answerSet.indexOf(i) > -1 ? 'right' : this._picked.indexOf(i) > -1 ? 'wrong' : '')),
     });
     const answered = this._record(ok);
-    this._t = setTimeout(() => this.advance(answered), ok ? 900 : 1800);
+    this._t = setTimeout(() => this.advance(answered), this._delay(ok, [900, 1800]));
   },
 
   advance(answered) {
     this._t = null;
     this._picked = [];
-    this.setData({ feedback: '', input: '', wrongText: '', optStates: [] });
+    this.setData({ feedback: '', input: '', wrongText: '', explain: '', optStates: [] });
     if (answered >= this.data.total) this.finish();
     else this.setData({ idx: this.data.idx + 1 });
   },

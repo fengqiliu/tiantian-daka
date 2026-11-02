@@ -30,3 +30,5 @@
   color: #6B655B;
 }
 .ra-unit.on { background: #FF8A00; color: #fff; font-weight: 600; }
+
+.ra-sub { margin: 28rpx 0 16rpx; }

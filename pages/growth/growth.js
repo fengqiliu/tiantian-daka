@@ -7,6 +7,7 @@ const CTX = require('../../utils/context');
 const QZ = require('../../utils/quiz');
 const SHOP = require('../../utils/shop');
 const TERM = require('../../utils/term');
+const SUBJ = require('../../utils/subjects');
 
 Page({
   data: {
@@ -49,11 +50,10 @@ Page({
       }));
 
     // 每周一卷入口文案
-    const SUBJECT_NAME = { math: '数学', chinese: '语文', english: '英语' };
     const quizHistory = QZ.getHistory();
     const quizWrong = store.getQuizWrong();
     const quizHint = quizHistory.length
-      ? '上次' + (SUBJECT_NAME[quizHistory[0].subject] || '') + '小卷「' + quizHistory[0].label + '」'
+      ? '上次' + SUBJ.nameOf(quizHistory[0].subject) + '小卷「' + quizHistory[0].label + '」'
         + (quizWrong.length ? ' · 错题 ' + quizWrong.length + ' 题' : '')
       : (quizWrong.length ? '错题 ' + quizWrong.length + ' 题，来练一练' : '判断选择小卷，做完给等第');
 

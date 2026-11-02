@@ -25,6 +25,8 @@ module.exports = {
         { id: 'u1-sc3', when: '晚上见到家人', say: 'Good evening!' },
         { id: 'u1-sc4', when: '放学和老师告别', say: 'Goodbye!' },
       ],
+      // 听力原文（知识库 listeningScripts，A 卷在前、B 卷补充，去重）：跟读教室的加练，不计入打卡句数
+      listening: ['Good morning.', 'Good afternoon.', 'Hello!', 'How are you?', 'Hi!', 'Good evening.', 'Goodbye.'],
     },
     {
       id: 'english-g1s1-u2',
@@ -46,6 +48,8 @@ module.exports = {
         { id: 'u2-sc3', when: '欢迎 Lily 来中国', say: 'Welcome to China!' },
         { id: 'u2-sc4', when: '告诉别人可以叫自己 Lily', say: 'You can call me Lily.' },
       ],
+      // 听力原文（知识库 listeningScripts，A 卷在前、B 卷补充，去重）：跟读教室的加练，不计入打卡句数
+      listening: ['Hello!', 'Hi, Lily. Welcome to China!', 'My name is Lily.', 'Nice to meet you.', 'My name is Shenshen.', 'Friends, my friends.'],
     },
     {
       id: 'english-g1s1-u3',
@@ -67,6 +71,8 @@ module.exports = {
         { id: 'u3-sc3', when: '同学找不到橡皮很着急', say: "Don't worry." },
         { id: 'u3-sc4', when: '把书本装进书包', say: 'Pack my books.' },
       ],
+      // 听力原文（知识库 listeningScripts，A 卷在前、B 卷补充，去重）：跟读教室的加练，不计入打卡句数
+      listening: ['Pencil.', 'Book.', 'Schoolbag.', 'Pack my schoolbag.', 'Eraser.', 'Ruler.', 'Pencil case.'],
     },
     {
       id: 'english-g1s1-u4',
@@ -88,6 +94,8 @@ module.exports = {
         { id: 'u4-sc3', when: '书本放乱了', say: 'Put the books back.' },
         { id: 'u4-sc4', when: '同学帮你打扫后', say: 'Thank you.' },
       ],
+      // 听力原文（知识库 listeningScripts，A 卷在前、B 卷补充，去重）：跟读教室的加练，不计入打卡句数
+      listening: ['desk', 'blackboard', 'floor', 'chair', 'Let me clean the desk.', 'Let me clean the blackboard.', 'Put the books back.', 'Let me clean the floor.'],
     },
     {
       id: 'english-g1s1-u5',
@@ -109,6 +117,8 @@ module.exports = {
         { id: 'u5-sc3', when: '请同学画一张脸', say: 'Draw a face.' },
         { id: 'u5-sc4', when: '夸这张脸真可爱', say: 'A lovely face.' },
       ],
+      // 听力原文（知识库 listeningScripts，A 卷在前、B 卷补充，去重）：跟读教室的加练，不计入打卡句数
+      listening: ['eye', 'nose', 'face', 'mouth', 'ear'],
     },
     {
       id: 'english-g1s1-u6',
@@ -130,6 +140,8 @@ module.exports = {
         { id: 'u6-sc3', when: '指着照片里的自己', say: 'This is me.' },
         { id: 'u6-sc4', when: '告诉家人你爱他们', say: 'I love my family.' },
       ],
+      // 听力原文（知识库 listeningScripts，A 卷在前、B 卷补充，去重）：跟读教室的加练，不计入打卡句数
+      listening: ['mum', 'sister', 'dad', 'brother'],
     },
   ],
 };

@@ -12,6 +12,7 @@
         <view class="rv-input">{{input || '_'}}</view>
       </block>
       <view wx:else class="rv-prompt">{{cards[idx].prompt}}</view>
+      <view class="rv-explain" wx:if="{{feedback === 'wrong' && explain}}">💡 {{explain}}</view>
     </view>
 
     <view class="rv-pad" wx:if="{{cards[idx].source === 'math'}}">

@@ -14,6 +14,8 @@ Page({
     units: [],
     selectedUnit: 1,
     cards: [],
+    listenCards: [],   // 听力原文加练
+    listenRecorded: 0,
     recordedCount: 0,
     total: 0,
     canFinish: false,
@@ -85,12 +87,18 @@ Page({
     };
     const cards = this.unit.sentences.map(mk).concat(this.unit.scenes.map(mk));
     const comp = RA.completion(cards, readings);
+    // 听力原文：加练，不计入打卡句数（id 形如 u3-l1）
+    const listenCards = (this.unit.listening || []).map((text, i) => mk({
+      id: 'u' + this.unit.unit + '-l' + (i + 1), text, tip: '听力原文：家长先读一遍，孩子跟读',
+    }));
     this.setData({
       title: this.unit.title,
       subtitle: EC.textbook,
       units: EC.units.map(u => ({ value: u.unit, label: 'Unit ' + u.unit })),
       selectedUnit: this.unit.unit,
       cards,
+      listenCards,
+      listenRecorded: listenCards.filter(c => c.status === RA.STATE.RECORDED).length,
       total: comp.total,
       recordedCount: comp.recorded,
       canFinish: comp.recorded > 0,
@@ -112,7 +120,7 @@ Page({
       wx.showToast({ title: '先完成当前录音哦', icon: 'none' });
       return;
     }
-    const card = this.data.cards.find(c => c.id === id);
+    const card = this.data.cards.concat(this.data.listenCards).find(c => c.id === id);
     if (!card || !RA.canRecord(card.status)) return;
     try { this.fs.mkdirSync(this.dir, true); } catch (err) { /* 目录已存在 */ }
     this.recorder.start({

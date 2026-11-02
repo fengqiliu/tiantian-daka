@@ -479,6 +479,16 @@ t('内容库扩到 Unit 1-6：每单元对应知识库试卷，全库 id 唯一'
   });
   assert.strictEqual(new Set(all).size, all.length, '全库 id 不应重复');
 });
+t('跟读听力原文：与知识库 listeningScripts 一致（A 卷在前、B 卷补充，去重）', () => {
+  const norm = s => s.toLowerCase().replace(/[^a-z' ]/g, '').trim();
+  EC.units.forEach(u => {
+    const kb = require('../content/exams/data/' + u.id + '.json').listeningScripts;
+    const seen = new Set();
+    const expect = kb.A.concat(kb.B).filter(x => { const k = norm(x); if (seen.has(k)) return false; seen.add(k); return true; });
+    assert.deepStrictEqual(u.listening, expect, u.title);
+  });
+  assert.deepStrictEqual(EC.units[2].listening, ['Pencil.', 'Book.', 'Schoolbag.', 'Pack my schoolbag.', 'Eraser.', 'Ruler.', 'Pencil case.']);
+});
 t('跟读选单元：指定的单元优先，否则接着上次录过的单元，都没有则 Unit 1', () => {
   assert.strictEqual(RA.pickUnit(EC.units, [], 3).unit, 3);
   assert.strictEqual(RA.pickUnit(EC.units, [], 99).unit, 1, '无效单元回落');
@@ -789,6 +799,16 @@ t('口算提示：进位加凑十、十几加几、不退位减、减整十、�
   assert.strictEqual(h(5, '+', 3), '');
   assert.strictEqual(h(45, '+', 38), '');
   assert.strictEqual(AR.hintOf({ kind: 'missing', a: 3, op: '+', b: null, c: 9, answer: 6 }), '');
+});
+t('学科常量只有一份：题库、报告、推送摘要用同一个单元标签与学科名', () => {
+  const SUBJ = require('../utils/subjects');
+  assert.deepStrictEqual(SUBJ.ORDER, ['math', 'chinese', 'english']);
+  assert.strictEqual(SUBJ.nameOf('english'), '英语');
+  assert.strictEqual(SUBJ.nameOf('art'), 'art', '未知学科原样返回');
+  assert.strictEqual(QBANK.unitLabel, SUBJ.unitLabel, 'quiz-bank 直接复用');
+  assert.strictEqual(QBANK.FINAL_UNIT, SUBJ.FINAL_UNIT);
+  const rows = [{ subject: 'english', unit: 1 }, { subject: 'math', unit: 90 }, { subject: 'math', unit: 5 }, { subject: 'chinese', unit: 2 }];
+  assert.deepStrictEqual(rows.sort(SUBJ.compareUnits).map(x => x.subject + x.unit), ['math5', 'math90', 'chinese2', 'english1']);
 });
 t('错题解析：比大小先算再比，读音分平翘舌 / 前后鼻 / 声调，标调给口诀，手写解析优先', () => {
   const q = id => QBANK.bank.find(x => x.id === id);
@@ -2328,7 +2348,7 @@ t('云函数 lib：weeklyReport 的共享文件与 utils/ 一致', () => {
   const fs = require('fs');
   const path = require('path');
   const root = path.join(__dirname, '..');
-  ['tasks.js', 'date.js', 'calendar-config.js', 'week-brief.js'].forEach(f => {
+  ['tasks.js', 'date.js', 'calendar-config.js', 'week-brief.js', 'subjects.js'].forEach(f => {
     const lib = path.join(root, 'cloudfunctions/weeklyReport/lib', f);
     assert(fs.existsSync(lib), '缺少 ' + f);
     assert.strictEqual(fs.readFileSync(lib, 'utf8'), fs.readFileSync(path.join(root, 'utils', f), 'utf8'), f + ' 漂移');
