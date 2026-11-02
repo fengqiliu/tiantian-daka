@@ -1,7 +1,8 @@
 {
   "compileType": "miniprogram",
   "appid": "wx7afa0bd4b96fa4fc",
-  "projectname": "tiantian-daka",
+  "projectname": "天天小达人",
+  "description": "小学生 1-5 年级每日学习 / 运动 / 娱乐打卡小程序（上海小学版）：语数英 + 跳绳户外 + 非屏幕娱乐，按年级自动生成每日任务",
   "cloudfunctionRoot": "cloudfunctions/",
   "setting": {
     "es6": true,
