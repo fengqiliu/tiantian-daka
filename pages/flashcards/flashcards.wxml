@@ -1,0 +1,47 @@
+<view class="fc safe-bottom">
+  <block wx:if="{{phase === 'decks'}}">
+    <view class="fc-head">
+      <view class="h1">🃏 记忆卡</view>
+      <view class="muted">生字与单词，翻卡自测 · 连续认识 2 次即掌握</view>
+    </view>
+    <block wx:for="{{groups}}" wx:key="key" wx:for-item="grp">
+      <view class="sec-header row" style="padding: 12rpx 32rpx;">
+        <text class="sec-name">{{grp.emoji}} {{grp.name}}</text>
+      </view>
+      <view class="card fc-deck row" wx:for="{{grp.decks}}" wx:key="id" wx:for-item="deck">
+        <view class="flex1">
+          <view class="fc-deck-name">{{deck.name}}</view>
+          <view class="fc-track">
+            <view class="fc-track-in" style="width: {{deck.pct}}%;"></view>
+          </view>
+          <view class="muted">已掌握 {{deck.mastered}}/{{deck.total}}</view>
+        </view>
+        <view class="fc-start" data-id="{{deck.id}}" bindtap="onStart">开始</view>
+      </view>
+    </block>
+  </block>
+
+  <block wx:if="{{phase === 'play'}}">
+    <view class="muted fc-progress">第 {{idx + 1}}/{{total}} 张 · 本组直接认识 {{sessionKnown}} 次</view>
+    <view class="card fc-card {{isChinese ? 'cn' : 'en'}}" bindtap="onFlip">
+      <view class="fc-front {{isChinese ? 'cn' : 'en'}}">{{cards[idx].front}}</view>
+      <view class="fc-back {{flipped ? 'show' : ''}}">{{cards[idx].back}}</view>
+      <view class="muted fc-tap">{{flipped ? '读完点下方按钮自评' : '点卡片看答案'}}</view>
+    </view>
+    <view class="fc-actions row" wx:if="{{flipped}}">
+      <view class="fc-btn know" data-known="1" bindtap="onMark">👍 认识</view>
+      <view class="fc-btn again" data-known="0" bindtap="onMark">💪 再练练</view>
+    </view>
+    <view class="fc-quit" wx:if="{{!flipped}}" bindtap="onBack">先到这里</view>
+  </block>
+
+  <block wx:if="{{phase === 'done'}}">
+    <view class="card fc-done">
+      <view class="fc-done-emoji">🃏</view>
+      <view class="h2">本组练完！</view>
+      <view class="muted">{{total}} 张 · 直接认识 {{sessionKnown}} 次 · 明天再练巩固</view>
+      <view class="btn-primary" style="margin-top: 28rpx;" bindtap="onAgain">再来一组</view>
+      <view class="btn-ghost" style="margin-top: 20rpx;" bindtap="onBack">返回</view>
+    </view>
+  </block>
+</view>

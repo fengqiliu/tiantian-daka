@@ -36,6 +36,14 @@
     <view class="quiz-go">开始 ›</view>
   </view>
 
+  <view class="card row quiz-entry" wx:if="{{role === 'child'}}" bindtap="goFlashcards">
+    <view class="flex1">
+      <view class="h2">🃏 记忆卡</view>
+      <view class="muted">语文生字 + 英语单词，翻卡自测</view>
+    </view>
+    <view class="quiz-go">练习 ›</view>
+  </view>
+
   <view class="card row quiz-entry" bindtap="goWrongBook">
     <view class="flex1">
       <view class="h2">❌ 错题本</view>

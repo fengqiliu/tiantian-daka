@@ -112,6 +112,10 @@ Page({
     wx.navigateTo({ url: '/pages/wrong-book/wrong-book' });
   },
 
+  goFlashcards() {
+    wx.navigateTo({ url: '/pages/flashcards/flashcards' });
+  },
+
   goShop() {
     wx.navigateTo({ url: '/pages/shop/shop' });
   },

@@ -235,6 +235,10 @@ function saveShopRaw(rewards, redemptions, stamp) {
 function getDrillHistory() { return _get(KEYS.DRILL_HISTORY, []); }
 function saveDrillHistory(list) { _set(KEYS.DRILL_HISTORY, list); }
 
+// ── 记忆卡（按牌组的掌握状态，本地）──
+function getFlashcards() { return _get(KEYS.FLASHCARDS, {}); }
+function saveFlashcards(o) { _set(KEYS.FLASHCARDS, o); }
+
 // ── 错题复习日志（本地）──
 function getReviewLog() { return _get(KEYS.REVIEW_LOG, []); }
 function saveReviewLog(list) { _set(KEYS.REVIEW_LOG, list); }
@@ -329,6 +333,7 @@ module.exports = {
   getRedemptions, saveRedemptions,
   getShopStamp, saveShopRaw,
   getDrillHistory, saveDrillHistory,
+  getFlashcards, saveFlashcards,
   getReviewLog, saveReviewLog,
   getCheers, saveCheers, markCheersRead, reactCheerLocal,
   getGoals, saveGoals,
