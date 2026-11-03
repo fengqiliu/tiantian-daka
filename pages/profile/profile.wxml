@@ -104,6 +104,10 @@
   </view>
 
   <view class="card">
+    <view class="btn-ghost" bindtap="onReplayGuide">🧭 重新看一遍使用引导</view>
+  </view>
+
+  <view class="card">
     <view class="h2" style="margin-bottom: 12rpx;">数据</view>
     <view class="muted" wx:if="{{backupHint}}" style="margin-bottom: 16rpx; color: #E5484D;">⚠️ {{backupHint}}</view>
     <view class="btn-ghost" bindtap="exportData">导出数据（复制 JSON 备份）</view>

@@ -10,6 +10,7 @@ const REPORT = require('../../utils/report');
 const CHEER = require('../../utils/cheer');
 const GOALS = require('../../utils/goals');
 const TM = require('../../utils/timer');
+const GD = require('../../utils/guide');
 
 Page({
   data: {
@@ -30,6 +31,7 @@ Page({
     streak: 0,
     reviewDue: 0,
     exam: null, // 期末倒计时卡
+    guide: null, // 首次使用引导卡片
     reviewDone: false,
     cheer: null, // { cheer, unread }：家长留言横幅
     reactions: CHEER.REACTIONS,
@@ -63,6 +65,8 @@ Page({
       wx.reLaunch({ url: '/pages/onboarding/onboarding' });
       return;
     }
+    this.guideStep = 0;
+    this.setData({ guide: GD.view(profile, 0) });
     const s = CTX.scope();
     if (s.role === 'parent') {
       this.setData({ isParent: true });
@@ -122,6 +126,23 @@ Page({
       emoji: cd.emoji,
       done: records.some(r => r.taskId === 'exam_sprint'),
     };
+  },
+
+  // 引导卡片：下一步 / 最后一步「开始使用」/ 跳过（都会记住，不再弹）
+  onGuideNext() {
+    const profile = store.getProfile();
+    const next = GD.view(profile, (this.guideStep || 0) + 1);
+    if (next) {
+      this.guideStep = (this.guideStep || 0) + 1;
+      this.setData({ guide: next });
+    } else {
+      this.onGuideSkip();
+    }
+  },
+
+  onGuideSkip() {
+    store.saveProfile(GD.markSeen(store.getProfile()));
+    this.setData({ guide: null });
   },
 
   goSprint() {

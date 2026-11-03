@@ -4,9 +4,10 @@ const CTX = require('../../utils/context');
 const cloud = require('../../utils/cloud');
 const BACKUP = require('../../utils/backup');
 const RESET = require('../../utils/reset');
+const GD = require('../../utils/guide');
 
 const AVATARS = ['🐱', '🦊', '🐰', '🐻', '🐸', '🦁', '🐼', '🐷'];
-const APP_VERSION = '0.30.0';
+const APP_VERSION = '0.31.0';
 
 Page({
   data: {
@@ -202,6 +203,12 @@ Page({
 
   goReport() {
     wx.navigateTo({ url: '/pages/report/report' });
+  },
+
+  // 重新看一遍首次使用引导：清除"已看过"，回首页后再弹
+  onReplayGuide() {
+    store.saveProfile(GD.replay(store.getProfile()));
+    wx.switchTab({ url: '/pages/index/index' });
   },
 
   // ── 数据管理 ──

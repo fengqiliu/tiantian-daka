@@ -19,3 +19,5 @@
 .wb-group-row { align-items: center; }
 .wb-practice { font-size: 24rpx; color: #FF8A00; padding: 8rpx 0 8rpx 16rpx; }
 .wb-hint { margin-top: 6rpx; font-size: 24rpx; color: #8A5A00; }
+
+.wb-export { margin-bottom: 20rpx; }

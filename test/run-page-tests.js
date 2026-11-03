@@ -207,6 +207,53 @@ t('每周一卷：全对得「优秀」并记历史', () => {
   assert.strictEqual(p.data.verdict.label, '优秀');
   assert.strictEqual(QZ.getHistory()[0].label, '优秀');
 });
+t('首次使用引导：首页弹 3 步卡片，下一步 / 跳过都会记住，「我的」可重看', () => {
+  store.saveProfile({ role: 'child', grade: 1, nickname: '小豆', onboarded: true, createdAt: Date.now() });
+  let home = load('pages/index/index');
+  home.onShow();
+  assert.deepStrictEqual([home.data.guide.step, home.data.guide.total], [1, 3]);
+  home.onGuideNext();
+  home.onGuideNext();
+  assert.strictEqual(home.data.guide.last, true);
+  home.onGuideNext(); // 最后一步的「开始使用」
+  assert.strictEqual(home.data.guide, null);
+  assert.strictEqual(store.getProfile().guideSeen, true);
+  home = load('pages/index/index');
+  home.onShow();
+  assert.strictEqual(home.data.guide, null, '再进首页不再弹');
+  const me = load('pages/profile/profile');
+  me.onShow();
+  me.onReplayGuide();
+  assert.strictEqual(store.getProfile().guideSeen, false);
+  assert.strictEqual(ui.navs.pop(), 'tab:/pages/index/index');
+  home = load('pages/index/index');
+  home.onShow();
+  assert.strictEqual(home.data.guide.step, 1, '重看引导');
+  home.onGuideSkip();
+  assert.strictEqual(store.getProfile().guideSeen, true, '跳过也记住');
+});
+t('错题本导出：孩子端与家长端都能复制成文字，没有错题时提示', () => {
+  child(1);
+  let wb = load('pages/wrong-book/wrong-book');
+  wb.onShow();
+  wb.onExport();
+  assert.strictEqual(ui.toasts.pop(), '还没有错题，不用导出哦');
+  QZ.markResult(QZ.poolFor('math').find(q => q.id === 'math-u6-a3-1'), false);
+  wb.onShow();
+  wb.onExport();
+  assert(/^小豆的错题本（\d{4}-\d{2}-\d{2}）：口算 0 题 · 小卷 1 题/.test(ui.clipboard), ui.clipboard);
+  assert(/已复制/.test(ui.toasts.pop()));
+  // 家长端：读孩子缓存，同样可以导出（家长拿去打印）
+  const wrong = { math: [], quiz: store.getQuizWrong() };
+  store.clearAll();
+  store.saveProfile({ role: 'parent', grade: 0, nickname: '妈妈', onboarded: true });
+  store.saveChildData({ role: 'child', grade: 1, nickname: '小豆' }, [], [], null, wrong);
+  wb = load('pages/wrong-book/wrong-book');
+  wb.onShow();
+  ui.clipboard = '';
+  wb.onExport();
+  assert(/^小豆的错题本/.test(ui.clipboard), '家长端导出的是孩子的错题：' + ui.clipboard);
+});
 t('每周一卷：单元筛选显示「期末」，选中后只出期末卷的题', () => {
   child(1);
   const p = load('pages/quiz/quiz');

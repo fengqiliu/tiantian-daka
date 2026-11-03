@@ -8,6 +8,7 @@ const LEVEL_NAME = {};
 Object.keys(AR.LEVELS).forEach(k => { LEVEL_NAME[k] = AR.LEVELS[k].name; });
 const SUBJ = require('../../utils/subjects');
 const QZ = require('../../utils/quiz');
+const EXPORT = require('../../utils/wrongexport');
 
 Page({
   data: {
@@ -82,6 +83,24 @@ Page({
 
   goReview() {
     wx.navigateTo({ url: '/pages/review/review' });
+  },
+
+  // 导出错题：整理成文字复制到剪贴板（孩子端与家长端都可用，家长可粘贴到文档打印）
+  onExport() {
+    if (!this.data.mathCount && !this.data.quizCount) {
+      wx.showToast({ title: '还没有错题，不用导出哦', icon: 'none' });
+      return;
+    }
+    const s = CTX.scope();
+    const who = s.role === 'parent' ? s.child : s.profile;
+    const text = EXPORT.build({
+      mathWrong: s.mathWrong, quizWrong: s.quizWrong,
+      nickname: who && who.nickname, date: D.todayStr(),
+    });
+    wx.setClipboardData({
+      data: text,
+      success: () => wx.showToast({ title: '已复制 ' + (this.data.mathCount + this.data.quizCount) + ' 道错题，粘贴到文档即可打印', icon: 'none' }),
+    });
   },
 
   // 只练这个单元的错题（家长端只读，不跳转）

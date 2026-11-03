@@ -220,4 +220,18 @@
 
     <view class="foot-tip muted">完成全部必做任务，当日目标达成再得 1 ⭐</view>
   </block>
+
+  <!-- 首次使用引导：3 步卡片 -->
+  <view class="guide-mask" wx:if="{{guide}}">
+    <view class="guide-card">
+      <view class="guide-emoji">{{guide.emoji}}</view>
+      <view class="h1">{{guide.title}}</view>
+      <view class="guide-text">{{guide.text}}</view>
+      <view class="guide-dots">
+        <view wx:for="{{[1, 2, 3]}}" wx:key="*this" class="guide-dot {{item === guide.step ? 'on' : ''}}"></view>
+      </view>
+      <view class="btn-primary" bindtap="onGuideNext">{{guide.next}}</view>
+      <view class="guide-skip muted" wx:if="{{!guide.last}}" bindtap="onGuideSkip">跳过</view>
+    </view>
+  </view>
 </view>

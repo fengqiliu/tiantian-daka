@@ -115,3 +115,26 @@
 .timing-card { background: #FFF9EF; border: 3rpx solid #FFD9A8; }
 
 .weekly-sub { margin-top: 14rpx; color: #FF8A00; font-size: 26rpx; font-weight: 600; }
+
+.guide-mask {
+  position: fixed;
+  left: 0; right: 0; top: 0; bottom: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.guide-card {
+  width: 600rpx;
+  background: #fff;
+  border-radius: 32rpx;
+  padding: 48rpx 40rpx 36rpx;
+  text-align: center;
+}
+.guide-emoji { font-size: 96rpx; margin-bottom: 12rpx; }
+.guide-text { margin: 20rpx 0 28rpx; font-size: 30rpx; color: #6B655B; line-height: 1.6; text-align: left; }
+.guide-dots { display: flex; justify-content: center; gap: 14rpx; margin-bottom: 28rpx; }
+.guide-dot { width: 16rpx; height: 16rpx; border-radius: 50%; background: #E8E2D6; }
+.guide-dot.on { background: #FF8A00; }
+.guide-skip { margin-top: 20rpx; font-size: 26rpx; }

@@ -6,6 +6,7 @@
   </view>
 
   <view class="btn-primary wb-review" wx:if="{{dueCount}}" bindtap="goReview">🧠 去复习（{{dueCount}} 题到期）</view>
+  <view class="btn-ghost wb-export" wx:if="{{mathCount || quizCount}}" bindtap="onExport">📋 复制全部错题（粘贴到文档打印）</view>
 
   <view class="card">
     <view class="row wb-sec">

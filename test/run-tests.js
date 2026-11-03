@@ -800,6 +800,58 @@ t('口算提示：进位加凑十、十几加几、不退位减、减整十、�
   assert.strictEqual(h(45, '+', 38), '');
   assert.strictEqual(AR.hintOf({ kind: 'missing', a: 3, op: '+', b: null, c: 9, answer: 6 }), '');
 });
+t('题库每个单元至少 10 题，每道题至少 2 个选项且答案在选项里', () => {
+  const by = {};
+  QBANK.bank.forEach(q => { const k = q.subject + ' 第' + q.unit; by[k] = (by[k] || 0) + 1; });
+  const thin = Object.keys(by).filter(k => by[k] < 10);
+  assert.deepStrictEqual(thin, [], '题量不足 10 题的单元：' + thin.map(k => k + '=' + by[k]).join('、'));
+});
+t('错题导出：按科目·单元整理成文字，含题目、选项、答案与解析，口算带方法提示', () => {
+  reset();
+  const EX = require('../utils/wrongexport');
+  const cmp = QZ.poolFor('math').find(q => q.id === 'math-u6-a3-1');
+  const judge = QZ.poolFor('chinese').find(q => q.type === 'judge');
+  const multi = QZ.poolFor('chinese').find(q => q.type === 'multi');
+  [cmp, judge, multi].forEach(q => QZ.markResult(q, false, '2026-11-02'));
+  AR.markResult({ kind: 'result', a: 9, op: '+', b: 6, c: null, answer: 15, id: '9+6=' }, false, 'add20carry', '2026-11-02');
+  const text = EX.build({ mathWrong: store.getMathWrong(), quizWrong: store.getQuizWrong(), nickname: '小豆', date: '2026-11-03' });
+  const lines = text.split('\n');
+  assert.strictEqual(lines[0], '小豆的错题本（2026-11-03）：口算 1 题 · 小卷 3 题');
+  assert(text.includes('【口算 · 20以内进位加（凑十）】'), text);
+  assert(text.includes('1. 9 + 6 = ?  答案：15（凑十：把 6 分成 1 和 5，9+1=10，10+5=15）'), text);
+  assert(text.includes('【数学 · 第6单元】'));
+  assert(text.includes('1. 12 + 5 ○ 18  选项：< / = / >  答案：<（12 + 5 = 17，17 < 18，所以填 <）'), text);
+  assert(text.includes('【语文 · '), '语文在数学之后');
+  assert(text.indexOf('【数学') < text.indexOf('【语文'), '数学 → 语文');
+  assert(text.includes('答案：' + multi.answers.join('、')), '多选答案用顿号连接');
+  assert(/答案：[√×]/.test(text), '判断题答案');
+  assert.strictEqual(EX.build({ mathWrong: [], quizWrong: [], nickname: '小豆', date: '2026-11-03' }), '小豆的错题本（2026-11-03）：目前没有错题，太棒了！');
+});
+t('首次使用引导：新用户看一次，7 天前建档的老用户不打扰，看完或跳过后不再出现，可手动重看', () => {
+  const GD = require('../utils/guide');
+  const now = Date.UTC(2026, 10, 3);
+  const fresh = { role: 'child', onboarded: true, createdAt: now - 3600 * 1000 };
+  const old = { role: 'child', onboarded: true, createdAt: now - 8 * 24 * 3600 * 1000 };
+  assert.strictEqual(GD.view(old, 0, now), null, '老用户不弹');
+  assert.strictEqual(GD.view({ role: 'child' }, 0, now), null, '未建档不弹');
+  assert.strictEqual(GD.view({ ...fresh, guideSeen: true }, 0, now), null, '看过不再弹');
+  const v0 = GD.view(fresh, 0, now);
+  assert.deepStrictEqual([v0.step, v0.total, v0.last, v0.next], [1, 3, false, '下一步']);
+  assert(v0.title && v0.text && v0.emoji);
+  const last = GD.view(fresh, 2, now);
+  assert.deepStrictEqual([last.last, last.next], [true, '开始使用']);
+  assert.strictEqual(GD.view(fresh, 3, now), null, '超出步数视为看完');
+  const parent = GD.view({ role: 'parent', onboarded: true, createdAt: now }, 0, now);
+  assert.strictEqual(parent.total, 3);
+  assert.notStrictEqual(parent.title, v0.title, '家长与孩子的引导内容不同');
+  const seen = GD.markSeen(fresh);
+  assert.strictEqual(seen.guideSeen, true);
+  assert.strictEqual(fresh.guideSeen, undefined, '不修改原对象');
+  assert.strictEqual(GD.view(GD.replay(seen), 0, now).step, 1, '重看：清除已看标记');
+  assert.strictEqual(GD.replay(old).createdAt, old.createdAt, '重看不改建档时间');
+  assert.strictEqual(GD.view(GD.replay(old), 0, now).step, 1, '老用户手动重看也能看到');
+  assert.strictEqual(GD.view(GD.markSeen(GD.replay(old)), 0, now), null, '看完后恢复不弹');
+});
 t('学科常量只有一份：题库、报告、推送摘要用同一个单元标签与学科名', () => {
   const SUBJ = require('../utils/subjects');
   assert.deepStrictEqual(SUBJ.ORDER, ['math', 'chinese', 'english']);
@@ -970,7 +1022,7 @@ t('组卷：确定性、数量正确、judge/choice 实例化正确', () => {
     assert.strictEqual(c.options[c.answerIndex], c.answerText);
   });
   // compare 类不打乱：< = > 顺序保持
-  const cmp = QZ.buildQuiz('math', 10, seededRng(78)).cards.find(c => c.options.length === 3);
+  const cmp = QZ.buildQuiz('math', 10, seededRng(78)).cards.find(c => c.options.includes('<'));
   assert.deepStrictEqual(cmp.options, ['<', '=', '>']);
 });
 t('错题本：答错入本、混入重练（≤40%）、当天答对不销账', () => {
