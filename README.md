@@ -132,10 +132,11 @@ tiantian-daka/
 ## 快速开始（微信开发者工具）
 
 1. 下载并安装[微信开发者工具](https://developers.weixin.qq.com/miniprogram/dev/devtools/download.html)（Stable 版）
-2. 打开工具 → 导入项目 → 选择本目录 `tiantian-daka`
+2. 打开工具 → 导入项目 → 选择本目录 `tiantian-daka`（工具里项目名显示为「天天小达人」，名称与描述见 `project.config.json`）
 3. AppID 选择 **"测试号"** 或自己的 AppID（`project.config.json` 中已配置作者的 AppID；fork 后请替换为自己的）
 4. 编译运行：首次进入引导页选择身份、设置年级昵称，即可开始打卡
-5. 运行测试（只需 Node 18+，无需安装任何依赖）：
+5. 真机试用：工具栏「预览」→ 用手机微信扫码。上传包约 390KB（试卷 PDF、测试、文档等已在 `packOptions.ignore` 里排除，远低于主包 2MB 上限），真机试用流程见[试用指南](docs/trial-guide.md)
+6. 运行测试（只需 Node 18+，无需安装任何依赖）：
 
 ```bash
 node scripts/run-all.js          # 一键跑下面全部检查（CI 也用它）
