@@ -2615,6 +2615,64 @@ t('一键清空：分片与年索引一并删除', () => {
   });
 });
 
+console.log('— 记忆卡 —');
+const FC = require('../utils/flashcards');
+
+t('牌库完整：10 个牌库（语文 5 + 英语 5），卡面不重复、释义非空', () => {
+  assert.strictEqual(FC.DECKS.length, 10);
+  assert.strictEqual(FC.DECKS.filter(d => d.subject === 'chinese').length, 5);
+  assert.strictEqual(FC.DECKS.filter(d => d.subject === 'english').length, 5);
+  FC.DECKS.forEach(deck => {
+    const fronts = deck.cards.map(c => c.front);
+    assert.strictEqual(new Set(fronts).size, fronts.length, deck.id + ' 卡面不应重复');
+    assert(deck.cards.length >= 4, deck.id + ' 至少 4 张卡');
+    deck.cards.forEach(c => assert(c.front && c.back, deck.id + ' 卡内容非空'));
+  });
+});
+
+t('组会话：未掌握优先入选，已掌握仅兜底补齐，确定性', () => {
+  reset();
+  const deckId = 'en-u5'; // 5 张卡：eye/ear/nose/mouth/face
+  FC.markCard(deckId, 'eye', true, 1);
+  FC.markCard(deckId, 'eye', true, 2); // eye 已掌握
+  FC.markCard(deckId, 'ear', true, 1); // ear 练过 1 次（未达标）
+  // n=3 < 4 张未掌握 → 3 张全部是未掌握卡，已掌握的 eye 不出现
+  const s1 = FC.buildSession(deckId, 3, seededRng(61));
+  assert.strictEqual(s1.total, 3);
+  assert(!s1.cards.find(c => c.front === 'eye'), '未掌握足够时，已掌握的卡不应入选');
+  assert(!s1.cards.find(c => c.front === 'ear'), 'knownCount 最高的未达标卡优先级最低，n=3 时被裁掉');
+  assert(s1.cards.find(c => c.front === 'nose') && s1.cards.find(c => c.front === 'face'), '从未练过的卡优先入选');
+  // n=5 > 4 张未掌握 → 全部未掌握 + eye 兜底
+  const s2 = FC.buildSession(deckId, 5, seededRng(61));
+  assert.strictEqual(s2.cards.length, 5);
+  assert(s2.cards.find(c => c.front === 'eye'), '未掌握不够时已掌握的兜底补齐');
+  // 确定性：同种子同顺序
+  const s3 = FC.buildSession(deckId, 5, seededRng(61));
+  assert.deepStrictEqual(s2.cards.map(c => c.front), s3.cards.map(c => c.front), '同种子应一致');
+});
+
+t('掌握进度：认识 2 次达标，再练练清零', () => {
+  reset();
+  const s1 = FC.markCard('cn-u1', '天', true, 1);
+  assert.strictEqual(s1.knownCount, 1);
+  const s2 = FC.markCard('cn-u1', '天', true, 2);
+  assert.strictEqual(s2.knownCount, 2);
+  const st = FC.deckStats('cn-u1');
+  assert.strictEqual(st.mastered, 1);
+  const s3 = FC.markCard('cn-u1', '天', false, 3);
+  assert.strictEqual(s3.knownCount, 0, '再练练清零');
+  assert.strictEqual(FC.deckStats('cn-u1').mastered, 0);
+});
+
+t('牌组统计：total / mastered / unseen', () => {
+  reset();
+  FC.markCard('en-u3', 'pencil', true, 1);
+  const st = FC.deckStats('en-u3');
+  assert.strictEqual(st.total, 6);
+  assert.strictEqual(st.mastered, 0); // 只认过 1 次，未达标
+  assert.strictEqual(st.unseen, 5);
+});
+
 chain.then(() => {
   console.log('\n全部通过：' + passed + ' 项 ✓');
 }).catch(e => {

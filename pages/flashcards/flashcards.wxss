@@ -1,0 +1,42 @@
+.fc { padding-top: 24rpx; }
+.fc-head { padding: 0 32rpx 16rpx; }
+
+.fc-deck { padding: 24rpx 26rpx; margin-bottom: 20rpx; }
+.fc-deck-name { font-size: 29rpx; font-weight: 600; margin-bottom: 8rpx; }
+.fc-track { height: 14rpx; background: #F7F2E8; border-radius: 999rpx; overflow: hidden; margin-bottom: 6rpx; }
+.fc-track-in { height: 100%; background: linear-gradient(90deg, #FFB25A, #FF8A00); border-radius: 999rpx; min-width: 6rpx; }
+.fc-start {
+  color: #FF8A00; font-weight: 600; font-size: 27rpx;
+  border: 2rpx solid #FFD9A8; border-radius: 999rpx; padding: 10rpx 26rpx;
+}
+
+.fc-progress { text-align: center; padding-bottom: 12rpx; }
+.fc-card {
+  text-align: center;
+  padding: 64rpx 32rpx;
+  min-height: 380rpx;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+}
+.fc-front { font-weight: 700; color: #33302B; }
+.fc-front.cn { font-size: 150rpx; line-height: 1.2; }
+.fc-front.en { font-size: 64rpx; letter-spacing: 1rpx; }
+.fc-back {
+  font-size: 40rpx; font-weight: 700; color: #FF8A00;
+  margin-top: 20rpx;
+  opacity: 0; transition: opacity 0.2s;
+}
+.fc-back.show { opacity: 1; }
+.fc-tap { margin-top: 24rpx; }
+
+.fc-actions { justify-content: center; gap: 24rpx; margin: 28rpx 0 8rpx; }
+.fc-btn {
+  border-radius: 999rpx; padding: 22rpx 56rpx;
+  font-size: 32rpx; font-weight: 600;
+}
+.fc-btn.know { background: #E8F8EC; color: #2F9E44; }
+.fc-btn.again { background: #FFECE8; color: #E5484D; }
+
+.fc-quit { text-align: center; color: #B4884F; font-size: 27rpx; padding: 24rpx 0; }
+
+.fc-done { text-align: center; padding: 48rpx 32rpx; }
+.fc-done-emoji { font-size: 100rpx; margin-bottom: 8rpx; }

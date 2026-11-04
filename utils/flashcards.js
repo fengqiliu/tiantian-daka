@@ -1,0 +1,115 @@
+// 记忆卡：语文生字 + 英语单词闪卡（自节奏"认识/再练练"练习）
+// 卡片内容全部取自试卷知识库答案页实际考到的字/词（content/exams/data/*.json），
+// 组词/释义为教材常用义。牌库按单元划分，与每周一卷的单元筛选同构。
+const store = require('./store');
+
+// ── 语文生字牌库（组词为教材常用义）──
+const CN_U1 = ['天:白天', '地:土地', '你:你好', '我:我们', '他:他们', '口:口水', '耳:耳朵', '目:目光', '手:小手', '足:手足', '上:上面', '下:下面', '日:日子', '月:月亮', '水:喝水', '火:火苗', '山:大山', '田:田地', '禾:禾苗', '站:站立', '坐:坐下', '一:一个', '三:三个', '六:六个', '八:八个', '十:十个'];
+const CN_U5 = ['人:大人', '大:大小', '可:可以', '东:东西', '西:西瓜', '是:不是', '四:四个', '秋:秋天', '莲:莲叶', '竹:竹子', '冬:冬天', '条:一条', '片:一片', '群:一群', '只:一只'];
+const CN_U6 = ['云:白云', '虫:虫子', '书:书本', '尺:尺子', '中:中间', '森:森林', '林:树林', '明:明天', '从:从前', '尘:灰尘', '立:立正', '旗:国旗'];
+const CN_U7 = ['儿:儿子', '里:里面', '左:左边', '右:右边', '见:看见', '贝:宝贝', '在:正在', '才:刚才', '弯:弯弯', '影:影子', '事:事情'];
+const CN_U8 = ['比:比一比', '巴:尾巴', '石:石头', '出:出来', '回:回去', '半:一半', '多:多少', '短:长短', '少:多少', '进:进来', '低:低头', '友:朋友', '有:没有'];
+
+// ── 英语单词牌库（back = 教材中文义）──
+const EN_U2 = ['friend:朋友', 'name:姓名', 'welcome:欢迎', 'China:中国'];
+const EN_U3 = ['schoolbag:书包', 'pencil:铅笔', 'ruler:尺子', 'book:书', 'eraser:橡皮', 'pencil case:铅笔盒'];
+const EN_U4 = ['desk:课桌', 'chair:椅子', 'door:门', 'blackboard:黑板', 'floor:地面', 'classroom:教室'];
+const EN_U5 = ['eye:眼睛', 'ear:耳朵', 'nose:鼻子', 'mouth:嘴巴', 'face:脸'];
+const EN_U6 = ['mum:妈妈', 'dad:爸爸', 'sister:姐妹', 'brother:兄弟', 'family:家庭'];
+
+function toCards(pairs) {
+  return pairs.map(pair => {
+    const i = pair.indexOf(':');
+    return { front: pair.slice(0, i), back: pair.slice(i + 1) };
+  });
+}
+
+// 掌握门槛：连续"认识"2 次即视为已掌握（不再优先出现在会话里）
+const MASTER_AT = 2;
+
+const DECKS = [
+  { id: 'cn-u1', subject: 'chinese', unit: 1, name: '语文 · 第 1 单元生字', cards: toCards(CN_U1) },
+  { id: 'cn-u5', subject: 'chinese', unit: 5, name: '语文 · 第 5 单元生字', cards: toCards(CN_U5) },
+  { id: 'cn-u6', subject: 'chinese', unit: 6, name: '语文 · 第 6 单元生字', cards: toCards(CN_U6) },
+  { id: 'cn-u7', subject: 'chinese', unit: 7, name: '语文 · 第 7 单元生字', cards: toCards(CN_U7) },
+  { id: 'cn-u8', subject: 'chinese', unit: 8, name: '语文 · 第 8 单元生字', cards: toCards(CN_U8) },
+  { id: 'en-u2', subject: 'english', unit: 2, name: '英语 · U2 新朋友', cards: toCards(EN_U2) },
+  { id: 'en-u3', subject: 'english', unit: 3, name: '英语 · U3 我的书包', cards: toCards(EN_U3) },
+  { id: 'en-u4', subject: 'english', unit: 4, name: '英语 · U4 我的教室', cards: toCards(EN_U4) },
+  { id: 'en-u5', subject: 'english', unit: 5, name: '英语 · U5 可爱的脸', cards: toCards(EN_U5) },
+  { id: 'en-u6', subject: 'english', unit: 6, name: '英语 · U6 我的家庭', cards: toCards(EN_U6) },
+];
+
+function getDeck(id) { return DECKS.find(d => d.id === id) || null; }
+
+// 牌组掌握状态：{front: {knownCount, lastAt}}
+function _deckState(deckId) {
+  const all = store.getFlashcards();
+  return all[deckId] || {};
+}
+
+function _saveDeckState(deckId, state) {
+  const all = store.getFlashcards();
+  all[deckId] = state;
+  store.saveFlashcards(all);
+}
+
+// 标一张卡：认识 → knownCount+1；再练练 → 清零重来
+function markCard(deckId, front, known, now) {
+  const state = _deckState(deckId);
+  const prev = state[front] || { knownCount: 0, lastAt: 0 };
+  state[front] = {
+    knownCount: known ? (prev.knownCount || 0) + 1 : 0,
+    lastAt: now || Date.now(),
+  };
+  _saveDeckState(deckId, state);
+  return state[front];
+}
+
+// 组一次练习（默认 10 张）：没掌握的优先（knownCount 小者先、久未练者先），
+// 已掌握的仅在没牌可排时兜底补充；rng 可注入以便测试。
+function buildSession(deckId, n, rng) {
+  const deck = getDeck(deckId);
+  if (!deck) return { cards: [], total: 0 };
+  rng = rng || Math.random;
+  const state = _deckState(deckId);
+  const now = Date.now();
+  const sorted = deck.cards
+    .map(c => {
+      const s = state[c.front] || { knownCount: 0, lastAt: 0 };
+      return { ...c, knownCount: s.knownCount || 0, lastAt: s.lastAt || 0 };
+    })
+    .filter(c => c.knownCount < MASTER_AT)
+    .sort((a, b) => (a.knownCount - b.knownCount) || (a.lastAt - b.lastAt));
+  let picked = sorted.slice(0, n);
+  if (picked.length < n) { // 未掌握的不够时，用已掌握的补齐（最久没练的先）
+    const mastered = deck.cards
+      .filter(c => !picked.some(p => p.front === c.front))
+      .map(c => ({ ...c, knownCount: MASTER_AT, lastAt: (state[c.front] || {}).lastAt || 0 }))
+      .sort((a, b) => a.lastAt - b.lastAt);
+    picked = picked.concat(mastered.slice(0, n - picked.length));
+  }
+  picked = picked.slice(0, n);
+  // 打散顺序，避免每次都从同一张开始
+  for (let i = picked.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [picked[i], picked[j]] = [picked[j], picked[i]];
+  }
+  return { cards: picked, total: picked.length };
+}
+
+// 牌组统计
+function deckStats(deckId) {
+  const deck = getDeck(deckId);
+  if (!deck) return { total: 0, mastered: 0, unseen: 0 };
+  const state = _deckState(deckId);
+  let mastered = 0, unseen = 0;
+  deck.cards.forEach(c => {
+    const s = state[c.front];
+    if (!s) unseen++;
+    else if ((s.knownCount || 0) >= MASTER_AT) mastered++;
+  });
+  return { total: deck.cards.length, mastered, unseen };
+}
+
+module.exports = { DECKS, getDeck, markCard, buildSession, deckStats, MASTER_AT };
