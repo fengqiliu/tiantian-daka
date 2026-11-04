@@ -7,7 +7,7 @@ const RESET = require('../../utils/reset');
 const GD = require('../../utils/guide');
 
 const AVATARS = ['🐱', '🦊', '🐰', '🐻', '🐸', '🦁', '🐼', '🐷'];
-const APP_VERSION = '0.31.0';
+const APP_VERSION = '0.32.0';
 
 Page({
   data: {
@@ -231,21 +231,23 @@ Page({
   importData() {
     wx.getClipboardData({
       success: res => {
-        const v = BACKUP.restoreFromText(res.data || '');
+        // 先只校验、只读摘要；用户在确认框点"确定"之后才真正写入（点取消本机数据不能变）
+        const v = BACKUP.validate(res.data || '');
         if (!v.ok) {
           wx.showModal({ title: '导入失败', content: v.error, showCancel: false });
           return;
         }
-        const d = new Date(v.summary.exportedAt);
+        const summary = BACKUP.summarize(v.data);
+        const d = new Date(summary.exportedAt);
         wx.showModal({
           title: '确认导入',
           content: '备份导出于 ' + (d.getMonth() + 1) + '月' + d.getDate() + '日，包含打卡 '
-            + v.summary.records + ' 条、勋章 ' + v.summary.badges + ' 枚、兑换 ' + v.summary.redemptions
+            + summary.records + ' 条、勋章 ' + summary.badges + ' 枚、兑换 ' + summary.redemptions
             + ' 次。导入将覆盖本机全部数据，确定吗？',
           confirmColor: '#FF5A3C',
           success: r => {
             if (!r.confirm) return;
-            BACKUP.restoreFromText(res.data || '');
+            BACKUP.restore(v.data);
             wx.showToast({ title: '恢复完成 ✓', icon: 'none' });
             this.onShow();
           },

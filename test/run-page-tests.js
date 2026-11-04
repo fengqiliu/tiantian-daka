@@ -9,6 +9,7 @@ const D = require('../utils/date');
 const T = require('../utils/tasks');
 const C = require('../utils/checkin');
 const QZ = require('../utils/quiz');
+const AR_ = require('../utils/arithmetic');
 const SHOP = require('../utils/shop');
 const cloud = require('../utils/cloud');
 
@@ -232,6 +233,60 @@ t('首次使用引导：首页弹 3 步卡片，下一步 / 跳过都会记住�
   home.onGuideSkip();
   assert.strictEqual(store.getProfile().guideSeen, true, '跳过也记住');
 });
+t('家长端：成长页小卷入口读孩子的小卷历史；报告里不显示家长手机上算不准的「可用积分」', () => {
+  child(1);
+  QZ.saveHistory({ subject: 'chinese', total: 10, correct: 9, label: '优秀', units: [{ unit: 4, total: 10, correct: 9 }] });
+  QZ.markResult(QZ.poolFor('chinese').find(q => q.unit === 4), false);
+  const hist = QZ.getHistory();
+  const wrong = { math: [], quiz: store.getQuizWrong() };
+  store.clearAll();
+  store.saveProfile({ role: 'parent', grade: 0, nickname: '妈妈', onboarded: true });
+  store.saveChildData({ role: 'child', grade: 1, nickname: '小豆' }, [], [], { drill: [], quiz: hist, review: [], goals: {} }, wrong);
+  const g = load('pages/growth/growth');
+  g.onShow();
+  assert.strictEqual(g.data.quizHint, '上次语文小卷「优秀」 · 错题 1 题');
+  const rp = load('pages/report/report');
+  rp.onLoad();
+  assert.strictEqual(rp.data.role, 'parent');
+});
+t('错题本筛选：按科目、只看今天到期的，两个条件可叠加；清空和导出仍针对全部', () => {
+  child(1);
+  const yest = D.addDays(today(), -1); // 昨天答错 → 今天到期
+  const old = D.addDays(today(), -10);
+  const pool = s => QZ.poolFor(s);
+  QZ.markResult(pool('math').find(q => q.id === 'math-u6-a3-1'), false, yest);   // 到期
+  QZ.markResult(pool('math').find(q => q.id === 'math-u6-a3-2'), false, today()); // 今天才错，明天到期
+  QZ.markResult(pool('chinese').find(q => q.unit === 4), false, yest);             // 到期
+  AR_.markResult({ kind: 'result', a: 9, op: '+', b: 6, c: null, answer: 15, id: '9+6=' }, false, 'add20carry', yest);
+  const wb = load('pages/wrong-book/wrong-book');
+  wb.onShow();
+  const names = () => wb.data.quizGroups.map(g => g.name + g.items.length);
+  assert.deepStrictEqual(wb.data.filters, { subject: '', dueOnly: false });
+  assert.deepStrictEqual(wb.data.subjectOptions.map(o => o.key), ['', 'math', 'chinese', 'english']);
+  assert.deepStrictEqual(names(), ['数学 · 第6单元2', '语文 · 第4单元1']);
+  assert.strictEqual(wb.data.mathGroups.length, 1);
+  wb.onFilterSubject(tap({ key: 'chinese' }));
+  assert.deepStrictEqual(names(), ['语文 · 第4单元1']);
+  assert.strictEqual(wb.data.mathGroups.length, 0, '口算属于数学：选语文时不显示');
+  wb.onFilterSubject(tap({ key: 'math' }));
+  assert.strictEqual(wb.data.mathGroups.length, 1);
+  assert.deepStrictEqual(names(), ['数学 · 第6单元2']);
+  wb.onToggleDue();
+  assert.strictEqual(wb.data.filters.dueOnly, true);
+  assert.deepStrictEqual(names(), ['数学 · 第6单元1'], '只看到期：今天才错的那题不算');
+  wb.onFilterSubject(tap({ key: '' }));
+  assert.deepStrictEqual(names(), ['数学 · 第6单元1', '语文 · 第4单元1']);
+  assert.strictEqual(wb.data.shown, 3, '筛选后可见 3 题（口算 1 + 小卷 2）');
+  assert.strictEqual(wb.data.mathCount + wb.data.quizCount, 4, '总数不受筛选影响');
+  wb.onToggleDue();
+  assert.strictEqual(wb.data.shown, 4);
+  // 筛选结果为空时有提示文案，不是一片空白
+  wb.onFilterSubject(tap({ key: 'english' }));
+  assert.strictEqual(wb.data.shown, 0);
+  assert.strictEqual(wb.data.emptyHint, '这个条件下没有错题');
+  wb.onFilterSubject(tap({ key: '' }));
+  assert.strictEqual(wb.data.emptyHint, '');
+});
 t('错题本导出：孩子端与家长端都能复制成文字，没有错题时提示', () => {
   child(1);
   let wb = load('pages/wrong-book/wrong-book');
@@ -300,6 +355,60 @@ t('小卷历史按单元记下答题数；家长报告显示各单元掌握情�
   assert(row.wrongOpen > 0, '带上错题本未销账题数');
   assert.strictEqual(rp.data.masteryLine, '1 个单元需要再练');
 });
+t('今日一练：首页卡片 → 8 题混合练习 → 记入历史，卡片变已完成；一年级以外不显示', () => {
+  child(1);
+  let home = load('pages/index/index');
+  home.onShow();
+  assert.deepStrictEqual(home.data.daily, { done: false, title: '今日一练', desc: '3 题口算 + 5 题小卷，约 3 分钟' });
+  home.goDaily();
+  assert.strictEqual(ui.navs.pop(), '/pages/review/review?mode=today');
+  const p = load('pages/review/review');
+  p.onLoad({ mode: 'today' });
+  assert.deepStrictEqual([p.data.phase, p.data.total, p.data.mode], ['play', 8, 'today']);
+  while (p.data.phase === 'play') {
+    const c = p.data.cards[p.data.idx];
+    if (c.source === 'math') { String(c.problem.answer).split('').forEach(d => p.onKey(tap({ d }))); p.onConfirm(); }
+    else if (c.type === 'multi') { c.answerSet.forEach(i => p.onOption(tap({ index: i }))); p.onMultiSubmit(); }
+    else p.onOption(tap({ index: c.answerIndex }));
+  }
+  assert.strictEqual(p.data.phase, 'done');
+  assert.strictEqual(p.data.correctCount, 8);
+  assert.strictEqual(AR_.getSessions().length >= 1, true, '口算会话已记录');
+  const hist = QZ.getHistory();
+  assert(hist.length >= 1 && hist.every(h => h.daily && h.date === today() && h.units.length), JSON.stringify(hist));
+  assert.strictEqual(hist.reduce((s, h) => s + h.total, 0), 5);
+  assert.strictEqual(require('../utils/review').reviewedToday(today()), false, '今日一练不算错题复习，不影响「错题克星」');
+  home = load('pages/index/index');
+  home.onShow();
+  assert.strictEqual(home.data.daily.done, true);
+  child(3);
+  home = load('pages/index/index');
+  home.onShow();
+  assert.strictEqual(home.data.daily, null, '题库是一年级内容，其他年级不显示');
+});
+t('任务管理：家长改冲刺窗口，首页倒计时按新窗口显示；选「关闭」则不再出现', () => withOverrides(() => {
+  H.setToday('2026-12-28'); // 距寒假 26 天
+  child(1);
+  let home = load('pages/index/index');
+  home.onShow();
+  assert.strictEqual(home.data.exam, null, '默认 21 天，26 天前不显示');
+  const tm = load('pages/tasks-manage/tasks-manage');
+  tm.onLoad();
+  assert.strictEqual(tm.data.sprintDays, 21);
+  assert.deepStrictEqual(tm.data.sprintOptions.map(o => [o.days, o.label]), [[14, '14 天'], [21, '21 天'], [28, '28 天'], [0, '关闭']]);
+  tm.onSprintDays(tap({ days: 28 }));
+  assert.strictEqual(store.getTaskOverrides().sprintDays, 28);
+  assert.strictEqual(tm.data.sprintDays, 28);
+  home = load('pages/index/index');
+  home.onShow();
+  assert.deepStrictEqual(home.data.exam, { title: '距离寒假还有 26 天', emoji: '❄️', done: false });
+  tm.onSprintDays(tap({ days: 0 }));
+  assert.strictEqual(store.getTaskOverrides().sprintDays, 0);
+  home = load('pages/index/index');
+  home.onShow();
+  assert.strictEqual(home.data.exam, null);
+  assert.strictEqual(tm.data.sprintDays, 0);
+}));
 t('期末倒计时：一年级寒假前首页出倒计时卡，做完冲刺卷自动完成「期末冲刺」打卡', () => {
   H.setToday('2027-01-12');
   child(1);
@@ -485,6 +594,46 @@ t('期末冲刺：20 题覆盖全册各单元，做完按单元给出掌握情�
   assert.strictEqual(QZ.getHistory()[0].sprint, true, '历史记录标记为冲刺卷');
   p.onAgain();
   assert.deepStrictEqual([p.data.mode, p.data.phase, p.data.total], ['sprint', 'play', 20], '再来一组仍是冲刺卷');
+});
+t('口算挑战：判分反馈期间切换难度，旧的"下一题"定时器不能跳过新会话的第一题', () => {
+  child(1);
+  const p = load('pages/math-drill/math-drill');
+  p.onLoad();
+  ui.deferTimers = true;
+  p.onKey(tap({ d: '9' })); p.onKey(tap({ d: '9' })); // 故意答错
+  p.onConfirm();
+  assert.strictEqual(p.data.feedback, 'wrong');
+  p.onLevel(tap({ key: 'add5' })); // 反馈期间点了难度标签
+  ui.runTimers(); // 旧定时器此时才到点
+  assert.deepStrictEqual([p.data.idx, p.data.answered, p.data.level], [0, 0, 'add5'], '新会话从第一题开始');
+  assert.strictEqual(p.data.feedback, '');
+});
+t('口算挑战：完成页连点两次「完成打卡」只记一次，同一天第二组较少题数不会把当天口算量改小', () => {
+  child(1);
+  const answerAll = (p, n) => {
+    for (let i = 0; i < n; i++) {
+      String(p.data.problems[p.data.idx].answer).split('').forEach(d => p.onKey(tap({ d })));
+      p.onConfirm();
+    }
+  };
+  let p = load('pages/math-drill/math-drill');
+  p.onLoad();
+  const total = p.data.total;
+  answerAll(p, total);
+  p.onFinish(); p.onFinish(); // 连点
+  assert.strictEqual(AR_.getSessions().length, 1, '只写一条会话');
+  assert.strictEqual(ui.navs.filter(n => n === 'back').length, 1, '只返回一次');
+  const first = store.getRecords().find(r => r.taskId === 'math_calc');
+  assert.strictEqual(first.value.n, total);
+  // 当天再练一小组：累计，不是覆盖
+  p = load('pages/math-drill/math-drill');
+  p.onLoad();
+  p.target = 5;
+  p.startSession(p.level);
+  answerAll(p, p.data.total);
+  p.onFinish();
+  const rec = store.getRecords().find(r => r.taskId === 'math_calc');
+  assert.strictEqual(rec.value.n, total + 5, '当天口算量累加');
 });
 t('错题复习：答错进本 → 到期出现在复习 → 答对升级', () => {
   child(1);
@@ -897,6 +1046,26 @@ t('导出到剪贴板 → 清空 → 从剪贴板导入，数据恢复；坏数�
   ui.clipboard = '不是备份';
   p2.importData();
   assert.strictEqual(ui.modals.pop(), '导入失败');
+});
+t('导入备份：弹出确认框时本机数据还没动，点取消就什么都不变，点确定才覆盖', () => {
+  const BACKUP = require('../utils/backup');
+  child(2);
+  C.upsertRecord(D.addDays(today(), -5), 'math_calc', 20, 3, '旧备份里的一条');
+  const oldBackup = JSON.stringify(BACKUP.serialize());
+  store.clearAll();
+  child(2);
+  C.upsertRecord(today(), 'pe_rope', 100, 2, '');
+  C.upsertRecord(D.addDays(today(), -1), 'pe_rope', 100, 2, '');
+  ui.clipboard = oldBackup; // 剪贴板里是只有 1 条记录的旧备份
+  const p = load('pages/profile/profile');
+  p.onShow();
+  ui.modalAnswer = false; // 在确认框里点"取消"
+  p.importData();
+  assert.strictEqual(ui.modals.pop(), '确认导入');
+  assert.strictEqual(store.getRecords().length, 2, '取消后本机数据原样保留');
+  ui.modalAnswer = true;
+  p.importData();
+  assert.strictEqual(store.getRecords().length, 1, '确定后才覆盖');
 });
 t('切换到家长模式再切回来，孩子的年级不变', () => {
   child(1);

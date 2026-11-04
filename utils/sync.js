@@ -9,7 +9,9 @@
 const store = require('./store');
 const HM = require('./history-merge');
 
-// 把一次拉取结果合并进本地（可独立测试的纯合并步骤）
+// 把一次拉取结果合并进本地（可独立测试的纯合并步骤）。
+// 返回值是拉取游标：只取本次拉到的记录的最大 updatedAt。资料 / 勋章 / 覆盖 / 小铺每次都整体下发，
+// 不能参与游标——云端拉记录有条数上限，被截断时若资料的时间戳更大，游标会越过没拉到的记录，那些记录再也拉不到。
 function mergePull({ records = [], profile = null, badges = [], overrides = null, shop = null, practice = null, wrong = null }) {
   let maxPulled = 0;
   if (records.length) {
@@ -25,21 +27,18 @@ function mergePull({ records = [], profile = null, badges = [], overrides = null
     store.saveRecords(raw);
   }
   if (profile) {
-    maxPulled = Math.max(maxPulled, profile.updatedAt || 0);
     const local = store.getProfile();
     if (!local || (profile.updatedAt || 0) > (local.updatedAt || 0)) {
       store.saveProfileRaw(profile);
     }
   }
   if (overrides && typeof overrides === 'object') {
-    maxPulled = Math.max(maxPulled, overrides.updatedAt || 0);
     const local = store.getTaskOverrides();
     if (!local.updatedAt || (overrides.updatedAt || 0) > (local.updatedAt || 0)) {
       store.saveTaskOverridesRaw(overrides);
     }
   }
   if (shop && typeof shop === 'object') {
-    maxPulled = Math.max(maxPulled, shop.updatedAt || 0);
     if (!(store.getShopStamp() > 0) || (shop.updatedAt || 0) > store.getShopStamp()) {
       store.saveShopRaw(shop.rewards, shop.redemptions, shop.updatedAt || 0);
     }
@@ -61,7 +60,6 @@ function mergePull({ records = [], profile = null, badges = [], overrides = null
     const have = new Set(cur.map(b => b.id));
     badges.forEach(b => {
       if (!have.has(b.id)) { cur.push(b); have.add(b.id); }
-      maxPulled = Math.max(maxPulled, b.earnedAt || 0);
     });
     store.saveBadges(cur);
   }

@@ -21,3 +21,14 @@
 .wb-hint { margin-top: 6rpx; font-size: 24rpx; color: #8A5A00; }
 
 .wb-export { margin-bottom: 20rpx; }
+
+.wb-filters { display: flex; flex-wrap: wrap; gap: 14rpx; margin-bottom: 20rpx; }
+.wb-chip {
+  background: #F7F2E8;
+  border-radius: 999rpx;
+  padding: 10rpx 26rpx;
+  font-size: 26rpx;
+  color: #6B655B;
+}
+.wb-chip.on { background: #FF8A00; color: #fff; font-weight: 600; }
+.wb-chip.due { margin-left: 8rpx; }

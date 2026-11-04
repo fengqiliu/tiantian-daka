@@ -89,7 +89,8 @@ function collection(name) {
     orderBy(f, d) { q = Object.assign({}, q, { orderBy: [f, d || 'asc'] }); return query; },
     skip(n) { q = Object.assign({}, q, { skip: n }); return query; },
     limit(n) { q = Object.assign({}, q, { limit: n }); return query; },
-    async get() { return { data: build(q) }; },
+    // 真实云数据库返回的是副本；返回活引用会掩盖"用读到的旧数组回写覆盖别人更新"这类缺陷
+    async get() { return { data: JSON.parse(JSON.stringify(build(q))) }; },
     async update({ data }) {
       const targets = q.docId ? rows.filter(r => r._id === q.docId) : build(q);
       targets.forEach(d => applyUpdate(d, data));

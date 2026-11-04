@@ -58,6 +58,17 @@ function validate(text) {
   return { ok: true, data: parsed };
 }
 
+// 备份摘要（只读，不写入）：导入前给用户确认用
+function summarize(parsed) {
+  const d = parsed.data;
+  return {
+    records: (d.records || []).filter(r => !r.deleted).length,
+    badges: (d.badges || []).length,
+    redemptions: (d.redemptions || []).length,
+    exportedAt: parsed.exportedAt,
+  };
+}
+
 // 恢复：覆盖本机全部用户数据；返回写入摘要
 function restore(parsed) {
   const d = parsed.data;
@@ -75,12 +86,7 @@ function restore(parsed) {
   store.saveReviewLog(d.reviewLog || []); // 0.14.0 起导出；旧备份没有此字段
   store.saveGoals(d.goals || {});         // 0.19.1 起导出（含达成戳，奖励星随之恢复）
   store.saveSettings(d.settings || {});
-  return {
-    records: (d.records || []).filter(r => !r.deleted).length,
-    badges: (d.badges || []).length,
-    redemptions: (d.redemptions || []).length,
-    exportedAt: parsed.exportedAt,
-  };
+  return summarize(parsed);
 }
 
 // 从剪贴板文本一步导入
@@ -90,4 +96,4 @@ function restoreFromText(text) {
   return { ok: true, summary: restore(v.data) };
 }
 
-module.exports = { BACKUP_VERSION, serialize, validate, restore, restoreFromText };
+module.exports = { BACKUP_VERSION, serialize, validate, summarize, restore, restoreFromText };

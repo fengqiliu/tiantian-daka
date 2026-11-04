@@ -29,6 +29,8 @@ async function contentOk(openid, text) {
   }
 }
 
+const MAX_SUMMARY_RECORDS = 5000;
+
 // 邀请码：6 位，去掉易混淆的 0/O/1/I/L
 const CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 function genCode() {
@@ -37,10 +39,13 @@ function genCode() {
   return s;
 }
 
-async function findMyFamily(openid) {
-  const asOwner = (await db.collection('families').where({ ownerOpenid: openid }).limit(1).get()).data[0];
-  if (asOwner) return asOwner;
-  return (await db.collection('families').where({ members: _.elemMatch({ openid }) }).limit(1).get()).data[0];
+// as：'parent' = 以家长身份行动，优先找自己作为成员绑定的家庭；其余（孩子）优先找自己拥有的家庭。
+// 同一部手机先以孩子身份打开过小程序（自动建了自己的家庭），再切成家长绑定别人时，家长动作必须落在绑定的家庭上
+async function findMyFamily(openid, as) {
+  const owned = async () => (await db.collection('families').where({ ownerOpenid: openid }).limit(1).get()).data[0];
+  const joined = async () => (await db.collection('families').where({ members: _.elemMatch({ openid }) }).limit(1).get()).data[0];
+  if (as === 'parent') return (await joined()) || (await owned());
+  return (await owned()) || (await joined());
 }
 
 exports.main = async (event) => {
@@ -90,15 +95,23 @@ exports.main = async (event) => {
 
   // 家长端：拉取孩子摘要（资料 + 记录 + 勋章 + 练习历史 + 错题本）
   if (action === 'summary') {
-    const fam = await findMyFamily(OPENID);
+    const fam = await findMyFamily(OPENID, 'parent');
     if (!fam) return { ok: false, error: '尚未绑定' };
     const owner = fam.ownerOpenid;
     const since = Number(event.since) || 0;
-    const recDocs = await db.collection('checkins')
-      .where({ openid: owner, updatedAt: _.gt(since) })
-      .orderBy('updatedAt', 'asc')
-      .limit(1000)
-      .get();
+    // 单次查询最多 1000 条：分页取全（上限 MAX_SUMMARY_RECORDS，约 500 天），否则孩子记录超过 1000 条后
+    // 家长端只能看到最旧的 1000 条，最新的永远看不到
+    const recDocs = { data: [] };
+    for (let skip = 0; skip < MAX_SUMMARY_RECORDS; skip += 1000) {
+      const page = await db.collection('checkins')
+        .where({ openid: owner, updatedAt: _.gt(since) })
+        .orderBy('updatedAt', 'asc')
+        .skip(skip)
+        .limit(1000)
+        .get();
+      recDocs.data.push(...page.data);
+      if (page.data.length < 1000) break;
+    }
     const ownerDoc = (await db.collection('users').where({ openid: owner }).limit(1).get()).data[0] || {};
     const profile = ownerDoc.profile || null;
     const practice = ownerDoc.practice || null; // 口算会话 + 小卷历史 + 复习日志（家长报告用）
@@ -122,7 +135,7 @@ exports.main = async (event) => {
 
   // 家长端：退出绑定
   if (action === 'leave') {
-    const fam = await findMyFamily(OPENID);
+    const fam = await findMyFamily(OPENID, 'parent');
     if (fam && fam.ownerOpenid !== OPENID) {
       const members = (fam.members || []).filter(m => m.openid !== OPENID);
       await db.collection('families').doc(fam._id).update({ data: { members } });
@@ -132,7 +145,7 @@ exports.main = async (event) => {
 
   // 家长端：授权接收孩子动态（订阅消息配额，一次授权一次推送）
   if (action === 'grantParentSub') {
-    const fam = await findMyFamily(OPENID);
+    const fam = await findMyFamily(OPENID, 'parent');
     if (!fam || fam.ownerOpenid === OPENID) return { ok: false, error: '仅家长可设置' };
     const members = (fam.members || []).map(m =>
       m.openid === OPENID ? { ...m, parentSubQuota: Math.min(3, (m.parentSubQuota || 0) + (Number(event.n) || 1)) } : m);
@@ -142,7 +155,7 @@ exports.main = async (event) => {
 
   // 家长端：订阅每周一的周报推送（一次授权一次推送，上限 3）
   if (action === 'grantWeekly') {
-    const fam = await findMyFamily(OPENID);
+    const fam = await findMyFamily(OPENID, 'parent');
     if (!fam || fam.ownerOpenid === OPENID) return { ok: false, error: '仅家长可订阅' };
     const members = (fam.members || []).map(m =>
       m.openid === OPENID ? { ...m, weeklyQuota: Math.min(3, (m.weeklyQuota || 0) + (Number(event.n) || 1)) } : m);
@@ -173,14 +186,13 @@ exports.main = async (event) => {
           },
         });
         sent++;
-        await db.collection('families').doc(fam._id).update({
-          data: { members: fam.members.map(x => (x.openid === m.openid ? { ...x, parentSubQuota: x.parentSubQuota - 1 } : x)) },
-        });
+        // 回写要基于最新的成员列表：循环里每位家长都改同一份文档，用读到的旧数组回写会覆盖前一位的扣减
+        fam.members = fam.members.map(x => (x.openid === m.openid ? { ...x, parentSubQuota: x.parentSubQuota - 1 } : x));
+        await db.collection('families').doc(fam._id).update({ data: { members: fam.members } });
       } catch (e) {
         if (e.errCode === 43101) { // 用户未订阅/配额用尽
-          await db.collection('families').doc(fam._id).update({
-            data: { members: fam.members.map(x => (x.openid === m.openid ? { ...x, parentSubQuota: 0 } : x)) },
-          });
+          fam.members = fam.members.map(x => (x.openid === m.openid ? { ...x, parentSubQuota: 0 } : x));
+          await db.collection('families').doc(fam._id).update({ data: { members: fam.members } });
         }
       }
     }
@@ -189,7 +201,7 @@ exports.main = async (event) => {
 
   // 家长端：给孩子留言（只有绑定的家长可发）
   if (action === 'cheer') {
-    const fam = await findMyFamily(OPENID);
+    const fam = await findMyFamily(OPENID, 'parent');
     if (!fam || fam.ownerOpenid === OPENID) return { ok: false, error: '仅绑定的家长可以留言' };
     const v = CHEER.validate(event);
     if (!v.ok) return v;
@@ -211,7 +223,7 @@ exports.main = async (event) => {
 
   // 孩子端：收到的留言；家长端：自己发出的（各最近 20 条）
   if (action === 'cheers') {
-    const fam = await findMyFamily(OPENID);
+    const fam = await findMyFamily(OPENID, event.as === 'parent' ? 'parent' : undefined);
     if (!fam) return { ok: false, error: '尚未绑定' };
     const where = fam.ownerOpenid === OPENID
       ? { ownerOpenid: OPENID }

@@ -40,6 +40,9 @@ Page({
   },
 
   startSession(level) {
+    // 判分反馈期间切难度 / 再来一组：旧的"下一题"定时器必须作废，否则它会把新会话推到第 2 题
+    if (this._pendingAdvance) { clearTimeout(this._pendingAdvance); this._pendingAdvance = null; }
+    this._completed = false;
     const problems = AR.buildSession(level, this.target).map(p => ({ ...p, text: AR.textOf(p) }));
     this.level = level;
     this.setData({
@@ -119,11 +122,17 @@ Page({
   onFinish() { this.complete(); },
 
   complete() {
+    if (this._completed) return; // 连点"完成打卡"只记一次（否则会写两条会话，满分勋章按条数算会提前拿到）
+    this._completed = true;
     if (this._pendingAdvance) { clearTimeout(this._pendingAdvance); this._pendingAdvance = null; }
     const answered = this.data.answered;
     const acc = answered ? this.data.correctCount / answered : 0;
     const stars = acc === 1 ? 3 : acc >= 0.8 ? 2 : 1;
-    C.upsertRecord(this.date, 'math_calc', answered, stars, '口算挑战 正确 ' + this.data.correctCount + '/' + answered);
+    // 当天再练一组：口算量累加、星级取高，不能用较少的题数覆盖当天已有的记录
+    const prev = C.getDayRecords(this.date).find(r => r.taskId === 'math_calc');
+    const total = (prev ? prev.value.n : 0) + answered;
+    const note = '口算挑战 正确 ' + this.data.correctCount + '/' + answered + (prev ? '（今日累计 ' + total + ' 题）' : '');
+    C.upsertRecord(this.date, 'math_calc', total, Math.max(stars, prev ? prev.stars : 0), note);
     AR.saveSession({ date: this.date, level: this.level, total: answered, correct: this.data.correctCount }); // 供家长报告看趋势
     const profile = store.getProfile();
     const fresh = B.evaluate(store.getRecords(), profile);

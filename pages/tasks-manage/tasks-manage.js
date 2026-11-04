@@ -61,7 +61,22 @@ Page({
       dateLabel: D.dateLabel(today),
       groups,
       customs: overrides.customs || [],
+      showSprint: this.grade === 1, // 期末冲刺目前只有一年级上册内容
+      sprintDays: T.sprintDays(),
+      sprintOptions: T.SPRINT_OPTIONS.map(days => ({ days, label: days ? days + ' 天' : '关闭' })),
     });
+  },
+
+  // 期末冲刺窗口：放假前多少天开始出现倒计时和「期末冲刺」任务（0 = 关闭）
+  onSprintDays(e) {
+    const days = Number(e.currentTarget.dataset.days);
+    if (T.SPRINT_OPTIONS.indexOf(days) < 0) return;
+    const o = store.getTaskOverrides();
+    o.sprintDays = days;
+    store.saveTaskOverrides(o);
+    cloud.syncAll();
+    this.refresh();
+    wx.showToast({ title: days ? '已设为放假前 ' + days + ' 天' : '已关闭期末冲刺', icon: 'none' });
   },
 
   // ── 调整内置任务目标 ──

@@ -5,12 +5,14 @@ const AR = require('../../utils/arithmetic');
 const QZ = require('../../utils/quiz');
 const B = require('../../utils/badges');
 const RV = require('../../utils/review');
+const DAILY = require('../../utils/daily');
 const cloud = require('../../utils/cloud');
 
 const SUBJ = require('../../utils/subjects');
 
 Page({
   data: {
+    mode: 'review', // review：到期错题复习 | today：今日一练
     phase: 'play', // play | done | empty
     cards: [],
     idx: 0,
@@ -28,8 +30,11 @@ Page({
     newBadge: '',
   },
 
-  onLoad() {
+  // options.mode === 'today'：今日一练（3 题口算 + 5 题小卷，见 utils/daily.js）；默认是到期错题复习
+  onLoad(options) {
     this.today = D.todayStr();
+    this.mode = options && options.mode === 'today' ? 'today' : 'review';
+    this.setData({ mode: this.mode });
     this.start();
   },
 
@@ -38,15 +43,22 @@ Page({
   },
 
   start() {
-    const queue = RV.dailyQueue(this.today);
-    if (!queue.length) {
-      this.setData({ phase: 'empty' });
-      return;
+    let cards;
+    if (this.mode === 'today') {
+      const profile = store.getProfile() || {};
+      cards = DAILY.build({ grade: Number(profile.grade) || 1, date: this.today, quizHistory: store.getQuizHistory() }).cards;
+    } else {
+      const queue = RV.dailyQueue(this.today);
+      if (!queue.length) {
+        this.setData({ phase: 'empty' });
+        return;
+      }
+      // 统一成会话卡：口算走数字键盘，小卷走选项（选项每次重新打乱）
+      cards = queue.map(it => (it.source === 'math'
+        ? { source: 'math', key: it.key, level: it.level, problem: it.problem, tag: '口算', text: AR.textOf(it.problem) }
+        : { ...QZ.instantiate(it.question, Math.random), source: 'quiz', key: it.key, tag: SUBJ.nameOf(it.question.subject) + '小卷' }));
     }
-    // 统一成会话卡：口算走数字键盘，小卷走选项（选项每次重新打乱）
-    const cards = queue.map(it => (it.source === 'math'
-      ? { source: 'math', key: it.key, level: it.level, problem: it.problem, tag: '口算', text: AR.textOf(it.problem) }
-      : { ...QZ.instantiate(it.question, Math.random), source: 'quiz', key: it.key, tag: SUBJ.nameOf(it.question.subject) + '小卷' }));
+    this._results = [];
     this._picked = [];
     this.setData({
       phase: 'play', cards, total: cards.length,
@@ -64,6 +76,7 @@ Page({
     const res = c.source === 'math'
       ? AR.markResult(c.problem, ok, c.level, this.today)
       : QZ.markResult(c, ok, this.today);
+    this._results.push(c.source === 'math' ? { source: 'math', level: c.level, ok } : { source: 'quiz', subject: c.subject, unit: c.unit, ok });
     const answered = this.data.answered + 1;
     this.setData({
       answered,
@@ -143,7 +156,9 @@ Page({
   },
 
   finish() {
-    RV.logSession(this.today, this.data.total, this.data.correctCount);
+    // 今日一练记入口算会话 / 小卷历史（家长报告可见）；不算"错题复习"，不影响错题克星勋章
+    if (this.mode === 'today') DAILY.record(this._results, this.today);
+    else RV.logSession(this.today, this.data.total, this.data.correctCount);
     const profile = store.getProfile();
     const fresh = B.evaluate(store.getRecords(), profile);
     const b = fresh.length ? B.badgeById(fresh[0].id) : null;
@@ -156,7 +171,7 @@ Page({
     cloud.syncAll(); // 新勋章上云（节流 1 分钟，静默失败）
     this.setData({
       phase: 'done',
-      remaining: RV.dueCount(this.today),
+      remaining: this.mode === 'today' ? 0 : RV.dueCount(this.today),
       newBadge: b ? b.emoji + ' ' + b.name : '',
     });
   },

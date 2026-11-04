@@ -4,6 +4,14 @@
     <view class="muted">{{gradeLabel}} · 调整目标值或添加自定义任务，对所有日期生效</view>
   </view>
 
+  <view class="card tm-sprint" wx:if="{{showSprint}}">
+    <view class="h2">🏁 期末冲刺</view>
+    <view class="muted tm-sprint-tip">放假前多少天开始出现首页倒计时和「期末冲刺」自选任务（各校考试时间不同，按学校安排选）</view>
+    <view class="tm-sprint-opts">
+      <view wx:for="{{sprintOptions}}" wx:key="days" class="tm-sprint-opt {{sprintDays === item.days ? 'on' : ''}}" data-days="{{item.days}}" bindtap="onSprintDays">{{item.label}}</view>
+    </view>
+  </view>
+
   <block wx:for="{{groups}}" wx:key="key" wx:for-item="grp">
     <view class="sec-header row">
       <view class="sec-dot" style="background: {{grp.color}};"></view>

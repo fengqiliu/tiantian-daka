@@ -72,3 +72,17 @@
 .opt.on { background: #FFF1DC; color: #FF8A00; border-color: #FFB25A; font-weight: 600; }
 
 .tm-foot { text-align: center; padding: 16rpx 48rpx 40rpx; font-size: 22rpx; }
+
+.tm-sprint { margin-bottom: 24rpx; }
+.tm-sprint-tip { margin: 8rpx 0 20rpx; font-size: 24rpx; }
+.tm-sprint-opts { display: flex; gap: 14rpx; }
+.tm-sprint-opt {
+  flex: 1;
+  text-align: center;
+  background: #F7F2E8;
+  border-radius: 999rpx;
+  padding: 14rpx 0;
+  font-size: 26rpx;
+  color: #6B655B;
+}
+.tm-sprint-opt.on { background: #FF8A00; color: #fff; font-weight: 600; }

@@ -18,6 +18,10 @@ Page({
     quizCount: 0,
     dueCount: 0,
     readOnly: false,
+    filters: { subject: '', dueOnly: false },
+    subjectOptions: [{ key: '', name: '全部' }].concat(SUBJ.SUBJECTS.map(s => ({ key: s.key, name: s.name }))),
+    shown: 0,
+    emptyHint: '',
   },
 
   onShow() { this.refresh(); },
@@ -32,8 +36,11 @@ Page({
     const today = D.todayStr();
     // 数据作用域：孩子端读本机，家长端只读孩子缓存（随家人同步更新）
     const s = CTX.scope();
+    // 筛选：科目（口算属于数学）+ 只看今天到期的；总数、清空与导出不受筛选影响
+    const f = this.data.filters;
+    const keep = (w, subject) => (!f.subject || f.subject === subject) && (!f.dueOnly || RV.isDue(w, today));
+    const mathWrong = s.mathWrong.filter(w => keep(w, 'math'));
     // 口算错题：按级别分组
-    const mathWrong = s.mathWrong;
     const byLevel = {};
     mathWrong.forEach(w => {
       const name = LEVEL_NAME[w.level] || w.level;
@@ -49,7 +56,7 @@ Page({
     const mathGroups = Object.keys(byLevel).map(name => ({ name, items: byLevel[name] }));
 
     // 小卷错题：按「科目 · 单元」分组（数学→语文→英语，单元升序，期末在最后），孩子端可只练这一组
-    const quizWrong = s.quizWrong;
+    const quizWrong = s.quizWrong.filter(w => keep(w, w.subject));
     const byUnit = {};
     quizWrong.forEach(w => {
       const unit = w.question.unit;
@@ -71,11 +78,15 @@ Page({
     const quizGroups = Object.values(byUnit)
       .sort(SUBJ.compareUnits);
 
+    const total = s.mathWrong.length + s.quizWrong.length;
+    const shown = mathWrong.length + quizWrong.length;
     this.setData({
       mathGroups,
       quizGroups,
-      mathCount: mathWrong.length,
-      quizCount: quizWrong.length,
+      mathCount: s.mathWrong.length,
+      quizCount: s.quizWrong.length,
+      shown,
+      emptyHint: total && !shown ? '这个条件下没有错题' : '',
       dueCount: s.readOnly ? 0 : RV.dueCount(today),
       readOnly: s.readOnly,
     });
@@ -83,6 +94,16 @@ Page({
 
   goReview() {
     wx.navigateTo({ url: '/pages/review/review' });
+  },
+
+  onFilterSubject(e) {
+    this.setData({ filters: { ...this.data.filters, subject: e.currentTarget.dataset.key || '' } });
+    this.refresh();
+  },
+
+  onToggleDue() {
+    this.setData({ filters: { ...this.data.filters, dueOnly: !this.data.filters.dueOnly } });
+    this.refresh();
   },
 
   // 导出错题：整理成文字复制到剪贴板（孩子端与家长端都可用，家长可粘贴到文档打印）

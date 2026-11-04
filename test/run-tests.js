@@ -412,6 +412,29 @@ t('期末冲刺任务：一年级在倒计时期间多一项自选「期末冲�
   assert(!T.generateDailyTasks(3, '2027-01-05').some(x => x.id === 'exam_sprint'), '题库是一年级内容，其他年级不出');
   assert(!T.generateDailyTasks(1, '2027-01-25').some(x => x.id === 'exam_sprint'), '假期里没有');
 });
+t('冲刺窗口可由家长设置：14/21/28 天或关闭，非法值回到 21 天，设置变化后清单立即变化', () => {
+  const withDays = d => { T.setOverrideProvider(() => ({ targets: {}, customs: [], ...(d === undefined ? {} : { sprintDays: d }), updatedAt: 5 })); };
+  try {
+    withDays(undefined);
+    assert.strictEqual(T.sprintDays(), 21, '默认 21 天');
+    const has = date => T.generateDailyTasks(1, date).some(x => x.id === 'exam_sprint');
+    assert.deepStrictEqual([has('2027-01-02'), has('2027-01-01')], [true, false], '默认：放假前 21 天');
+    withDays(28);
+    assert.strictEqual(T.sprintDays(), 28);
+    assert.deepStrictEqual([has('2026-12-26'), has('2026-12-25')], [true, false], '28 天窗口提前一周');
+    withDays(14);
+    assert.deepStrictEqual([has('2027-01-09'), has('2027-01-08')], [true, false], '14 天窗口');
+    withDays(0);
+    assert.strictEqual(T.sprintDays(), 0);
+    assert(!has('2027-01-15'), '0 = 关闭，窗口内也不出');
+    withDays(17);
+    assert.strictEqual(T.sprintDays(), 21, '不在可选项里的值按默认');
+    withDays('28');
+    assert.strictEqual(T.sprintDays(), 28, '字符串数字也认');
+  } finally {
+    T.setOverrideProvider(null);
+  }
+});
 t('假期生成：4 必做（作业/阅读/口算减量/户外120），无整理书包，轮换正确', () => {
   assert.strictEqual(D.dayOfWeek('2027-01-27'), 3, '测试日期应为周三');
   const ts = T.generateDailyTasks(3, '2027-01-27'); // 寒假周三
@@ -800,6 +823,62 @@ t('口算提示：进位加凑十、十几加几、不退位减、减整十、�
   assert.strictEqual(h(45, '+', 38), '');
   assert.strictEqual(AR.hintOf({ kind: 'missing', a: 3, op: '+', b: null, c: 9, answer: 6 }), '');
 });
+t('今日一练：3 题口算 + 5 题小卷；有薄弱单元时其中 2 题来自该单元，其余按星期轮换科目', () => {
+  reset();
+  const DAILY = require('../utils/daily');
+  // 2026-11-04 周三 → 数学；11-05 周四 → 语文；11-06 周五 → 英语
+  assert.deepStrictEqual(['2026-11-04', '2026-11-05', '2026-11-06'].map(DAILY.subjectOf), ['math', 'chinese', 'english']);
+  assert.strictEqual(DAILY.subjectOf('2026-11-08'), 'math', '周日');
+  let d = DAILY.build({ grade: 1, date: '2026-11-05', rng: seededRng(3), quizHistory: [] });
+  assert.strictEqual(d.cards.length, 8);
+  const math = d.cards.filter(c => c.source === 'math');
+  const quiz = d.cards.filter(c => c.source === 'quiz');
+  assert.deepStrictEqual([math.length, quiz.length], [3, 5]);
+  math.forEach(c => assert(c.level === AR.recommendByGrade(1, '2026-11-05') && c.text, '口算级别跟学期进度'));
+  assert(quiz.every(c => c.subject === 'chinese'), '没有薄弱单元：全是当天轮换科目');
+  assert.strictEqual(new Set(quiz.map(c => c.id)).size, 5, '小卷题不重复');
+  assert.strictEqual(d.weak, null);
+  assert.strictEqual(d.cards.findIndex(c => c.source === 'quiz') > -1, true);
+  // 数学第 6 单元只对 2/5：薄弱 → 2 题来自该单元，另 3 题按当天科目（周四 = 语文）
+  const hist = [{ subject: 'math', at: 1, units: [{ unit: 6, total: 5, correct: 2 }, { unit: 5, total: 5, correct: 5 }] }];
+  d = DAILY.build({ grade: 1, date: '2026-11-05', rng: seededRng(3), quizHistory: hist });
+  const q2 = d.cards.filter(c => c.source === 'quiz');
+  assert.strictEqual(q2.length, 5);
+  assert.strictEqual(q2.filter(c => c.subject === 'math' && c.unit === 6).length, 2);
+  assert.strictEqual(q2.filter(c => c.subject === 'chinese').length, 3);
+  assert.strictEqual(new Set(q2.map(c => c.id)).size, 5);
+  assert.deepStrictEqual(d.weak, { subject: 'math', unit: 6, label: '数学第6单元' });
+  // 薄弱单元正好是当天科目：不会重复出同一道题，总数仍是 5
+  const hist2 = [{ subject: 'chinese', at: 1, units: [{ unit: 4, total: 5, correct: 1 }] }];
+  d = DAILY.build({ grade: 1, date: '2026-11-05', rng: seededRng(9), quizHistory: hist2 });
+  const q3 = d.cards.filter(c => c.source === 'quiz');
+  assert.deepStrictEqual([q3.length, new Set(q3.map(c => c.id)).size], [5, 5]);
+  assert.strictEqual(q3.filter(c => c.unit === 4).length >= 2, true);
+  // 有错题时优先带上（沿用小卷 / 口算的混入规则）
+  const w = QZ.poolFor('chinese').find(q => q.unit === 4);
+  QZ.markResult(w, false, '2026-11-02');
+  d = DAILY.build({ grade: 1, date: '2026-11-05', rng: seededRng(5), quizHistory: [] });
+  assert(d.cards.some(c => c.id === w.id), '到期错题优先混入');
+});
+t('今日一练：按科目汇总作答，写入小卷历史（带单元）与口算会话', () => {
+  reset();
+  const DAILY = require('../utils/daily');
+  const results = [
+    { source: 'math', level: 'addsub10', ok: true }, { source: 'math', level: 'addsub10', ok: false }, { source: 'math', level: 'addsub10', ok: true },
+    { source: 'quiz', subject: 'math', unit: 6, ok: false }, { source: 'quiz', subject: 'math', unit: 6, ok: true },
+    { source: 'quiz', subject: 'chinese', unit: 4, ok: true }, { source: 'quiz', subject: 'chinese', unit: 4, ok: true }, { source: 'quiz', subject: 'chinese', unit: 5, ok: true },
+  ];
+  DAILY.record(results, '2026-11-05');
+  const hist = QZ.getHistory();
+  assert.deepStrictEqual(hist.map(h => [h.subject, h.total, h.correct, h.daily]).sort(), [['chinese', 3, 3, true], ['math', 2, 1, true]]);
+  assert.deepStrictEqual(hist.find(h => h.subject === 'math').units, [{ unit: 6, total: 2, correct: 1 }]);
+  assert.deepStrictEqual(hist.find(h => h.subject === 'chinese').units, [{ unit: 4, total: 2, correct: 2 }, { unit: 5, total: 1, correct: 1 }]);
+  assert.deepStrictEqual(hist.find(h => h.subject === 'chinese').label, '优秀');
+  const sess = AR.getSessions();
+  assert.deepStrictEqual([sess.length, sess[0].level, sess[0].total, sess[0].correct, sess[0].date], [1, 'addsub10', 3, 2, '2026-11-05']);
+  assert.strictEqual(DAILY.doneOn('2026-11-05', QZ.getHistory()), true);
+  assert.strictEqual(DAILY.doneOn('2026-11-06', QZ.getHistory()), false);
+});
 t('题库每个单元至少 10 题，每道题至少 2 个选项且答案在选项里', () => {
   const by = {};
   QBANK.bank.forEach(q => { const k = q.subject + ' 第' + q.unit; by[k] = (by[k] || 0) + 1; });
@@ -851,6 +930,19 @@ t('首次使用引导：新用户看一次，7 天前建档的老用户不打扰
   assert.strictEqual(GD.replay(old).createdAt, old.createdAt, '重看不改建档时间');
   assert.strictEqual(GD.view(GD.replay(old), 0, now).step, 1, '老用户手动重看也能看到');
   assert.strictEqual(GD.view(GD.markSeen(GD.replay(old)), 0, now), null, '看完后恢复不弹');
+});
+t('同步游标只看记录的时间戳：资料 / 勋章等整体同步的数据更新，不能让游标越过被截断没拉到的记录', async () => {
+  reset();
+  const SYNC = require('../utils/sync');
+  // 云端按 3000 条上限截断，只返回了 updatedAt ≤ 3000 的记录；同时资料的时间戳更大
+  const res = { ok: true, records: [{ id: '2026-10-01#pe_rope', date: '2026-10-01', taskId: 'pe_rope', value: { type: 'done', n: 1 }, stars: 2, note: '', updatedAt: 3000 }],
+    profile: { role: 'child', grade: 1, nickname: '改名', onboarded: true, updatedAt: 9000 }, badges: [{ id: 'first_checkin', earnedAt: 8000 }], serverTime: 20000 };
+  await SYNC.pull({ pullData: async () => res });
+  assert.strictEqual(store.getSyncState().lastPullAt, 3000, '游标 = 本次拉到的最大记录时间戳，下次还能拉到 3001 以后的记录');
+  // 没有记录时游标不动（资料每次都整体下发）
+  store.saveSyncState({ lastPullAt: 500, lastPushAt: 0 });
+  await SYNC.pull({ pullData: async () => ({ ok: true, records: [], profile: res.profile, badges: res.badges, serverTime: 20000 }) });
+  assert.strictEqual(store.getSyncState().lastPullAt, 500);
 });
 t('学科常量只有一份：题库、报告、推送摘要用同一个单元标签与学科名', () => {
   const SUBJ = require('../utils/subjects');
@@ -1640,6 +1732,17 @@ t('周报需关注：本周练过、正确率不到 80% 的最薄弱单元', () 
   assert(g.attention.some(a => a === '「数学第6单元」小卷正确率 40%，可以按单元再练一组'), JSON.stringify(g.attention));
   assert(!g.attention.some(a => a.includes('英语')), '本周没练的单元不在周报里提示');
 });
+t('进行中的周：和上一周"同样天数"比，周二不会因为本周只有 2 天就提示"达成天数比前一周少"', () => {
+  reset();
+  weekDates('2026-10-12').slice(0, 5).forEach(d => seedDay(d, 1, mustIds(d)(1))); // 上周一至周五都达成
+  weekDates(W0).slice(0, 2).forEach(d => seedDay(d, 1, mustIds(d)(1)));           // 本周一、二达成
+  const g = REPORT.weeklyDigest({ records: store.getRecords(), grade: 1, today: '2026-10-20' }, W0);
+  assert.deepStrictEqual([g.achievedDays, g.vsPrev], [2, 0], '本周 2 天 vs 上周同期 2 天');
+  assert(!g.attention.some(a => a.includes('比前一周少')), JSON.stringify(g.attention));
+  // 周日（本周整周）仍按整周对比
+  const full = REPORT.weeklyDigest({ records: store.getRecords(), grade: 1, today: '2026-10-26' }, W0);
+  assert.deepStrictEqual([full.achievedDays, full.vsPrev], [2, -3]);
+});
 t('周区间：上周一 / 区间标签', () => {
   assert.strictEqual(REPORT.lastWeekMonday('2026-10-26'), '2026-10-19', '周一看上周');
   assert.strictEqual(REPORT.lastWeekMonday('2026-10-25'), '2026-10-12', '周日看的是前一个完整周');
@@ -2163,6 +2266,14 @@ t('补卡接上连击；补卡那天不拿"全部必做"+1 加成', () => {
   });
   assert.strictEqual(C.streaks(store.getRecords(), MT).current, 3, '补卡接上连击');
   assert.strictEqual(C.totalStars(store.getRecords(), 1, []) - before, mustIds('2026-10-20')(1).length, '每项 1⭐，没有当日 +1');
+});
+t('当天按时完成全部必做，之后补一个选做任务：当日 +1 加成不丢；必做全靠补卡完成的那天才没有', () => {
+  reset();
+  seedDay('2026-10-20', 1, mustIds('2026-10-20')(1)); // 按时完成全部必做
+  const base = C.totalStars(store.getRecords(), 1, []);
+  const optional = T.generateDailyTasks(1, '2026-10-20').find(x => !x.must && x.type === 'done');
+  assert.strictEqual(MK.save('2026-10-20', optional.id, 1, '', MT, 1).ok, true);
+  assert.strictEqual(C.totalStars(store.getRecords(), 1, []) - base, 1, '补一个选做任务 = 它自己的 1⭐，当日 +1 仍在');
 });
 t('missingTasks：列出那天还没打卡的任务', () => {
   reset();

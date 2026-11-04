@@ -156,8 +156,9 @@ function weeklyDigest(data, monday) {
   while (D.addDays(monday, span - 1) < end) span++;
   const inWeek = date => date >= monday && date <= sunday;
 
-  const ov = overview(records, grade, 7, sunday);
-  const prev = overview(records, grade, 7, D.addDays(monday, -1));
+  // 进行中的周只比到今天：和上一周"同样天数"比（周二的 2 天对上周一、二），整周则是 7 天对 7 天
+  const ov = overview(records, grade, span, end);
+  const prev = overview(records, grade, span, D.addDays(monday, span - 8));
   const vsPrev = ov.achievedDays - prev.achievedDays;
 
   const ds = drillSummary(data.drillSessions || [], 7, sunday);

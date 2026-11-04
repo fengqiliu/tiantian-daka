@@ -57,7 +57,7 @@
       <view class="rp-kpi-num">⭐ {{ov.stars}}</view>
       <view class="muted">获得星星</view>
     </view>
-    <view class="rp-kpi flex1">
+    <view class="rp-kpi flex1" wx:if="{{role !== 'parent'}}">
       <view class="rp-kpi-num">💰 {{balance}}</view>
       <view class="muted">可用积分</view>
     </view>

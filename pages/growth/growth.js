@@ -50,8 +50,8 @@ Page({
       }));
 
     // 每周一卷入口文案
-    const quizHistory = QZ.getHistory();
-    const quizWrong = store.getQuizWrong();
+    const quizHistory = s.quizHistory; // 走 scope()：家长端读孩子的小卷历史，不是家长手机本地的
+    const quizWrong = s.quizWrong;
     const quizHint = quizHistory.length
       ? '上次' + SUBJ.nameOf(quizHistory[0].subject) + '小卷「' + quizHistory[0].label + '」'
         + (quizWrong.length ? ' · 错题 ' + quizWrong.length + ' 题' : '')

@@ -181,8 +181,19 @@ function overridesFingerprint() {
   const o = getOverrides();
   const targets = o.targets || {};
   const customs = o.customs || [];
-  if (!Object.keys(targets).length && !customs.length) return '0';
-  return (o.updatedAt || 0) + ':' + JSON.stringify({ targets, customs });
+  const days = sprintDays();
+  if (!Object.keys(targets).length && !customs.length && days === DEFAULT_SPRINT_DAYS) return '0';
+  return (o.updatedAt || 0) + ':' + days + ':' + JSON.stringify({ targets, customs });
+}
+
+// 期末冲刺窗口（放假前多少天开始）：家长在任务管理里选 14 / 21 / 28 天，0 = 关闭；其他值按默认 21 天
+const DEFAULT_SPRINT_DAYS = CAL.COUNTDOWN_DAYS;
+const SPRINT_OPTIONS = [14, 21, 28, 0];
+function sprintDays() {
+  const raw = getOverrides().sprintDays;
+  if (raw === undefined || raw === null || raw === '') return DEFAULT_SPRINT_DAYS;
+  const v = Number(raw);
+  return SPRINT_OPTIONS.indexOf(v) > -1 ? v : DEFAULT_SPRINT_DAYS;
 }
 
 function generateDailyTasks(grade, dateStr) {
@@ -256,7 +267,7 @@ function _generateDailyTasksUncached(grade, dateStr) {
     }
   }
   // 期末复习：小卷题库是一年级上册内容，先只给一年级加自选「期末冲刺」
-  if (Number(grade) === 1 && CAL.examCountdown(dateStr)) list.push(pick('exam_sprint'));
+  if (Number(grade) === 1 && sprintDays() > 0 && CAL.examCountdown(dateStr, sprintDays())) list.push(pick('exam_sprint'));
   return applyOverrides(list.filter(Boolean));
 }
 
@@ -342,5 +353,5 @@ function generateHolidayTasks(grade, dow, hol) {
 module.exports = {
   SECTIONS, SECTION_ORDER, DEFS,
   bandOf, buildTask, generateDailyTasks, generateHolidayTasks, getTaskDef, targetLabel,
-  setOverrideProvider, applyOverrides,
+  setOverrideProvider, applyOverrides, sprintDays, SPRINT_OPTIONS,
 };

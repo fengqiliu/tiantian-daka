@@ -19,6 +19,9 @@ function resetUI() {
   ui.modalAnswer = true;   // true=确认 / false=取消，或 (opts) => true|false
   ui.sheetPick = 0;
   ui.interval = null;
+  ui.deferTimers = false;
+  ui.timers = [];
+  ui.runTimers = () => { const due = ui.timers; ui.timers = []; due.forEach(t => t.fn()); };
   ui.clipboard = null;
   ui.recorder = null;
   ui.audio = null;
@@ -90,8 +93,15 @@ global.wx = {
   },
 };
 global.getApp = () => ({ globalData: {} });
-global.setTimeout = fn => { fn(); return 0; };
-global.clearTimeout = () => {};
+// 默认立即执行；测试"定时器还没到点时用户又操作"这类竞态时设 ui.deferTimers = true，再用 ui.runTimers() 手动到点
+let timerSeq = 0;
+global.setTimeout = fn => {
+  if (!ui.deferTimers) { fn(); return 0; }
+  const id = ++timerSeq;
+  ui.timers.push({ id, fn });
+  return id;
+};
+global.clearTimeout = id => { ui.timers = ui.timers.filter(t => t.id !== id); };
 global.setInterval = fn => { ui.interval = fn; return 1; };
 global.clearInterval = () => { ui.interval = null; };
 

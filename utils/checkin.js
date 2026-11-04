@@ -100,7 +100,9 @@ function totalStars(records, grade, badges, goals) {
     recs.forEach(r => { total += (r.stars || 0); });
     if (!cache[date]) cache[date] = T.generateDailyTasks(grade, date);
     // 补打卡的那天不拿"全部必做"+1 加成（补卡只为接上连击）
-    if (!recs.some(r => r.makeup) && dayCompletion(cache[date], recs).allMustDone) total += 1;
+    // 全部必做按时完成才给当日 +1：必做靠补卡才凑齐的那天不给（补卡只为接上连击）；
+    // 按时做完必做、事后补了选做任务的那天，加成保留
+    if (dayCompletion(cache[date], recs.filter(r => !r.makeup)).allMustDone) total += 1;
   });
   (badges || []).forEach(b => { total += BADGE_BONUS[b.id] || 0; });
   Object.keys(goals || {}).forEach(k => { if (goals[k] && goals[k].achievedAt) total += GOAL_BONUS; });

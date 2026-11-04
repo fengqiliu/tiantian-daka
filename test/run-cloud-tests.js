@@ -75,6 +75,46 @@ t('补卡标记：push 后 pull 与家长 summary 都保留 makeup / makeupAt', 
   const s = await family.main({ action: 'summary', since: 0 });
   assert.strictEqual(s.records.find(x => x.date === '2026-10-20').makeup, true, '家长端看到补卡标记');
 });
+t('回归：孩子记录超过 1000 条时，家长 summary 仍能拿到最新的（不能只返回最旧的 1000 条）', async () => {
+  reset();
+  const family = CM.load('family');
+  CM.setOpenid('kid1');
+  await CM.load('login').main({});
+  const code = (await family.main({ action: 'create' })).code;
+  const start = Date.UTC(2026, 0, 1);
+  for (let i = 0; i < 2300; i++) { // 约 230 天，每天 10 条
+    const date = new Date(start + Math.floor(i / 10) * 86400000).toISOString().slice(0, 10);
+    CM.db.checkins.push({ _id: 'c' + i, openid: 'kid1', ...rec(date + '#t' + (i % 10), { updatedAt: 1000 + i }) });
+  }
+  CM.setOpenid('parent1');
+  await family.main({ action: 'join', code });
+  const s = await family.main({ action: 'summary', since: 0 });
+  assert.strictEqual(s.records.length, 2300, '全部返回');
+  assert.strictEqual(s.records.reduce((m, r) => (r.date > m ? r.date : m), ''), new Date(start + 229 * 86400000).toISOString().slice(0, 10), '最新一天在里面');
+});
+t('回归：同一部手机先当孩子（自动建了自己的家庭）再切成家长绑定别人，之后家长动作要落在绑定的家庭上', async () => {
+  reset();
+  const family = CM.load('family');
+  CM.setOpenid('kidA'); await CM.load('login').main({});
+  const codeA = (await family.main({ action: 'create' })).code;
+  await CM.load('sync').main({ action: 'push', profile: { nickname: '小豆', grade: 1, updatedAt: 1 }, records: [rec('2026-10-20#pe_rope')] });
+  CM.setOpenid('dual'); await CM.load('login').main({});
+  const mine = (await family.main({ action: 'create' })).code; // 先以孩子身份打开"我的"页：自动建家庭
+  assert.notStrictEqual(mine, codeA);
+  assert.strictEqual((await family.main({ action: 'join', code: codeA })).ok, true);
+  const s = await family.main({ action: 'summary', since: 0 });
+  assert.strictEqual(s.code, codeA, 'summary 看的是绑定的孩子，不是自己的空家庭');
+  assert.strictEqual(s.records.length, 1);
+  const c = await family.main({ action: 'cheer', from: '妈妈', text: '加油' });
+  assert.strictEqual(c.ok, true, '能以家长身份留言：' + JSON.stringify(c));
+  const mineList = await family.main({ action: 'cheers', as: 'parent' });
+  assert.strictEqual(mineList.cheers.length, 1, '家长身份看的是自己发出的留言');
+  assert.strictEqual((await family.main({ action: 'grantWeekly', n: 1 })).ok, true);
+  await family.main({ action: 'leave' });
+  CM.setOpenid('kidA');
+  const fam = CM.db.families.find(f => f.code === codeA);
+  assert.strictEqual(fam.members.length, 0, '退出绑定移除的是绑定家庭里的自己');
+});
 t('回归：push 分支曾引用未定义的 openid（同步全挂）', async () => {
   reset();
   CM.setOpenid('kid1');
@@ -670,6 +710,23 @@ t('leave 移除家长成员；孩子端 leave 不影响家庭', async () => {
   CM.setOpenid('kid1');
   await family.main({ action: 'leave' });
   assert(CM.db.families[0].ownerOpenid === 'kid1', '孩子不应能解散家庭');
+});
+t('回归：绑定两位家长时，notify 每人各扣 1 次配额（后一次回写不能覆盖前一位的扣减）', async () => {
+  reset();
+  CM.setConfig('family', { NOTIFY_TEMPLATE_ID: 'tmpl-notify-test' });
+  const family = CM.load('family');
+  CM.setOpenid('kid1'); await CM.load('login').main({});
+  const code = (await family.main({ action: 'create' })).code;
+  for (const p of ['parentA', 'parentB']) {
+    CM.setOpenid(p);
+    await family.main({ action: 'join', code });
+    await family.main({ action: 'grantParentSub', n: 2 });
+  }
+  CM.setOpenid('kid1');
+  const r = await family.main({ action: 'notify', title: '达成', body: '勋章' });
+  assert.strictEqual(r.sent, 2);
+  const quotas = CM.db.families[0].members.map(m => [m.openid, m.parentSubQuota]);
+  assert.deepStrictEqual(quotas, [['parentA', 1], ['parentB', 1]]);
 });
 t('notify 消耗家长配额；43101 时清零', async () => {
   reset();

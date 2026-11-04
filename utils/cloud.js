@@ -92,7 +92,8 @@ function cheerSend(c) {
 // 孩子端拉收到的 / 家长端拉发出的；孩子端成功时写入缓存（首页横幅用，失败保留旧缓存）
 // 家长端不写缓存：拿到的是发出的留言，同一手机切回孩子身份时不能当成收到的
 function cheerList() {
-  return call('family', { action: 'cheers' }).then(res => {
+  const p = store.getProfile();
+  return call('family', { action: 'cheers', as: p && p.role === 'parent' ? 'parent' : 'child' }).then(res => {
     const isParent = (store.getProfile() || {}).role === 'parent';
     if (res && res.ok && !isParent) store.saveCheers(res.cheers || []);
     return res;

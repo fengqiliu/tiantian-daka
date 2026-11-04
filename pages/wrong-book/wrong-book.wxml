@@ -8,6 +8,11 @@
   <view class="btn-primary wb-review" wx:if="{{dueCount}}" bindtap="goReview">🧠 去复习（{{dueCount}} 题到期）</view>
   <view class="btn-ghost wb-export" wx:if="{{mathCount || quizCount}}" bindtap="onExport">📋 复制全部错题（粘贴到文档打印）</view>
 
+  <view class="wb-filters" wx:if="{{mathCount || quizCount}}">
+    <view wx:for="{{subjectOptions}}" wx:key="key" class="wb-chip {{filters.subject === item.key ? 'on' : ''}}" data-key="{{item.key}}" bindtap="onFilterSubject">{{item.name}}</view>
+    <view class="wb-chip due {{filters.dueOnly ? 'on' : ''}}" bindtap="onToggleDue">只看到期</view>
+  </view>
+
   <view class="card">
     <view class="row wb-sec">
       <view class="h2 flex1">🧮 口算错题（{{mathCount}}）</view>
@@ -27,7 +32,7 @@
         </view>
       </view>
     </block>
-    <view wx:else class="muted wb-empty">暂无错题，太棒了！🎉</view>
+    <view wx:else class="muted wb-empty">{{emptyHint || "暂无错题，太棒了！🎉"}}</view>
   </view>
 
   <view class="card">
@@ -52,6 +57,6 @@
         </view>
       </view>
     </block>
-    <view wx:else class="muted wb-empty">暂无错题，太棒了！🎉</view>
+    <view wx:else class="muted wb-empty">{{emptyHint || "暂无错题，太棒了！🎉"}}</view>
   </view>
 </view>

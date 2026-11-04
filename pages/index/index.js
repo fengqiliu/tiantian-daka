@@ -11,6 +11,7 @@ const CHEER = require('../../utils/cheer');
 const GOALS = require('../../utils/goals');
 const TM = require('../../utils/timer');
 const GD = require('../../utils/guide');
+const DAILY = require('../../utils/daily');
 
 Page({
   data: {
@@ -32,6 +33,7 @@ Page({
     reviewDue: 0,
     exam: null, // 期末倒计时卡
     guide: null, // 首次使用引导卡片
+    daily: null, // 今日一练卡片
     reviewDone: false,
     cheer: null, // { cheer, unread }：家长留言横幅
     reactions: CHEER.REACTIONS,
@@ -114,12 +116,13 @@ Page({
       goal: this.goalView(store.getGoals(), goalData, today),
       timing: this.timingView(),
       exam: this.examView(tasks, records, today),
+      daily: grade === 1 ? this.dailyView() : null,
     });
   },
 
   // 期末倒计时卡：今日清单里有「期末冲刺」（一年级、放假前 3 周）时显示
   examView(tasks, records, today) {
-    const cd = CAL.examCountdown(today);
+    const cd = CAL.examCountdown(today, T.sprintDays() || undefined);
     if (!cd || !tasks.some(t => t.id === 'exam_sprint')) return null;
     return {
       title: '距离' + cd.name + '还有 ' + cd.daysLeft + ' 天',
@@ -143,6 +146,19 @@ Page({
   onGuideSkip() {
     store.saveProfile(GD.markSeen(store.getProfile()));
     this.setData({ guide: null });
+  },
+
+  // 今日一练卡片：一年级才显示（题库是一年级上册内容）
+  dailyView() {
+    return {
+      done: DAILY.doneOn(D.todayStr(), store.getQuizHistory()),
+      title: '今日一练',
+      desc: '3 题口算 + 5 题小卷，约 3 分钟',
+    };
+  },
+
+  goDaily() {
+    wx.navigateTo({ url: '/pages/review/review?mode=today' });
   },
 
   goSprint() {
