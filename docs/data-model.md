@@ -14,11 +14,12 @@
 | `ttdr_records_YYYY` + `ttdr_records_years` | 打卡记录（按年分片，见 §1.4） | 每年一个数组 + 年份索引；删除为墓碑；旧版单一 `ttdr_records` 首次读取时自动迁移 | ✓ 增量 | ✓ |
 | `ttdr_badges` | 已获得勋章 | `[{ id, earnedAt }]` | ✓ 并集 | ✓ |
 | `ttdr_settings` | 设置 | `{ lastBackupAt, cheerFrom, ... }` | — | ✓ |
+| `ttdr_flashcards` | 记忆卡进度（0.32.0） | `{ [牌库 id]: { [卡片正面]: { knownCount, lastAt } } }`，`knownCount` 连续认识次数（点"再练练"清零），≥2 即掌握；只存本机，**不在备份里、不上云**，「清空所有数据」会清掉 | — | — |
 | `ttdr_readings` | 跟读录音记录 | 音频文件只存本机，自动保留最近 7 天 | — | ✓ |
-| `ttdr_task_overrides` | 家长任务管理 | `{ targets: {taskId: n}, customs: [], updatedAt }` | ✓ 新者胜 | ✓ |
+| `ttdr_task_overrides` | 家长任务管理 | `{ targets: {taskId: n}, customs: [], sprintDays?, updatedAt }`；`sprintDays`：期末冲刺窗口（放假前 14 / 21 / 28 天，0 = 关闭，缺省 21；0.32.0 起家长在任务管理设置） | ✓ 新者胜 | ✓ |
 | `ttdr_rewards` / `ttdr_redemptions` / `ttdr_shop_stamp` | 奖励小铺 | 奖品架 / 兑换账本 / 整体时间戳 | ✓ 新者胜（整体） | ✓ |
 | `ttdr_drill_history` | 口算会话 | `[{ date, level, total, correct, at }]`，≤100 | ✓ 按 `at` 并集 | ✓ |
-| `ttdr_quiz_history` | 小卷历史 | `[{ subject, total, correct, label, at, units?, sprint? }]`，≤50；`units: [{ unit, total, correct }]`（0.27.0 起，家长报告按单元汇总掌握情况；更早的记录没有此字段，汇总时跳过），`sprint: true` 为期末冲刺卷（0.26.0） | ✓ 按 `at` 并集 | ✓ |
+| `ttdr_quiz_history` | 小卷历史 | `[{ subject, total, correct, label, at, units?, sprint?, daily?, date? }]`，≤50；`units: [{ unit, total, correct }]`（0.27.0 起，家长报告按单元汇总掌握情况；更早的记录没有此字段，汇总时跳过），`sprint: true` 为期末冲刺卷（0.26.0） | ✓ 按 `at` 并集 | ✓ |
 | `ttdr_math_wrong` / `ttdr_quiz_wrong` / `ttdr_wrong_stamp` | 两本错题本 | `[{ key, ..., wrongCount, lastWrongAt, box, due }]` + 整体时间戳 | ✓ 新者胜（整体） | ✓ |
 | `ttdr_review_log` | 错题复习日志 | `[{ date, total, correct }]`，每天一条 | ✓ 按日期合并 | ✓ |
 | `ttdr_goals` | 每周小目标 | `{ [周一日期]: { id, type, taskId, target, label, emoji, setAt, achievedAt } }` | ✓ 按周合并 | ✓ |
@@ -44,10 +45,14 @@
   "school": "上海市××小学",
   "role": "child",
   "onboarded": true,
+  "guideSeen": true,
+  "guideForce": false,
   "createdAt": 1727740800000,
   "updatedAt": 1727740800000
 }
 ```
+
+`guideSeen`：首次使用引导看过 / 跳过后为 true（0.31.0）；`guideForce`：在「我的」手动重看引导时为 true，让建档超过 7 天的老用户也能看到，看完清除。两个字段随资料同步。
 
 `role` 为 `child` / `parent`；家长身份的 `grade` 为 0，页面一律从 `scope().grade` 取孩子年级。
 
