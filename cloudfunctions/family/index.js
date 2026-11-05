@@ -30,6 +30,10 @@ async function contentOk(openid, text) {
 }
 
 const MAX_SUMMARY_RECORDS = 5000;
+const JOIN_MAX_FAILS = 5;
+// 订阅授权次数：客户端说一次授权几次，限制在 1-3（不信任负数 / 超大数）
+const grantCount = n => Math.max(1, Math.min(3, Math.floor(Number(n)) || 1));
+const JOIN_WINDOW_MS = 15 * 60 * 1000;
 
 // 邀请码：6 位，去掉易混淆的 0/O/1/I/L
 const CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
@@ -77,13 +81,37 @@ exports.main = async (event) => {
     return { ok: true, code: fam.code };
   }
 
+  // 孩子端：更换邀请码并解除全部家长绑定（邀请码泄露、或想让某位家长不再看到数据时用）
+  if (action === 'resetCode') {
+    const fam = (await db.collection('families').where({ ownerOpenid: OPENID }).limit(1).get()).data[0];
+    if (!fam) return { ok: false, error: '只有孩子可以更换邀请码' };
+    let code = '';
+    for (let tries = 0; tries < 5 && !code; tries++) {
+      const c = genCode();
+      if (!(await db.collection('families').where({ code: c }).limit(1).get()).data.length) code = c;
+    }
+    if (!code) return { ok: false, error: '邀请码生成失败，请重试' };
+    await db.collection('families').doc(fam._id).update({ data: { code, members: [] } });
+    return { ok: true, code };
+  }
+
   // 家长端：凭邀请码加入
   if (action === 'join') {
     const code = String(event.code || '').trim().toUpperCase();
     if (!code) return { ok: false, error: '请输入邀请码' };
+    // 防暴力猜邀请码：同一个微信用户 15 分钟内猜错 5 次后，窗口内一律拒绝（连正确的也不行）
+    const me = (await db.collection('users').where({ openid: OPENID }).limit(1).get()).data[0];
+    const fail = me && me.joinFail && Date.now() - (me.joinFail.since || 0) < JOIN_WINDOW_MS ? me.joinFail : null;
+    if (fail && fail.n >= JOIN_MAX_FAILS) return { ok: false, error: '尝试太多次了，请 15 分钟后再试' };
     const fam = (await db.collection('families').where({ code }).limit(1).get()).data[0];
-    if (!fam) return { ok: false, error: '邀请码不存在' };
+    if (!fam) {
+      const next = { n: (fail ? fail.n : 0) + 1, since: fail ? fail.since : Date.now() };
+      if (me) await db.collection('users').doc(me._id).update({ data: { joinFail: next } });
+      else await db.collection('users').add({ data: { openid: OPENID, profile: null, joinFail: next, createdAt: Date.now(), updatedAt: Date.now() } });
+      return { ok: false, error: '邀请码不存在' };
+    }
     if (fam.ownerOpenid === OPENID) return { ok: false, error: '不能绑定自己哦' };
+    if (me && me.joinFail) await db.collection('users').doc(me._id).update({ data: { joinFail: _.remove() } });
     if (!(fam.members || []).find(m => m.openid === OPENID)) {
       await db.collection('families').doc(fam._id).update({
         data: { members: _.push([{ openid: OPENID, parentSubQuota: 0, joinedAt: Date.now() }]) },
@@ -148,7 +176,7 @@ exports.main = async (event) => {
     const fam = await findMyFamily(OPENID, 'parent');
     if (!fam || fam.ownerOpenid === OPENID) return { ok: false, error: '仅家长可设置' };
     const members = (fam.members || []).map(m =>
-      m.openid === OPENID ? { ...m, parentSubQuota: Math.min(3, (m.parentSubQuota || 0) + (Number(event.n) || 1)) } : m);
+      m.openid === OPENID ? { ...m, parentSubQuota: Math.min(3, (m.parentSubQuota || 0) + grantCount(event.n)) } : m);
     await db.collection('families').doc(fam._id).update({ data: { members } });
     return { ok: true };
   }
@@ -158,7 +186,7 @@ exports.main = async (event) => {
     const fam = await findMyFamily(OPENID, 'parent');
     if (!fam || fam.ownerOpenid === OPENID) return { ok: false, error: '仅家长可订阅' };
     const members = (fam.members || []).map(m =>
-      m.openid === OPENID ? { ...m, weeklyQuota: Math.min(3, (m.weeklyQuota || 0) + (Number(event.n) || 1)) } : m);
+      m.openid === OPENID ? { ...m, weeklyQuota: Math.min(3, (m.weeklyQuota || 0) + grantCount(event.n)) } : m);
     await db.collection('families').doc(fam._id).update({ data: { members } });
     return { ok: true };
   }

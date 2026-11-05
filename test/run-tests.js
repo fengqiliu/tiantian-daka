@@ -944,6 +944,50 @@ t('同步游标只看记录的时间戳：资料 / 勋章等整体同步的数�
   await SYNC.pull({ pullData: async () => ({ ok: true, records: [], profile: res.profile, badges: res.badges, serverTime: 20000 }) });
   assert.strictEqual(store.getSyncState().lastPullAt, 500);
 });
+t('云端入参清洗：只留白名单字段、限制长度与取值范围，未来时间戳按服务器时间封顶，非法记录丢弃', () => {
+  const SAN = require('../utils/sanitize');
+  const now = Date.UTC(2026, 10, 5, 12);
+  const ok = SAN.cleanRecord({ id: '2026-11-05#pe_rope', date: '2026-11-05', taskId: 'pe_rope', value: { type: 'count', n: 120, extra: 'x' }, stars: 3, note: '好', updatedAt: now - 1000, evil: { a: 1 }, _id: 'hack', openid: 'someone-else' }, now);
+  assert.deepStrictEqual(ok, { id: '2026-11-05#pe_rope', date: '2026-11-05', taskId: 'pe_rope', value: { type: 'count', n: 120 }, stars: 3, note: '好', deleted: false, updatedAt: now - 1000, makeup: false, makeupAt: 0 });
+  assert.strictEqual(SAN.cleanRecord({ id: 'x', date: '2026-11-05', taskId: 'pe_rope' }, now), null, 'id 必须是 日期#任务');
+  assert.strictEqual(SAN.cleanRecord({ id: '2026-13-45#a', date: '2026-13-45', taskId: 'a' }, now), null, '非法日期');
+  assert.strictEqual(SAN.cleanRecord({ id: '2026-11-05#a b', date: '2026-11-05', taskId: 'a b' }, now), null, '任务 id 只允许字母数字下划线连字符');
+  assert.strictEqual(SAN.cleanRecord(null, now), null);
+  const big = SAN.cleanRecord({ id: '2026-11-05#a', date: '2026-11-05', taskId: 'a', value: { type: 'count', n: 1e12 }, stars: 99, note: 'x'.repeat(5000), updatedAt: now + 1e12, makeup: 1, makeupAt: now + 1e12 }, now);
+  assert.deepStrictEqual([big.value.n, big.stars, big.note.length], [100000, 3, 200], '数值封顶、星级 0-3、备注 ≤200');
+  assert.strictEqual(big.updatedAt, now + SAN.CLOCK_SKEW_MS, '未来时间戳封顶（容许 5 分钟时钟误差）');
+  assert.strictEqual(big.makeup, true);
+  assert.strictEqual(SAN.cleanRecord({ id: '2026-11-05#a', date: '2026-11-05', taskId: 'a', value: 'bad', stars: 'x', updatedAt: 'y' }, now).value.n, 0, '值不是对象按 0');
+  assert.deepStrictEqual(SAN.cleanBadge({ id: 'streak_7', earnedAt: 5, extra: 1 }), { id: 'streak_7', earnedAt: 5 });
+  assert.strictEqual(SAN.cleanBadge({ id: '../x' }), null);
+  assert.strictEqual(SAN.cleanBadge({ id: 'a'.repeat(100) }), null);
+  assert.strictEqual(SAN.withinBytes({ a: 'x'.repeat(100) }, 50), false);
+  assert.strictEqual(SAN.withinBytes({ a: '汉'.repeat(10) }, 50), true, '按 UTF-8 字节算');
+  assert.strictEqual(SAN.withinBytes({ a: '汉'.repeat(30) }, 50), false);
+  assert.strictEqual(SAN.withinBytes(null, 50), false);
+});
+t('推送分批：记录多时每批 ≤200 条，资料等只随第一批发送；任一批失败游标不动，重试后补齐', async () => {
+  reset();
+  const SYNC = require('../utils/sync');
+  store.saveProfile({ role: 'child', grade: 1, nickname: '小豆', onboarded: true });
+  const recs = [];
+  for (let i = 0; i < 450; i++) recs.push({ id: '2026-01-01#t' + i, date: '2026-01-01', taskId: 't' + i, value: { type: 'done', n: 1 }, stars: 2, note: '', updatedAt: 1000 + i });
+  store.saveRecords(recs);
+  const calls = [];
+  let failAt = 2;
+  const api = { pushData: async p => { calls.push(p); if (calls.length === failAt) return { ok: false }; return { ok: true, serverTime: 999999 }; } };
+  assert.strictEqual(await SYNC.push(api), false, '第 2 批失败 → 整体失败');
+  assert.strictEqual(store.getSyncState().lastPushAt || 0, 0, '游标不动');
+  calls.length = 0; failAt = 0;
+  assert.strictEqual(await SYNC.push(api), true);
+  assert.deepStrictEqual(calls.map(c => c.records.length), [200, 200, 50]);
+  assert.ok(calls[0].profile && !calls[1].profile && !calls[2].profile, '资料只随第一批');
+  assert.strictEqual(store.getSyncState().lastPushAt, 1449, '全部成功后游标 = 最大 updatedAt');
+  // 没有记录时仍发一次（资料 / 勋章等）
+  calls.length = 0;
+  assert.strictEqual(await SYNC.push(api), true);
+  assert.deepStrictEqual(calls.map(c => c.records.length), [0]);
+});
 t('学科常量只有一份：题库、报告、推送摘要用同一个单元标签与学科名', () => {
   const SUBJ = require('../utils/subjects');
   assert.deepStrictEqual(SUBJ.ORDER, ['math', 'chinese', 'english']);
@@ -1079,6 +1123,21 @@ t('备份：序列化→恢复 完整往返（含墓碑与任务覆盖）', () =
   assert.strictEqual(store.getRedemptions().length, 1);
 });
 
+t('备份校验更严：记录日期 / 星级 / 数值类型不对、文件过大都拒绝（不让坏数据进本机存储）', () => {
+  const base = { app: 'tiantian-daka', version: 1, data: { records: [], badges: [], readings: [], rewards: [], redemptions: [], drillHistory: [], mathWrong: [], quizWrong: [], quizHistory: [] } };
+  const withRec = r => JSON.stringify({ ...base, data: { ...base.data, records: [r] } });
+  const good = { id: '2026-11-05#pe_rope', date: '2026-11-05', taskId: 'pe_rope', value: { type: 'count', n: 100 }, stars: 2, updatedAt: 5 };
+  assert.strictEqual(BACKUP.validate(withRec(good)).ok, true);
+  assert.strictEqual(BACKUP.validate(withRec({ ...good, date: '2026/11/05' })).ok, false, '日期格式');
+  assert.strictEqual(BACKUP.validate(withRec({ ...good, stars: 'many' })).ok, false, '星级必须是数字');
+  assert.strictEqual(BACKUP.validate(withRec({ ...good, value: { n: 'lots' } })).ok, false, '数值必须是数字');
+  assert.strictEqual(BACKUP.validate(withRec({ ...good, id: 'other' })).ok, false, 'id 必须是 日期#任务');
+  const big = JSON.stringify({ ...base, pad: 'x'.repeat(6 * 1024 * 1024) });
+  const v = BACKUP.validate(big);
+  assert.deepStrictEqual([v.ok, v.error], [false, '备份文件太大（超过 5MB）']);
+  // 旧备份里的墓碑记录（deleted）同样要合法
+  assert.strictEqual(BACKUP.validate(withRec({ ...good, deleted: true })).ok, true);
+});
 t('备份校验：拒绝非法输入并给出原因', () => {
   assert.strictEqual(BACKUP.validate('not json').ok, false);
   assert.strictEqual(BACKUP.validate('{"app":"other"}').ok, false);

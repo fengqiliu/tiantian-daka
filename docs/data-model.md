@@ -100,6 +100,8 @@
 ### 2.1 架构原则
 
 - **本地优先（offline-first）**：所有读写走本机 storage；云端是异步备份与跨设备通道。未配置 `CLOUD_ENV` 时所有云调用静默降级（`{ok:false, degraded:true}`），UI 不出现不可用状态。
+- **入参清洗与限额**（`utils/sanitize.js`，sync 云函数共用）：打卡记录只存白名单字段（id 必须是 `日期#任务id`，备注 ≤200 字，数值 ≤100000，星级 0-3）；时间戳最多比服务器快 5 分钟；单次 push ≤500 条记录、勋章 ≤100 枚；资料 ≤4KB、任务覆盖 ≤20KB、小铺 ≤100KB、练习历史 ≤300KB、错题本 ≤600KB，超限整体忽略。客户端按 200 条一批推送。
+- **邀请码防猜**：同一微信用户 15 分钟内猜错 5 次后拒绝一切加入请求（`users.joinFail`）；孩子可「更换邀请码」（`family.resetCode`）：生成新码并清空全部家长绑定。
 - **安全**：openid 一律取自云函数调用上下文（`cloud.getWXContext()`），前端传入的 openid 一律不信任；家长只能经 `family` 读到自己所在家庭的孩子数据，回传给对方的数据不含 openid。
 
 ### 2.2 云函数
@@ -137,7 +139,7 @@
 
 | 集合 | 文档结构 | 说明 |
 | --- | --- | --- |
-| `users` | `{ openid, profile, taskOverrides, shop, practice: { drill[], quiz[], review[], goals }, wrongBook: { math[], quiz[], updatedAt }, remindEnabled, remindQuota, remindHour, createdAt }` | `login` 首次调用自动创建 |
+| `users` | `{ openid, joinFail?: { n, since }, profile, taskOverrides, shop, practice: { drill[], quiz[], review[], goals }, wrongBook: { math[], quiz[], updatedAt }, remindEnabled, remindQuota, remindHour, createdAt }` | `login` 首次调用自动创建 |
 | `checkins` | 本地 record + `openid` | 推荐索引：`(openid+updatedAt)`、`(openid+date)` |
 | `badges` | `{ openid, id, earnedAt }` | 并集写入 |
 | `families` | `{ code, ownerOpenid, ownerProfile, members:[{openid, parentSubQuota, weeklyQuota, joinedAt}], createdAt }` | `code` 为 6 位邀请码（去除易混淆字符 0/O/1/I/L） |

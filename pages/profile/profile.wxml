@@ -31,6 +31,7 @@
         <text class="code-num">{{familyCode || '······'}}</text>
         <text class="muted">{{familyCode ? '点击复制邀请码' : '正在生成…'}}</text>
       </view>
+      <view class="btn-ghost" style="margin-top: 20rpx;" wx:if="{{familyCode}}" bindtap="onResetCode">🔄 更换邀请码（解除全部家长）</view>
       <view class="btn-ghost" style="margin-top: 20rpx;" bindtap="checkCloud">检测云端连接</view>
       <view class="muted" style="margin-top: 16rpx;">家长在自己手机上打开本小程序，输入邀请码即可绑定，只读查看你的打卡进度。</view>
     </block>

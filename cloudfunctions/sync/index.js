@@ -6,7 +6,9 @@ cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
 const _ = db.command;
 const HM = require('./lib/history-merge.js');
+const SAN = require('./lib/sanitize.js');
 
+const PULL_PAGE = 1000; // 单次查询上限 1000：3000 条只需 3 次往返（原先每页 100 条要 30 次）
 const MAX_PULL = 3000; // 拉取上限（约一年记录量）
 
 async function pullRecords(openid, since) {
@@ -17,11 +19,11 @@ async function pullRecords(openid, since) {
       .where({ openid, updatedAt: _.gt(since) })
       .orderBy('updatedAt', 'asc')
       .skip(offset)
-      .limit(100)
+      .limit(PULL_PAGE)
       .get();
     out.push(...page.data);
-    if (page.data.length < 100) break;
-    offset += 100;
+    if (page.data.length < PULL_PAGE) break;
+    offset += PULL_PAGE;
   }
   return out.map(strip);
 }
@@ -42,21 +44,34 @@ exports.main = async (event) => {
   const action = event.action;
 
   if (action === 'push') {
-    // 记录：按 (openid, id) upsert，云端较新则忽略
-    for (const r of event.records || []) {
-      if (!r || !r.id || !r.date || !r.taskId) continue;
-      const found = await db.collection('checkins').where({ openid: OPENID, id: r.id }).limit(1).get();
-      if (found.data.length) {
-        if ((found.data[0].updatedAt || 0) < (r.updatedAt || 0)) {
-          await db.collection('checkins').doc(found.data[0]._id).update({ data: { ...r, openid: OPENID } });
-        }
-      } else {
-        await db.collection('checkins').add({ data: { ...r, openid: OPENID } });
-      }
+    const now = Date.now();
+    const rawRecords = Array.isArray(event.records) ? event.records : [];
+    // 条数上限：一次调用逐条写库，超过上限整体拒绝（客户端按 200 条一批发送，正常使用不会碰到）
+    if (rawRecords.length > SAN.MAX_PUSH_RECORDS) return { ok: false, error: 'too_many_records' };
+    // 记录：清洗成白名单字段（不接受客户端的 openid / _id / 额外字段，时间戳封顶），按 (openid, id) upsert，云端较新则忽略
+    // 性能：一批记录用 id 批量查出已有的（每 100 条 1 次查询），而不是每条先 get 再写；写入并发 20 条一组。
+    // 同一批里重复的 id 只留 updatedAt 最大的一条
+    const cleaned = new Map();
+    for (const raw of rawRecords) {
+      const r = SAN.cleanRecord(raw, now);
+      if (r && (!cleaned.has(r.id) || cleaned.get(r.id).updatedAt < r.updatedAt)) cleaned.set(r.id, r);
     }
+    const ids = [...cleaned.keys()];
+    const existing = new Map();
+    for (let i = 0; i < ids.length; i += 100) {
+      const found = await db.collection('checkins').where({ openid: OPENID, id: _.in(ids.slice(i, i + 100)) }).limit(1000).get();
+      found.data.forEach(d => existing.set(d.id, d));
+    }
+    const writes = [];
+    cleaned.forEach(r => {
+      const cur = existing.get(r.id);
+      if (!cur) writes.push(() => db.collection('checkins').add({ data: { ...r, openid: OPENID } }));
+      else if ((cur.updatedAt || 0) < r.updatedAt) writes.push(() => db.collection('checkins').doc(cur._id).update({ data: { ...r, openid: OPENID } }));
+    });
+    for (let i = 0; i < writes.length; i += 20) await Promise.all(writes.slice(i, i + 20).map(w => w()));
     // 资料：云端较旧才覆盖
-    if (event.profile && typeof event.profile === 'object') {
-      const { profile: incoming } = event;
+    if (SAN.withinBytes(event.profile, SAN.LIMITS.profile)) {
+      const incoming = { ...event.profile, updatedAt: SAN.clampStamp(event.profile.updatedAt, now) };
       const users = db.collection('users');
       const u = (await users.where({ openid: OPENID }).limit(1).get()).data[0];
       if (u) {
@@ -66,8 +81,8 @@ exports.main = async (event) => {
       }
     }
     // 任务覆盖（家长调目标/自定义任务）：云端较旧才覆盖
-    if (event.overrides && typeof event.overrides === 'object') {
-      const { overrides: incoming } = event;
+    if (SAN.withinBytes(event.overrides, SAN.LIMITS.overrides)) {
+      const incoming = { ...event.overrides, updatedAt: SAN.clampStamp(event.overrides.updatedAt, now) };
       const users = db.collection('users');
       const u = (await users.where({ openid: OPENID }).limit(1).get()).data[0];
       if (u) {
@@ -78,8 +93,8 @@ exports.main = async (event) => {
       }
     }
     // 奖励小铺（奖品架 + 兑换账本）：云端较旧才覆盖
-    if (event.shop && typeof event.shop === 'object') {
-      const { shop: incoming } = event;
+    if (SAN.withinBytes(event.shop, SAN.LIMITS.shop)) {
+      const incoming = { ...event.shop, updatedAt: SAN.clampStamp(event.shop.updatedAt, now) };
       const users = db.collection('users');
       const u = (await users.where({ openid: OPENID }).limit(1).get()).data[0];
       if (u) {
@@ -90,7 +105,7 @@ exports.main = async (event) => {
       }
     }
     // 练习历史（口算会话 + 小卷）：按 at 并集合并，多设备各自新增都保留
-    if (event.practice && typeof event.practice === 'object') {
+    if (SAN.withinBytes(event.practice, SAN.LIMITS.practice)) {
       const users = db.collection('users');
       const u = (await users.where({ openid: OPENID }).limit(1).get()).data[0];
       if (u) {
@@ -99,8 +114,8 @@ exports.main = async (event) => {
       }
     }
     // 错题本（口算 + 小卷）：整体新者胜；_.set 整体替换，避免数组残留已销账的题
-    if (event.wrong && typeof event.wrong === 'object') {
-      const { wrong: incoming } = event;
+    if (SAN.withinBytes(event.wrong, SAN.LIMITS.wrong)) {
+      const incoming = { ...event.wrong, updatedAt: SAN.clampStamp(event.wrong.updatedAt, now) };
       const users = db.collection('users');
       const u = (await users.where({ openid: OPENID }).limit(1).get()).data[0];
       if (u) {
@@ -111,8 +126,8 @@ exports.main = async (event) => {
       }
     }
     // 勋章：并集
-    for (const b of event.badges || []) {
-      if (!b || !b.id) continue;
+    const badges = (Array.isArray(event.badges) ? event.badges : []).map(SAN.cleanBadge).filter(Boolean).slice(0, SAN.MAX_BADGES);
+    for (const b of badges) {
       const found = await db.collection('badges').where({ openid: OPENID, id: b.id }).limit(1).get();
       if (!found.data.length) await db.collection('badges').add({ data: { ...b, openid: OPENID } });
     }

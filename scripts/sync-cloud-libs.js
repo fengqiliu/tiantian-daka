@@ -10,7 +10,7 @@ const root = path.join(__dirname, '..');
 // 云函数 lib 目录 → 需要的共享文件
 const targets = {
   'cloudfunctions/dailyRemind/lib': ['utils/tasks.js', 'utils/date.js', 'utils/calendar-config.js'],
-  'cloudfunctions/sync/lib': ['utils/history-merge.js'],
+  'cloudfunctions/sync/lib': ['utils/history-merge.js', 'utils/sanitize.js'],
   'cloudfunctions/family/lib': ['utils/cheer.js'],
   'cloudfunctions/weeklyReport/lib': ['utils/tasks.js', 'utils/date.js', 'utils/calendar-config.js', 'utils/week-brief.js', 'utils/subjects.js'],
 };

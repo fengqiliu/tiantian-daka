@@ -9,6 +9,8 @@
 const store = require('./store');
 const HM = require('./history-merge');
 
+const PUSH_BATCH = 200; // 单批推送的记录条数（云端单次上限 500，见 utils/sanitize.js）
+
 // 把一次拉取结果合并进本地（可独立测试的纯合并步骤）。
 // 返回值是拉取游标：只取本次拉到的记录的最大 updatedAt。资料 / 勋章 / 覆盖 / 小铺每次都整体下发，
 // 不能参与游标——云端拉记录有条数上限，被截断时若资料的时间戳更大，游标会越过没拉到的记录，那些记录再也拉不到。
@@ -101,8 +103,16 @@ async function push(api) {
     practice,
     wrong,
   };
-  const res = await api.pushData(payload);
-  if (!res || res.ok === false) return false; // 失败不推进游标，下次重试
+  // 记录多时分批发送（每批 ≤ BATCH 条）：云函数逐条写库、单次调用有超时和条数上限，一次推一年的记录会失败；
+  // 资料 / 勋章 / 小铺等只随第一批；任一批失败整体不推进游标，下次从头重发（云端按 id 幂等）
+  const batches = [];
+  for (let i = 0; i < Math.max(records.length, 1); i += PUSH_BATCH) batches.push(records.slice(i, i + PUSH_BATCH));
+  let res = null;
+  for (let i = 0; i < batches.length; i++) {
+    const body = i === 0 ? { ...payload, records: batches[i] } : { records: batches[i] };
+    res = await api.pushData(body);
+    if (!res || res.ok === false) return false;
+  }
   const maxSent = records.reduce((m, r) => Math.max(m, r.updatedAt || 0), 0);
   // 游标用服务器时间封顶：设备时钟快于真实时间时，避免游标越过"未来"时间戳
   // 导致后续正常记录永远不被推送（数据丢失）；被跳过的记录最多重发，云端幂等

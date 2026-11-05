@@ -695,6 +695,29 @@ t('纯本地：确认两次后清空并回到引导', () => {
     assert.strictEqual(ui.navs.pop(), 'relaunch:/pages/onboarding/onboarding');
   });
 });
+t('更换邀请码：确认后换新码并解除全部家长；取消则什么都不变', () => {
+  cloud.init('test-env');
+  CM.setOpenid('kid1');
+  child(2);
+  const p = load('pages/profile/profile');
+  p.onShow();
+  return H.flush().then(() => {
+    const old = p.data.familyCode;
+    assert(old, '先拿到邀请码');
+    ui.modalAnswer = false;
+    p.onResetCode();
+    return H.flush().then(() => {
+      assert.strictEqual(p.data.familyCode, old, '取消：邀请码不变');
+      ui.modalAnswer = true;
+      p.onResetCode();
+      return H.flush();
+    }).then(() => {
+      assert.notStrictEqual(p.data.familyCode, old, '换了新码');
+      assert.strictEqual(CM.db.families[0].code, p.data.familyCode);
+      assert(/已更换/.test(ui.toasts.pop()));
+    });
+  });
+});
 t('开通云：云端先清；云端失败时本机不动', () => {
   cloud.init('test-env');
   CM.setOpenid('kid1');

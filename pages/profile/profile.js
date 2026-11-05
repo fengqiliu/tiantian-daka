@@ -7,7 +7,7 @@ const RESET = require('../../utils/reset');
 const GD = require('../../utils/guide');
 
 const AVATARS = ['🐱', '🦊', '🐰', '🐻', '🐸', '🦁', '🐼', '🐷'];
-const APP_VERSION = '0.33.0';
+const APP_VERSION = '0.34.0';
 
 Page({
   data: {
@@ -138,6 +138,26 @@ Page({
         });
       }
       wx.showToast({ title: (res && res.error) || '绑定失败', icon: 'none' });
+    });
+  },
+
+  // 孩子端：更换邀请码并解除全部家长绑定（邀请码泄露，或不想让某位家长再看到数据时用）
+  onResetCode() {
+    wx.showModal({
+      title: '更换邀请码',
+      content: '会生成新的邀请码，并解除所有已绑定的家长——他们将不再看到你的数据，需要用新码重新绑定。确定吗？',
+      confirmColor: '#FF5A3C',
+      success: res => {
+        if (!res.confirm) return;
+        cloud.familyResetCode().then(r => {
+          if (r && r.ok) {
+            this.setData({ familyCode: r.code });
+            wx.showToast({ title: '已更换，家长需用新码重新绑定', icon: 'none' });
+          } else {
+            wx.showToast({ title: (r && r.error) || '更换失败，稍后再试', icon: 'none' });
+          }
+        });
+      },
     });
   },
 

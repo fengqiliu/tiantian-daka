@@ -10,6 +10,7 @@ let sendImpl = null;    // 自定义发送行为（抛 43101 等）
 let configOverrides = {}; // config.js 导出覆盖（模板 ID 等）
 let secChecks = [];     // security.msgSecCheck 的调用记录
 let secImpl = null;     // 自定义内容安全结果（返回 suggest 或抛错）
+let stats = { createCollection: 0, gets: {} }; // 调用计数（性能类断言用）
 
 function reset() {
   db = { users: [], checkins: [], badges: [], families: [] };
@@ -19,6 +20,7 @@ function reset() {
   configOverrides = {};
   secChecks = [];
   secImpl = null;
+  stats = { createCollection: 0, gets: {} };
 }
 reset();
 
@@ -32,6 +34,7 @@ function matchOp(actual, cond) {
       case 'gt': return actual > cond.arg;
       case 'gte': return actual >= cond.arg;
       case 'lt': return actual < cond.arg;
+      case 'in': return Array.isArray(cond.arg) && cond.arg.indexOf(actual) >= 0;
       case 'set': return true; // 仅在 update 时生效，where 中不使用
       case 'inc': return true;
       case 'push': return true;
@@ -90,7 +93,7 @@ function collection(name) {
     skip(n) { q = Object.assign({}, q, { skip: n }); return query; },
     limit(n) { q = Object.assign({}, q, { limit: n }); return query; },
     // 真实云数据库返回的是副本；返回活引用会掩盖"用读到的旧数组回写覆盖别人更新"这类缺陷
-    async get() { return { data: JSON.parse(JSON.stringify(build(q))) }; },
+    async get() { stats.gets[name] = (stats.gets[name] || 0) + 1; return { data: JSON.parse(JSON.stringify(build(q))) }; },
     async update({ data }) {
       const targets = q.docId ? rows.filter(r => r._id === q.docId) : build(q);
       targets.forEach(d => applyUpdate(d, data));
@@ -122,6 +125,7 @@ const database = {
     gt: v => op({ op: 'gt', v }),
     gte: v => op({ op: 'gte', v }),
     lt: v => op({ op: 'lt', v }),
+    in: v => op({ op: 'in', v }),
     inc: v => op({ op: 'inc', v }),
     set: v => op({ op: 'set', v }),
     push: v => op({ op: 'push', v }),
@@ -129,7 +133,7 @@ const database = {
     elemMatch: v => ({ __op: 'elemMatch', arg: v }),
   },
   collection,
-  createCollection: async (name) => { if (!db[name]) db[name] = []; },
+  createCollection: async (name) => { stats.createCollection++; if (!db[name]) db[name] = []; },
 };
 
 // 加载云函数模块，注入 mock SDK（每个云函数独立缓存，便于重载）
@@ -187,5 +191,6 @@ module.exports = {
   setOpenid(id) { currentOpenid = id; },
   setSendImpl(fn) { sendImpl = fn; },
   get secChecks() { return secChecks; },
+  get stats() { return stats; },
   setSecImpl(fn) { secImpl = fn; },
 };

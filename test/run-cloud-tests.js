@@ -17,6 +17,27 @@ const rec = (id, extra) => ({
 async function asUser(openid, fn) { CM.setOpenid(openid); return fn(CM.load('login')); }
 
 console.log('— 登录 login —');
+t('安全：订阅配额的授权次数被限制在 1-3，传负数 / 超大数不能把配额改成负数或无限', async () => {
+  reset();
+  const family = CM.load('family');
+  CM.setOpenid('kid1'); await CM.load('login').main({});
+  const code = (await family.main({ action: 'create' })).code;
+  CM.setOpenid('parent1'); await family.main({ action: 'join', code });
+  await family.main({ action: 'grantWeekly', n: 100 });
+  await family.main({ action: 'grantParentSub', n: -50 });
+  const m = CM.db.families[0].members[0];
+  assert.deepStrictEqual([m.weeklyQuota, m.parentSubQuota], [3, 1], '100 → 封顶 3；-50 → 至少 1 次');
+});
+t('性能：同一个云函数实例里，重复登录只检查一次集合（不是每次都 createCollection × 5）', async () => {
+  reset();
+  CM.setOpenid('kid1');
+  const login = CM.load('login');
+  await login.main();
+  const first = CM.stats.createCollection;
+  assert.strictEqual(first, 5);
+  await login.main(); await login.main();
+  assert.strictEqual(CM.stats.createCollection, first, '热实例不再重复建集合');
+});
 t('首次登录创建用户档案，重复登录幂等', async () => {
   reset();
   const login = CM.load('login');
@@ -75,6 +96,105 @@ t('补卡标记：push 后 pull 与家长 summary 都保留 makeup / makeupAt', 
   const s = await family.main({ action: 'summary', since: 0 });
   assert.strictEqual(s.records.find(x => x.date === '2026-10-20').makeup, true, '家长端看到补卡标记');
 });
+t('安全：push 只存白名单字段，伪造的 openid / _id / 额外字段进不了库；非法记录丢弃；未来时间戳封顶', async () => {
+  reset();
+  CM.setOpenid('kid1'); await CM.load('login').main({});
+  const before = Date.now();
+  const r = await CM.load('sync').main({ action: 'push', records: [
+    { ...rec('2026-11-05#pe_rope'), openid: 'victim', _id: 'forged', evil: { deep: 1 }, updatedAt: 99999999999999, note: 'x'.repeat(1000) },
+    { id: 'bad', date: '2026-11-05', taskId: 'pe_rope' },
+    { ...rec('2026-11-05#a b') },
+  ] });
+  assert.strictEqual(r.ok, true);
+  assert.strictEqual(CM.db.checkins.length, 1, '非法记录没有入库');
+  const d = CM.db.checkins[0];
+  assert.strictEqual(d.openid, 'kid1', 'openid 取自调用上下文');
+  assert.notStrictEqual(d._id, 'forged');
+  assert.strictEqual(d.evil, undefined, '额外字段被丢弃');
+  assert.strictEqual(d.note.length, 200);
+  assert(d.updatedAt <= Date.now() + 5 * 60 * 1000 + 1000 && d.updatedAt >= before, '未来时间戳封顶到服务器时间附近：' + d.updatedAt);
+  // 伪造的"几百年后"最多让这条记录领先 5 分钟，不会永久压住之后的正常编辑
+});
+t('性能：push 一批记录只用批量查询找已有记录（不是每条一次 get），重复推送幂等、较新的才覆盖', async () => {
+  reset();
+  CM.setOpenid('kid1'); await CM.load('login').main({});
+  const sync = CM.load('sync');
+  const days = n => Array.from({ length: n }, (_, i) => rec(new Date(Date.UTC(2026, 0, 1) + Math.floor(i / 5) * 86400000).toISOString().slice(0, 10) + '#t' + (i % 5), { updatedAt: 1000 + i }));
+  const batch = days(200);
+  CM.stats.gets.checkins = 0;
+  await sync.main({ action: 'push', records: batch });
+  assert.strictEqual(CM.db.checkins.length, 200);
+  assert(CM.stats.gets.checkins <= 3, '200 条只用 ≤3 次查询，实际 ' + CM.stats.gets.checkins);
+  CM.stats.gets.checkins = 0;
+  await sync.main({ action: 'push', records: batch });
+  assert.strictEqual(CM.db.checkins.length, 200, '重复推送不新增');
+  // 较新的覆盖、较旧的不覆盖
+  const older = { ...batch[0], stars: 1, updatedAt: 500 };
+  const newer = { ...batch[1], stars: 1, updatedAt: batch[1].updatedAt + 50 };
+  await sync.main({ action: 'push', records: [older, newer] });
+  assert.strictEqual(CM.db.checkins.find(c => c.id === batch[0].id).stars, 2, '较旧的不覆盖');
+  assert.strictEqual(CM.db.checkins.find(c => c.id === batch[1].id).stars, 1, '较新的覆盖');
+});
+t('安全：单次 push 超过 500 条整体拒绝、什么都不写；超大的资料 / 练习历史被忽略；无效勋章丢弃且最多 100 枚', async () => {
+  reset();
+  CM.setOpenid('kid1'); await CM.load('login').main({});
+  const sync = CM.load('sync');
+  const many = Array.from({ length: 501 }, (_, i) => rec('2026-11-05#t' + i));
+  const r = await sync.main({ action: 'push', records: many });
+  assert.deepStrictEqual([r.ok, r.error], [false, 'too_many_records']);
+  assert.strictEqual(CM.db.checkins.length, 0);
+  await sync.main({ action: 'push', profile: { nickname: '小豆', grade: 1, updatedAt: 1 } });
+  await sync.main({ action: 'push', profile: { nickname: 'x'.repeat(10000), grade: 1, updatedAt: 2 },
+    practice: { drill: [], quiz: [{ subject: 'math', total: 1, correct: 1, at: 1, label: 'y'.repeat(400000) }], review: [] } });
+  const u = CM.db.users.find(x => x.openid === 'kid1');
+  assert.strictEqual(u.profile.nickname, '小豆', '超大的资料被忽略，保留旧的');
+  assert(!u.practice || JSON.stringify(u.practice).length < 1000, '超大练习历史被忽略');
+  const badges = [{ id: 'streak_7', earnedAt: 5 }, { id: '../etc', earnedAt: 1 }, { id: 'a'.repeat(80) }, null].concat(Array.from({ length: 150 }, (_, i) => ({ id: 'b' + i, earnedAt: i })));
+  await sync.main({ action: 'push', badges });
+  const stored = CM.db.badges.map(b => b.id);
+  assert(stored.includes('streak_7') && !stored.includes('../etc'), JSON.stringify(stored.slice(0, 3)));
+  assert.strictEqual(stored.length, 100, '最多 100 枚');
+});
+t('安全：邀请码猜错 5 次后 15 分钟内不能再试（连正确的也拒绝），过了窗口恢复，成功后清零', async () => {
+  reset();
+  const family = CM.load('family');
+  CM.setOpenid('kid1'); await CM.load('login').main({});
+  const code = (await family.main({ action: 'create' })).code;
+  CM.setOpenid('guesser'); await CM.load('login').main({});
+  for (let i = 0; i < 5; i++) {
+    const w = await family.main({ action: 'join', code: 'AAAAA' + i });
+    assert.strictEqual(w.error, '邀请码不存在');
+  }
+  const blocked = await family.main({ action: 'join', code });
+  assert.strictEqual(blocked.ok, false);
+  assert(/太多次/.test(blocked.error), blocked.error);
+  assert.strictEqual(CM.db.families[0].members.length, 0, '被限制时没有加入');
+  // 窗口过去
+  const u = CM.db.users.find(x => x.openid === 'guesser');
+  u.joinFail = { n: 5, since: Date.now() - 16 * 60 * 1000 };
+  const ok = await family.main({ action: 'join', code });
+  assert.strictEqual(ok.ok, true);
+  assert.strictEqual(CM.db.users.find(x => x.openid === 'guesser').joinFail, undefined, '成功后清零');
+});
+t('安全：孩子可以更换邀请码并解除全部家长绑定；旧码作废、被移除的家长看不到数据；非孩子不能调用', async () => {
+  reset();
+  const family = CM.load('family');
+  CM.setOpenid('kid1'); await CM.load('login').main({});
+  const old = (await family.main({ action: 'create' })).code;
+  await CM.load('sync').main({ action: 'push', profile: { nickname: '小豆', grade: 1, updatedAt: 1 }, records: [rec('2026-11-05#pe_rope')] });
+  CM.setOpenid('parent1'); await family.main({ action: 'join', code: old });
+  assert.strictEqual((await family.main({ action: 'summary', since: 0 })).ok, true);
+  assert.strictEqual((await family.main({ action: 'resetCode' })).ok, false, '家长不能更换孩子的邀请码');
+  CM.setOpenid('kid1');
+  const r = await family.main({ action: 'resetCode' });
+  assert.strictEqual(r.ok, true);
+  assert.notStrictEqual(r.code, old);
+  assert.strictEqual(CM.db.families[0].members.length, 0, '所有家长被移除');
+  CM.setOpenid('parent1');
+  assert.strictEqual((await family.main({ action: 'summary', since: 0 })).ok, false, '被移除的家长拿不到数据');
+  assert.strictEqual((await family.main({ action: 'join', code: old })).ok, false, '旧邀请码作废');
+  assert.strictEqual((await family.main({ action: 'join', code: r.code })).ok, true, '新邀请码可用');
+});
 t('回归：孩子记录超过 1000 条时，家长 summary 仍能拿到最新的（不能只返回最旧的 1000 条）', async () => {
   reset();
   const family = CM.load('family');
@@ -120,7 +240,7 @@ t('回归：push 分支曾引用未定义的 openid（同步全挂）', async ()
   CM.setOpenid('kid1');
   await CM.load('login').main({});
   const sync = CM.load('sync');
-  await sync.main({ action: 'push', records: [rec('a#b')] }); // 旧代码在此抛 ReferenceError
+  await sync.main({ action: 'push', records: [rec('2026-11-05#b')] }); // 旧代码在此抛 ReferenceError
   assert.strictEqual(CM.db.checkins.length, 1, '记录应写入');
 });
 t('openid 隔离：A 的数据 B 拉不到，推送也不串号', async () => {

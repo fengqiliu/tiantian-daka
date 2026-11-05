@@ -1,6 +1,7 @@
 // 数据备份：全量序列化 / 校验 / 恢复（纯逻辑）
 // 覆盖用户数据的全部集合；不含设备专属数据（同步游标、家长端孩子缓存）。
 const store = require('./store');
+const SAN = require('./sanitize');
 
 const BACKUP_VERSION = 1;
 
@@ -30,7 +31,10 @@ function serialize() {
 }
 
 // 校验剪贴板文本：结构合法返回 {ok:true, data}，否则 {ok:false, error}
+const MAX_BACKUP_BYTES = 5 * 1024 * 1024;
+
 function validate(text) {
+  if (typeof text === 'string' && text.length > MAX_BACKUP_BYTES) return { ok: false, error: '备份文件太大（超过 5MB）' };
   let parsed;
   try {
     parsed = JSON.parse(text);
@@ -47,6 +51,12 @@ function validate(text) {
   }
   if (d.records.some(r => !r || typeof r !== 'object' || !r.id || !r.date || !r.taskId)) {
     return { ok: false, error: '打卡记录存在缺字段的条目' };
+  }
+  // 字段类型 / 格式：坏数据写进本机存储会让统计出 NaN 或页面异常
+  const num = v => v === undefined || (typeof v === 'number' && isFinite(v));
+  if (d.records.some(r => !SAN.validDate(r.date) || r.id !== r.date + '#' + r.taskId || !num(r.stars) || !num(r.updatedAt)
+    || (r.value !== undefined && (!r.value || typeof r.value !== 'object' || !num(r.value.n))))) {
+    return { ok: false, error: '打卡记录的日期、星级或数值格式不对' };
   }
   if (d.reviewLog !== undefined && !Array.isArray(d.reviewLog)) return { ok: false, error: '字段 reviewLog 应为数组' };
   if (d.goals !== undefined && (!d.goals || typeof d.goals !== 'object' || Array.isArray(d.goals))) {

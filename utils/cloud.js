@@ -66,6 +66,8 @@ function resetCloud() { return call('sync', { action: 'reset' }); }
 function familyCreate() { return call('family', { action: 'create' }); }
 function familyJoin(code) { return call('family', { action: 'join', code: (code || '').trim().toUpperCase() }); }
 function familyLeave() { return call('family', { action: 'leave' }); }
+// 孩子端：更换邀请码并解除全部家长绑定
+function familyResetCode() { return call('family', { action: 'resetCode' }); }
 // 家长端拉孩子摘要（since 增量；写入 store 的孩子缓存）
 function familyRefresh() {
   return call('family', { action: 'summary', since: 0 }).then(res => {
@@ -138,7 +140,7 @@ function subscribeAndGrant(kind) { // kind: 'remind' | 'parent' | 'weekly'
 module.exports = {
   CLOUD_ENV, init, isAvailable, call,
   syncAll, resetCloud,
-  familyCreate, familyJoin, familyLeave, familyRefresh, notifyParents, grantParentSub, grantWeekly, familyConfig,
+  familyCreate, familyJoin, familyLeave, familyResetCode, familyRefresh, notifyParents, grantParentSub, grantWeekly, familyConfig,
   cheerSend, cheerList, cheerRead, cheerReact,
   remindConfig, remindGrant, remindStatus, remindDisable, subscribeAndGrant,
   REMIND_PAGE,
