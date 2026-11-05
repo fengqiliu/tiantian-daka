@@ -1,7 +1,7 @@
 <view class="rv safe-bottom">
   <view class="rv-head">
     <view class="h1">{{mode === 'today' ? '🎯 今日一练' : '🧠 错题复习'}}</view>
-    <view class="muted" wx:if="{{mode === 'today'}}">3 题口算 + 5 题小卷，最薄弱的单元会多出几题 · 答错的题进错题本</view>
+    <view class="muted" wx:if="{{mode === 'today'}}">3 题口算 + 5 题小卷 + 3 张记忆卡，最薄弱的单元会多出几题 · 答错的题进错题本</view>
     <view class="muted" wx:else>到期的口算和小卷错题 · 隔 1/3/7 天连对 3 次就移出错题本</view>
   </view>
 
@@ -11,6 +11,10 @@
       <block wx:if="{{cards[idx].source === 'math'}}">
         <view class="rv-math {{feedback}}">{{feedback === 'wrong' ? wrongText : cards[idx].text}}</view>
         <view class="rv-input">{{input || '_'}}</view>
+      </block>
+      <block wx:elif="{{cards[idx].source === 'flash'}}">
+        <view class="rv-flash-front">{{cards[idx].front}}</view>
+        <view class="rv-flash-back" wx:if="{{flipped}}">{{cards[idx].back}}</view>
       </block>
       <view wx:else class="rv-prompt">{{cards[idx].prompt}}</view>
       <view class="rv-explain" wx:if="{{feedback === 'wrong' && explain}}">💡 {{explain}}</view>
@@ -38,6 +42,15 @@
         <view class="rv-key ok" bindtap="onConfirm">✓</view>
       </view>
     </view>
+
+    <block wx:elif="{{cards[idx].source === 'flash'}}">
+      <view class="btn-primary rv-flash-btn" wx:if="{{!flipped}}" bindtap="onFlip">看答案</view>
+      <view class="row rv-flash-judge" wx:else>
+        <view class="btn-ghost flex1" data-known="{{false}}" bindtap="onFlash">💪 再练练</view>
+        <view class="btn-primary flex1" style="margin-left: 20rpx;" data-known="{{true}}" bindtap="onFlash">👍 认识</view>
+      </view>
+      <view class="muted rv-foot">先自己想一想，再翻面对答案；连续认识 2 次就算掌握</view>
+    </block>
 
     <block wx:else>
       <view class="rv-opts">

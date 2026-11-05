@@ -144,6 +144,7 @@ exports.main = async (event) => {
     const profile = ownerDoc.profile || null;
     const practice = ownerDoc.practice || null; // 口算会话 + 小卷历史 + 复习日志（家长报告用）
     const wrongBook = ownerDoc.wrongBook || null; // 口算 + 小卷错题本（家长端只读查看）
+    const overrides = ownerDoc.taskOverrides || null; // 任务覆盖：家长端显示孩子的自定义任务名、清单与孩子一致
     const badges = (await db.collection('badges').where({ openid: owner }).limit(1000).get()).data
       .map(b => ({ id: b.id, earnedAt: b.earnedAt }));
     return {
@@ -153,6 +154,7 @@ exports.main = async (event) => {
       badges,
       practice,
       wrongBook,
+      overrides,
       records: recDocs.data.map(d => ({
         id: d.id, date: d.date, taskId: d.taskId, value: d.value,
         stars: d.stars, note: d.note, deleted: !!d.deleted, updatedAt: d.updatedAt,

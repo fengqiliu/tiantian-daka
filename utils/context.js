@@ -41,4 +41,11 @@ function scope() {
   };
 }
 
-module.exports = { scope };
+// 任务生成引擎用的任务覆盖：孩子端读自己的；家长端读孩子同步过来的（自定义任务名、目标、冲刺窗口与孩子一致），
+// 不影响家长自己手机上的任务覆盖。app.js 启动时接入 tasks.setOverrideProvider
+function taskOverrides() {
+  const profile = store.getProfile() || {};
+  return profile.role === 'parent' ? store.getChildTaskOverrides() : store.getTaskOverrides();
+}
+
+module.exports = { scope, taskOverrides };

@@ -31,6 +31,8 @@ const KEYS = {
   CHILD_MATH_WRONG: 'child_math_wrong', // 家长端缓存：孩子口算错题本
   CHILD_QUIZ_WRONG: 'child_quiz_wrong', // 家长端缓存：孩子小卷错题本
   CHILD_GOALS: 'child_goals',        // 家长端缓存：孩子每周小目标
+  CHILD_OVERRIDES: 'child_overrides', // 家长端缓存：孩子的任务覆盖（自定义任务名、目标、冲刺窗口）
+  FLASHCARDS: 'flashcards',          // 记忆卡进度：{ [牌组]: { [卡片正面]: { knownCount, lastAt } } }
 };
 
 let memory = {};
@@ -236,7 +238,19 @@ function getDrillHistory() { return _get(KEYS.DRILL_HISTORY, []); }
 function saveDrillHistory(list) { _set(KEYS.DRILL_HISTORY, list); }
 
 // ── 记忆卡（按牌组的掌握状态，本地）──
-function getFlashcards() { return _get(KEYS.FLASHCARDS, {}); }
+// 0.32.0-0.34.0 的 KEYS 里漏了 FLASHCARDS，进度被存在键 "undefined" 下（清空数据也清不掉）；首次读取时迁移
+const LEGACY_FLASHCARDS_KEY = 'undefined';
+function getFlashcards() {
+  const cur = _get(KEYS.FLASHCARDS);
+  if (cur !== undefined && cur !== null && cur !== '') return cur;
+  const legacy = _get(LEGACY_FLASHCARDS_KEY);
+  if (legacy && typeof legacy === 'object') {
+    _set(KEYS.FLASHCARDS, legacy);
+    _remove(LEGACY_FLASHCARDS_KEY);
+    return legacy;
+  }
+  return {};
+}
 function saveFlashcards(o) { _set(KEYS.FLASHCARDS, o); }
 
 // ── 错题复习日志（本地）──
@@ -283,7 +297,10 @@ function getChildMathWrong() { return _get(KEYS.CHILD_MATH_WRONG, []); }
 function getChildQuizWrong() { return _get(KEYS.CHILD_QUIZ_WRONG, []); }
 function getChildGoals() { return _get(KEYS.CHILD_GOALS, {}); }
 // practice / wrongBook 缺省（旧版云函数不返回）时保留已有缓存
-function saveChildData(profile, records, badges, practice, wrongBook) {
+function getChildTaskOverrides() { return _get(KEYS.CHILD_OVERRIDES, { targets: {}, customs: [] }); }
+
+function saveChildData(profile, records, badges, practice, wrongBook, overrides) {
+  if (overrides && typeof overrides === 'object') _set(KEYS.CHILD_OVERRIDES, overrides);
   if (wrongBook) {
     _set(KEYS.CHILD_MATH_WRONG, wrongBook.math || []);
     _set(KEYS.CHILD_QUIZ_WRONG, wrongBook.quiz || []);
@@ -309,6 +326,7 @@ function clearChildData() {
   _remove(KEYS.CHILD_MATH_WRONG);
   _remove(KEYS.CHILD_QUIZ_WRONG);
   _remove(KEYS.CHILD_GOALS);
+  _remove(KEYS.CHILD_OVERRIDES);
 }
 
 function clearAll() {
@@ -340,7 +358,7 @@ module.exports = {
   getTimer, saveTimer,
   getSyncState, saveSyncState,
   getChildProfile, getChildRecords, getChildBadges, getChildDrillHistory, getChildQuizHistory, getChildReviewLog,
-  getChildMathWrong, getChildQuizWrong, getChildGoals,
+  getChildMathWrong, getChildQuizWrong, getChildGoals, getChildTaskOverrides,
   saveChildData, clearChildData,
   clearAll,
 };

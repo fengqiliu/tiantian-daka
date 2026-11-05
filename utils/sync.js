@@ -47,8 +47,9 @@ function mergePull({ records = [], profile = null, badges = [], overrides = null
   }
   // 练习历史（口算会话 + 小卷 + 复习日志 + 每周小目标）：按各自规则合并，不参与游标
   if (practice && typeof practice === 'object') {
-    const m = HM.mergePractice({ drill: store.getDrillHistory(), quiz: store.getQuizHistory(), review: store.getReviewLog(), goals: store.getGoals() }, practice);
+    const m = HM.mergePractice({ drill: store.getDrillHistory(), quiz: store.getQuizHistory(), review: store.getReviewLog(), goals: store.getGoals(), cards: store.getFlashcards() }, practice);
     store.saveGoals(m.goals);
+    store.saveFlashcards(m.cards);
     store.saveDrillHistory(m.drill);
     store.saveQuizHistory(m.quiz);
     store.saveReviewLog(m.review);
@@ -87,8 +88,9 @@ async function push(api) {
   const quiz = store.getQuizHistory();
   const review = store.getReviewLog();
   const goals = store.getGoals();
-  const practice = (drill.length || quiz.length || review.length || Object.keys(goals).length)
-    ? { drill, quiz, review, goals } : null;
+  const cards = store.getFlashcards();
+  const practice = (drill.length || quiz.length || review.length || Object.keys(goals).length || Object.keys(cards).length)
+    ? { drill, quiz, review, goals, cards } : null;
   // 错题本：有改动（盖过章）才上传；旧版数据有错题但没章时以 1 上传一次，任何真实写入都比它新
   const math = store.getMathWrong();
   const quizWrong = store.getQuizWrong();

@@ -1,4 +1,4 @@
-// 今日一练：解决"不知道练什么"——3 题口算 + 5 题小卷（约 3 分钟）。
+// 今日一练：解决"不知道练什么"——3 题口算 + 5 题小卷 + 3 张记忆卡（约 4 分钟）。
 // 小卷里 2 题来自孩子最薄弱的单元，其余 3 题按星期轮换科目（周日 / 周三 / 周六数学，周一 / 周四语文，周二 / 周五英语）。
 // 复用错题复习页的卡片与判分，答错同样进错题本；做完按科目写入小卷历史（带单元）和口算会话。
 const store = require('./store');
@@ -7,10 +7,12 @@ const AR = require('./arithmetic');
 const QZ = require('./quiz');
 const REPORT = require('./report');
 const SUBJ = require('./subjects');
+const FC = require('./flashcards');
 
 const MATH_N = 3;
 const QUIZ_N = 5;
 const WEAK_N = 2;
+const FLASH_N = 3; // 末尾加几张未掌握的记忆卡（生字 / 单词）
 
 function subjectOf(date) { return SUBJ.ORDER[D.dayOfWeek(date) % SUBJ.ORDER.length]; }
 
@@ -46,7 +48,21 @@ function build(opts) {
   if (weak) picked.push(..._take(weak.subject, WEAK_N, rng, used, weak.unit));
   picked.push(..._take(subjectOf(opts.date), QUIZ_N - picked.length, rng, used));
   const quizCards = picked.map(c => ({ ...c, source: 'quiz', key: c.id, tag: SUBJ.nameOf(c.subject) + '小卷' }));
-  return { cards: mathCards.concat(quizCards), weak };
+  return { cards: mathCards.concat(quizCards, flashCards(opts.date, rng)), weak };
+}
+
+// 记忆卡：当天科目是语文 / 英语时从该科牌组里选，数学日从全部牌组里选；取"未掌握最多"的牌组出 FLASH_N 张。
+// 全部掌握了就不加
+function flashCards(date, rng) {
+  const subject = subjectOf(date);
+  const pool = FC.DECKS.filter(d => subject === 'math' || d.subject === subject);
+  const best = pool
+    .map(d => { const st = FC.deckStats(d.id); return { deck: d, left: st.total - st.mastered }; })
+    .filter(x => x.left > 0)
+    .sort((a, b) => b.left - a.left)[0];
+  if (!best) return [];
+  return FC.buildSession(best.deck.id, FLASH_N, rng).cards
+    .map(c => ({ source: 'flash', key: best.deck.id + '#' + c.front, deckId: best.deck.id, front: c.front, back: c.back, tag: '记忆卡' }));
 }
 
 // results = [{ source:'math', level, ok } | { source:'quiz', subject, unit, ok }]
@@ -78,4 +94,4 @@ function record(results, date) {
 
 function doneOn(date, quizHistory) { return (quizHistory || []).some(h => h.daily && h.date === date); }
 
-module.exports = { MATH_N, QUIZ_N, WEAK_N, subjectOf, weakUnit, build, record, doneOn };
+module.exports = { MATH_N, QUIZ_N, WEAK_N, FLASH_N, subjectOf, weakUnit, build, record, doneOn };

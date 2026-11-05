@@ -249,6 +249,30 @@ t('家长端：成长页小卷入口读孩子的小卷历史；报告里不显�
   rp.onLoad();
   assert.strictEqual(rp.data.role, 'parent');
 });
+t('家长端：孩子的自定义任务在日历里显示任务名（不是 custom_xxx），家长首页清单总数与孩子一致', () => {
+  const CTX = require('../utils/context');
+  T.setOverrideProvider(() => CTX.taskOverrides()); // 与 app.js 一致：家长端读孩子的任务覆盖
+  try {
+    const overrides = { targets: {}, customs: [{ id: 'custom_p1', name: '练钢琴', emoji: '🎹', type: 'done', unit: '', target: 1 }], updatedAt: 5 };
+    child(1);
+    store.saveTaskOverrides(overrides);
+    const childTotal = T.generateDailyTasks(1, today()).length;
+    C.upsertRecord(today(), 'custom_p1', 1, 3, '');
+    const records = store.getRecordsRaw();
+    store.clearAll();
+    store.saveProfile({ role: 'parent', grade: 0, nickname: '妈妈', onboarded: true });
+    store.saveChildData({ role: 'child', grade: 1, nickname: '小豆' }, records, [], null, null, overrides);
+    const cal = load('pages/calendar/calendar');
+    cal.onShow();
+    cal.loadDay(today());
+    const row = cal.data.dayRecords.find(x => x.id === today() + '#custom_p1');
+    assert.deepStrictEqual([row.name, row.emoji], ['练钢琴', '🎹']);
+    assert.strictEqual(T.generateDailyTasks(1, today()).length, childTotal, '家长端清单里也有这项自定义任务');
+    assert.deepStrictEqual(store.getTaskOverrides(), { targets: {}, customs: [] }, '家长自己的任务覆盖不受影响');
+  } finally {
+    T.setOverrideProvider(null);
+  }
+});
 t('错题本筛选：按科目、只看今天到期的，两个条件可叠加；清空和导出仍针对全部', () => {
   child(1);
   const yest = D.addDays(today(), -1); // 昨天答错 → 今天到期
@@ -355,24 +379,32 @@ t('小卷历史按单元记下答题数；家长报告显示各单元掌握情�
   assert(row.wrongOpen > 0, '带上错题本未销账题数');
   assert.strictEqual(rp.data.masteryLine, '1 个单元需要再练');
 });
-t('今日一练：首页卡片 → 8 题混合练习 → 记入历史，卡片变已完成；一年级以外不显示', () => {
+t('今日一练：首页卡片 → 11 题混合练习（含 3 张记忆卡）→ 记入历史，卡片变已完成；一年级以外不显示', () => {
   child(1);
   let home = load('pages/index/index');
   home.onShow();
-  assert.deepStrictEqual(home.data.daily, { done: false, title: '今日一练', desc: '3 题口算 + 5 题小卷，约 3 分钟' });
+  assert.deepStrictEqual(home.data.daily, { done: false, title: '今日一练', desc: '3 题口算 + 5 题小卷 + 3 张记忆卡，约 4 分钟' });
   home.goDaily();
   assert.strictEqual(ui.navs.pop(), '/pages/review/review?mode=today');
   const p = load('pages/review/review');
   p.onLoad({ mode: 'today' });
-  assert.deepStrictEqual([p.data.phase, p.data.total, p.data.mode], ['play', 8, 'today']);
+  assert.deepStrictEqual([p.data.phase, p.data.total, p.data.mode], ['play', 11, 'today']);
+  const FC = require('../utils/flashcards');
   while (p.data.phase === 'play') {
     const c = p.data.cards[p.data.idx];
-    if (c.source === 'math') { String(c.problem.answer).split('').forEach(d => p.onKey(tap({ d }))); p.onConfirm(); }
+    if (c.source === 'flash') {
+      p.onFlash(tap({ known: true }));
+      assert.strictEqual(p.data.feedback, '', '没翻面不能自评');
+      p.onFlip();
+      p.onFlash(tap({ known: true }));
+    } else if (c.source === 'math') { String(c.problem.answer).split('').forEach(d => p.onKey(tap({ d }))); p.onConfirm(); }
     else if (c.type === 'multi') { c.answerSet.forEach(i => p.onOption(tap({ index: i }))); p.onMultiSubmit(); }
     else p.onOption(tap({ index: c.answerIndex }));
   }
   assert.strictEqual(p.data.phase, 'done');
-  assert.strictEqual(p.data.correctCount, 8);
+  assert.strictEqual(p.data.correctCount, 11);
+  const deck = p.data.cards.find(c => c.source === 'flash').deckId;
+  assert.strictEqual(FC.deckStats(deck).total - FC.deckStats(deck).unseen >= 3, true, '记忆卡进度已记录');
   assert.strictEqual(AR_.getSessions().length >= 1, true, '口算会话已记录');
   const hist = QZ.getHistory();
   assert(hist.length >= 1 && hist.every(h => h.daily && h.date === today() && h.units.length), JSON.stringify(hist));

@@ -67,3 +67,8 @@
   line-height: 1.5;
   text-align: left;
 }
+
+.rv-flash-front { font-size: 96rpx; font-weight: 700; text-align: center; padding: 24rpx 0 8rpx; }
+.rv-flash-back { font-size: 36rpx; color: #6B655B; text-align: center; padding-bottom: 16rpx; }
+.rv-flash-btn { margin-top: 24rpx; }
+.rv-flash-judge { margin-top: 24rpx; }

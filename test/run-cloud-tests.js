@@ -195,6 +195,18 @@ t('安全：孩子可以更换邀请码并解除全部家长绑定；旧码作�
   assert.strictEqual((await family.main({ action: 'join', code: old })).ok, false, '旧邀请码作废');
   assert.strictEqual((await family.main({ action: 'join', code: r.code })).ok, true, '新邀请码可用');
 });
+t('家长 summary 带上孩子的任务覆盖（自定义任务名、目标、冲刺窗口）', async () => {
+  reset();
+  const family = CM.load('family');
+  CM.setOpenid('kid1'); await CM.load('login').main({});
+  const code = (await family.main({ action: 'create' })).code;
+  const overrides = { targets: { pe_rope: 80 }, customs: [{ id: 'custom_p1', name: '练钢琴', emoji: '🎹', type: 'duration', unit: '分钟', target: 20 }], sprintDays: 28, updatedAt: 5 };
+  await CM.load('sync').main({ action: 'push', overrides });
+  CM.setOpenid('parent1'); await family.main({ action: 'join', code });
+  const s = await family.main({ action: 'summary', since: 0 });
+  assert.deepStrictEqual(s.overrides.customs[0].name, '练钢琴');
+  assert.strictEqual(s.overrides.sprintDays, 28);
+});
 t('回归：孩子记录超过 1000 条时，家长 summary 仍能拿到最新的（不能只返回最旧的 1000 条）', async () => {
   reset();
   const family = CM.load('family');

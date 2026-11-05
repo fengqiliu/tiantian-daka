@@ -153,7 +153,7 @@ Page({
     return {
       done: DAILY.doneOn(D.todayStr(), store.getQuizHistory()),
       title: '今日一练',
-      desc: '3 题口算 + 5 题小卷，约 3 分钟',
+      desc: '3 题口算 + 5 题小卷 + 3 张记忆卡，约 4 分钟',
     };
   },
 

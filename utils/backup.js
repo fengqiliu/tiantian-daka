@@ -25,6 +25,7 @@ function serialize() {
       quizHistory: store.getQuizHistory(),
       reviewLog: store.getReviewLog(),
       goals: store.getGoals(),
+      flashcards: store.getFlashcards(), // 0.35.0 起导出
       settings: store.getSettings(),
     },
   };
@@ -62,6 +63,9 @@ function validate(text) {
   if (d.goals !== undefined && (!d.goals || typeof d.goals !== 'object' || Array.isArray(d.goals))) {
     return { ok: false, error: '字段 goals 应为对象' };
   }
+  if (d.flashcards !== undefined && (!d.flashcards || typeof d.flashcards !== 'object' || Array.isArray(d.flashcards))) {
+    return { ok: false, error: '字段 flashcards 应为对象' };
+  }
   if (d.taskOverrides && (typeof d.taskOverrides !== 'object' || !d.taskOverrides.targets)) {
     return { ok: false, error: '任务覆盖格式不正确' };
   }
@@ -95,6 +99,7 @@ function restore(parsed) {
   store.saveQuizHistory(d.quizHistory || []);
   store.saveReviewLog(d.reviewLog || []); // 0.14.0 起导出；旧备份没有此字段
   store.saveGoals(d.goals || {});         // 0.19.1 起导出（含达成戳，奖励星随之恢复）
+  store.saveFlashcards(d.flashcards || {}); // 0.35.0 起导出；旧备份没有此字段
   store.saveSettings(d.settings || {});
   return summarize(parsed);
 }

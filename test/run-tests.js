@@ -830,7 +830,7 @@ t('今日一练：3 题口算 + 5 题小卷；有薄弱单元时其中 2 题来�
   assert.deepStrictEqual(['2026-11-04', '2026-11-05', '2026-11-06'].map(DAILY.subjectOf), ['math', 'chinese', 'english']);
   assert.strictEqual(DAILY.subjectOf('2026-11-08'), 'math', '周日');
   let d = DAILY.build({ grade: 1, date: '2026-11-05', rng: seededRng(3), quizHistory: [] });
-  assert.strictEqual(d.cards.length, 8);
+  assert.strictEqual(d.cards.length, 11, '3 口算 + 5 小卷 + 3 记忆卡');
   const math = d.cards.filter(c => c.source === 'math');
   const quiz = d.cards.filter(c => c.source === 'quiz');
   assert.deepStrictEqual([math.length, quiz.length], [3, 5]);
@@ -987,6 +987,75 @@ t('推送分批：记录多时每批 ≤200 条，资料等只随第一批发送
   calls.length = 0;
   assert.strictEqual(await SYNC.push(api), true);
   assert.deepStrictEqual(calls.map(c => c.records.length), [0]);
+});
+t('记忆卡进度合并：每张卡取最近练过的一方；两台设备各自练的卡都保留；可上云的练习历史带上记忆卡', () => {
+  const HM = require('../utils/history-merge');
+  const a = { 'cn-u1': { 天: { knownCount: 2, lastAt: 100 }, 地: { knownCount: 1, lastAt: 300 } }, 'en-u2': { friend: { knownCount: 1, lastAt: 50 } } };
+  const b = { 'cn-u1': { 天: { knownCount: 0, lastAt: 200 }, 地: { knownCount: 2, lastAt: 250 } }, 'cn-u5': { 人: { knownCount: 2, lastAt: 10 } } };
+  const m = HM.mergeFlashcards(a, b);
+  assert.deepStrictEqual(m['cn-u1'], { 天: { knownCount: 0, lastAt: 200 }, 地: { knownCount: 1, lastAt: 300 } }, '每张卡取 lastAt 新的');
+  assert.deepStrictEqual(Object.keys(m).sort(), ['cn-u1', 'cn-u5', 'en-u2'], '两边的牌组都保留');
+  assert.deepStrictEqual(HM.mergeFlashcards(null, undefined), {});
+  assert.deepStrictEqual(HM.mergeFlashcards({ x: 'bad', 'cn-u1': { 天: null } }, {}), { 'cn-u1': {} }, '坏数据丢弃');
+  const p = HM.mergePractice({ drill: [], quiz: [], review: [], goals: {}, cards: a }, { cards: b });
+  assert.deepStrictEqual(p.cards, m, 'mergePractice 带上记忆卡');
+});
+t('回归：记忆卡存储键此前漏定义（存成 "undefined" 键，清空数据也清不掉）；首次读取迁移到正式键，清空能清掉', () => {
+  const mem = {};
+  store.init({ get: k => mem[k], set: (k, v) => { mem[k] = JSON.parse(JSON.stringify(v)); }, remove: k => { delete mem[k]; } });
+  try {
+    mem.undefined = { 'cn-u1': { 天: { knownCount: 2, lastAt: 9 } } }; // 0.32.0-0.34.0 写下的旧数据
+    assert.deepStrictEqual(store.getFlashcards(), { 'cn-u1': { 天: { knownCount: 2, lastAt: 9 } } }, '旧进度不丢');
+    assert.strictEqual(mem.undefined, undefined, '迁移后删除旧键');
+    assert.deepStrictEqual(mem.flashcards, { 'cn-u1': { 天: { knownCount: 2, lastAt: 9 } } });
+    store.clearAll();
+    assert.deepStrictEqual(store.getFlashcards(), {}, '清空所有数据能清掉记忆卡进度');
+  } finally {
+    store.init();
+  }
+});
+t('记忆卡进度进备份：导出带上、导入恢复；旧备份没有这一项照常导入', () => {
+  reset();
+  store.saveFlashcards({ 'cn-u1': { 天: { knownCount: 2, lastAt: 9 } } });
+  const text = JSON.stringify(BACKUP.serialize());
+  store.clearAll();
+  assert.strictEqual(BACKUP.restoreFromText(text).ok, true);
+  assert.deepStrictEqual(store.getFlashcards(), { 'cn-u1': { 天: { knownCount: 2, lastAt: 9 } } });
+  const old = JSON.parse(text); delete old.data.flashcards;
+  store.clearAll();
+  assert.strictEqual(BACKUP.restoreFromText(JSON.stringify(old)).ok, true);
+  assert.deepStrictEqual(store.getFlashcards(), {});
+  const bad = JSON.parse(text); bad.data.flashcards = [1, 2];
+  assert.strictEqual(BACKUP.validate(JSON.stringify(bad)).ok, false, '格式不对拒绝');
+});
+t('同步推送 / 拉取带上记忆卡进度', async () => {
+  reset();
+  const SYNC = require('../utils/sync');
+  store.saveFlashcards({ 'cn-u1': { 天: { knownCount: 1, lastAt: 100 } } });
+  let sent = null;
+  await SYNC.push({ pushData: async p => { if (!sent) sent = p; return { ok: true, serverTime: 1e15 }; } });
+  assert.deepStrictEqual(sent.practice.cards, store.getFlashcards(), '推送带上');
+  await SYNC.pull({ pullData: async () => ({ ok: true, records: [], practice: { cards: { 'cn-u1': { 天: { knownCount: 2, lastAt: 500 } }, 'en-u2': { name: { knownCount: 1, lastAt: 1 } } } }, serverTime: 1e15 }) });
+  assert.deepStrictEqual(store.getFlashcards(), { 'cn-u1': { 天: { knownCount: 2, lastAt: 500 } }, 'en-u2': { name: { knownCount: 1, lastAt: 1 } } });
+});
+t('今日一练加 3 张记忆卡：选当天科目里未掌握最多的牌组（数学日选整体最弱的），全掌握时不加', () => {
+  reset();
+  const DAILY = require('../utils/daily');
+  const FC = require('../utils/flashcards');
+  let d = DAILY.build({ grade: 1, date: '2026-11-05', rng: seededRng(2), quizHistory: [] }); // 周四 → 语文
+  const flash = d.cards.filter(c => c.source === 'flash');
+  assert.strictEqual(flash.length, 3);
+  assert(flash.every(c => c.deckId.startsWith('cn-') && c.front && c.back && c.tag === '记忆卡'), JSON.stringify(flash[0]));
+  assert.strictEqual(d.cards.length, 11, '3 口算 + 5 小卷 + 3 记忆卡');
+  assert.strictEqual(d.cards.slice(-3).every(c => c.source === 'flash'), true, '记忆卡放在最后');
+  d = DAILY.build({ grade: 1, date: '2026-11-06', rng: seededRng(2), quizHistory: [] }); // 周五 → 英语
+  assert(d.cards.filter(c => c.source === 'flash').every(c => c.deckId.startsWith('en-')));
+  // 全部掌握 → 不加
+  const all = {};
+  FC.DECKS.forEach(dk => { all[dk.id] = {}; dk.cards.forEach(c => { all[dk.id][c.front] = { knownCount: FC.MASTER_AT, lastAt: 1 }; }); });
+  store.saveFlashcards(all);
+  d = DAILY.build({ grade: 1, date: '2026-11-05', rng: seededRng(2), quizHistory: [] });
+  assert.strictEqual(d.cards.filter(c => c.source === 'flash').length, 0);
 });
 t('学科常量只有一份：题库、报告、推送摘要用同一个单元标签与学科名', () => {
   const SUBJ = require('../utils/subjects');
@@ -1443,6 +1512,25 @@ t('未配置环境 ID：全部调用静默降级为 {ok:false,degraded:true}', a
   assert.strictEqual(await cloud.syncAll(true), false);
 });
 
+t('同步节流：1 分钟内再次触发不立即同步，但会在节流期结束时补发一次（只排一次）', async () => {
+  reset();
+  const calls = [];
+  const cloud = reloadCloud({ call: ({ name, data }) => { calls.push(data.action); return Promise.resolve({ result: { ok: true, records: [], serverTime: Date.now() } }); } });
+  const scheduled = [];
+  cloud._setScheduler((fn, ms) => { scheduled.push({ fn, ms }); });
+  cloud.init('test-env');
+  await cloud.syncAll(true);
+  const first = calls.length;
+  assert(first >= 2, '首次同步：拉 + 推');
+  assert.strictEqual(await cloud.syncAll(), false, '节流期内不立即同步');
+  assert.strictEqual(await cloud.syncAll(), false);
+  assert.strictEqual(scheduled.length, 1, '只排一次补发');
+  assert(scheduled[0].ms > 0 && scheduled[0].ms <= 60 * 1000);
+  cloud._setNow(() => Date.now() + 61 * 1000);
+  await scheduled[0].fn();
+  assert(calls.length > first, '补发执行了同步');
+  unloadCloud();
+});
 t('init 抛异常时降级而非崩溃', () => {
   const cloud = reloadCloud({ call: () => {}, initThrows: true });
   unloadCloud();
@@ -1588,7 +1676,7 @@ t('mergePractice：口算 100 / 小卷 50 分别截断', () => {
   assert.strictEqual(m.drill.length, HM.DRILL_CAP);
   assert.strictEqual(m.quiz.length, HM.QUIZ_CAP);
   assert.strictEqual(m.drill[0].at, 120, '保留最新');
-  assert.deepStrictEqual(HM.mergePractice(null, null), { drill: [], quiz: [], review: [], goals: {} });
+  assert.deepStrictEqual(HM.mergePractice(null, null), { drill: [], quiz: [], review: [], goals: {}, cards: {} });
 });
 t('练习记录同步往返：推送全量，拉取按并集合并（两台设备各自的练习都保留）', async () => {
   reset();

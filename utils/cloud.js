@@ -47,14 +47,30 @@ const syncApi = {
 
 let syncing = false;
 let lastSyncAt = 0;
+const THROTTLE_MS = 60 * 1000;
+// 时钟与定时器可注入（测试用）
+let now = () => Date.now();
+let schedule = (fn, ms) => setTimeout(fn, ms);
+let trailing = false;
+function _setNow(fn) { now = fn; }
+function _setScheduler(fn) { schedule = fn; }
 
-// 全量同步（先拉后推）；fire-and-forget，失败静默（下次再试）
+// 全量同步（先拉后推）；fire-and-forget，失败静默（下次再试）。
+// 节流 1 分钟；节流期内被触发时，在节流期结束时补发一次（只排一次），
+// 否则连续打几个卡后，最后几条要等下次进首页才推送，家长端看到的数据会延迟
 function syncAll(force) {
   if (!isAvailable() || syncing) return Promise.resolve(false);
-  if (!force && Date.now() - lastSyncAt < 60 * 1000) return Promise.resolve(false); // 节流 1 分钟
+  const wait = THROTTLE_MS - (now() - lastSyncAt);
+  if (!force && wait > 0) {
+    if (!trailing) {
+      trailing = true;
+      schedule(() => { trailing = false; return syncAll(true); }, wait); // 补发本身不再受节流（否则定时器提前触发会反复重排）
+    }
+    return Promise.resolve(false);
+  }
   syncing = true;
   return syncEngine.syncAll(syncApi)
-    .then(() => { lastSyncAt = Date.now(); return true; })
+    .then(() => { lastSyncAt = now(); return true; })
     .catch(() => false)
     .then(r => { syncing = false; return r; });
 }
@@ -72,7 +88,7 @@ function familyResetCode() { return call('family', { action: 'resetCode' }); }
 function familyRefresh() {
   return call('family', { action: 'summary', since: 0 }).then(res => {
     if (res && res.ok) {
-      store.saveChildData(res.profile, res.records, res.badges, res.practice, res.wrongBook);
+      store.saveChildData(res.profile, res.records, res.badges, res.practice, res.wrongBook, res.overrides);
     }
     return res;
   });
@@ -139,7 +155,7 @@ function subscribeAndGrant(kind) { // kind: 'remind' | 'parent' | 'weekly'
 
 module.exports = {
   CLOUD_ENV, init, isAvailable, call,
-  syncAll, resetCloud,
+  syncAll, resetCloud, _setNow, _setScheduler,
   familyCreate, familyJoin, familyLeave, familyResetCode, familyRefresh, notifyParents, grantParentSub, grantWeekly, familyConfig,
   cheerSend, cheerList, cheerRead, cheerReact,
   remindConfig, remindGrant, remindStatus, remindDisable, subscribeAndGrant,

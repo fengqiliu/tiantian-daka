@@ -6,6 +6,7 @@ const QZ = require('../../utils/quiz');
 const B = require('../../utils/badges');
 const RV = require('../../utils/review');
 const DAILY = require('../../utils/daily');
+const FC = require('../../utils/flashcards');
 const cloud = require('../../utils/cloud');
 
 const SUBJ = require('../../utils/subjects');
@@ -23,6 +24,7 @@ Page({
     feedback: '', // '' | 'right' | 'wrong'
     wrongText: '',
     explain: '', // 答错时的方法提示 / 解析
+    flipped: false, // 记忆卡是否已翻面
     optStates: [],
     mastered: 0,
     promoted: 0,
@@ -73,10 +75,11 @@ Page({
   // 记一次作答：走各自错题本的 markResult（与口算/小卷同一套排期）
   _record(ok) {
     const c = this._card();
-    const res = c.source === 'math'
-      ? AR.markResult(c.problem, ok, c.level, this.today)
-      : QZ.markResult(c, ok, this.today);
-    this._results.push(c.source === 'math' ? { source: 'math', level: c.level, ok } : { source: 'quiz', subject: c.subject, unit: c.unit, ok });
+    // 记忆卡不进错题本，掌握进度由 flashcards.markCard 记（见 onFlash）
+    const res = c.source === 'math' ? AR.markResult(c.problem, ok, c.level, this.today)
+      : c.source === 'quiz' ? QZ.markResult(c, ok, this.today) : 'none';
+    this._results.push(c.source === 'math' ? { source: 'math', level: c.level, ok }
+      : c.source === 'quiz' ? { source: 'quiz', subject: c.subject, unit: c.unit, ok } : { source: 'flash', ok });
     const answered = this.data.answered + 1;
     this.setData({
       answered,
@@ -85,7 +88,7 @@ Page({
       promoted: this.data.promoted + (res === 'promoted' ? 1 : 0),
       feedback: ok ? 'right' : 'wrong',
       // 答错时说明方法：口算给凑十 / 破十提示，小卷给「为什么」
-      explain: ok ? '' : c.source === 'math' ? AR.hintOf(c.problem) : QZ.explainOf(c),
+      explain: ok || c.source === 'flash' ? '' : c.source === 'math' ? AR.hintOf(c.problem) : QZ.explainOf(c),
     });
     return answered;
   },
@@ -111,6 +114,21 @@ Page({
     if (!ok) this.setData({ wrongText: c.text + '  正确答案 ' + c.problem.answer });
     const answered = this._record(ok);
     this._t = setTimeout(() => this.advance(answered), this._delay(ok, [450, 1400]));
+  },
+
+  // ── 记忆卡（今日一练末尾）：先翻面看答案，再自评 认识 / 再练练 ──
+  onFlip() {
+    if (this.data.feedback) return;
+    this.setData({ flipped: true });
+  },
+
+  onFlash(e) {
+    if (this.data.feedback || !this.data.flipped) return;
+    const c = this._card();
+    const known = e.currentTarget.dataset.known === true || e.currentTarget.dataset.known === 'true';
+    FC.markCard(c.deckId, c.front, known);
+    const answered = this._record(known);
+    this._t = setTimeout(() => this.advance(answered), 300);
   },
 
   // ── 小卷：单选立即判分，多选点提交 ──
@@ -150,7 +168,7 @@ Page({
   advance(answered) {
     this._t = null;
     this._picked = [];
-    this.setData({ feedback: '', input: '', wrongText: '', explain: '', optStates: [] });
+    this.setData({ feedback: '', input: '', wrongText: '', explain: '', optStates: [], flipped: false });
     if (answered >= this.data.total) this.finish();
     else this.setData({ idx: this.data.idx + 1 });
   },

@@ -14,7 +14,7 @@
 | `ttdr_records_YYYY` + `ttdr_records_years` | 打卡记录（按年分片，见 §1.4） | 每年一个数组 + 年份索引；删除为墓碑；旧版单一 `ttdr_records` 首次读取时自动迁移 | ✓ 增量 | ✓ |
 | `ttdr_badges` | 已获得勋章 | `[{ id, earnedAt }]` | ✓ 并集 | ✓ |
 | `ttdr_settings` | 设置 | `{ lastBackupAt, cheerFrom, ... }` | — | ✓ |
-| `ttdr_flashcards` | 记忆卡进度（0.32.0） | `{ [牌库 id]: { [卡片正面]: { knownCount, lastAt } } }`，`knownCount` 连续认识次数（点"再练练"清零），≥2 即掌握；只存本机，**不在备份里、不上云**，「清空所有数据」会清掉 | — | — |
+| `ttdr_flashcards` | 记忆卡进度（0.32.0；0.35.0 前误存在键 `ttdr_undefined`，首次读取自动迁移） | `{ [牌库 id]: { [卡片正面]: { knownCount, lastAt } } }`，`knownCount` 连续认识次数（点"再练练"清零），≥2 即掌握；随 `users.practice.cards` 上云（每张卡取最近练过的一方），在备份里，「清空所有数据」会清掉 | ✓ 按卡取新 | ✓ |
 | `ttdr_readings` | 跟读录音记录 | 音频文件只存本机，自动保留最近 7 天 | — | ✓ |
 | `ttdr_task_overrides` | 家长任务管理 | `{ targets: {taskId: n}, customs: [], sprintDays?, updatedAt }`；`sprintDays`：期末冲刺窗口（放假前 14 / 21 / 28 天，0 = 关闭，缺省 21；0.32.0 起家长在任务管理设置） | ✓ 新者胜 | ✓ |
 | `ttdr_rewards` / `ttdr_redemptions` / `ttdr_shop_stamp` | 奖励小铺 | 奖品架 / 兑换账本 / 整体时间戳 | ✓ 新者胜（整体） | ✓ |
@@ -31,7 +31,7 @@
 
 由 `family.summary` 刷新，页面经 `utils/context.js` 的 `scope()` 读取：
 
-`ttdr_child_profile` · `ttdr_child_records` · `ttdr_child_badges` · `ttdr_child_drill` · `ttdr_child_quiz` · `ttdr_child_review` · `ttdr_child_goals` · `ttdr_child_math_wrong` · `ttdr_child_quiz_wrong`
+`ttdr_child_profile` · `ttdr_child_records` · `ttdr_child_badges` · `ttdr_child_drill` · `ttdr_child_quiz` · `ttdr_child_review` · `ttdr_child_goals` · `ttdr_child_math_wrong` · `ttdr_child_quiz_wrong` · `ttdr_child_overrides`（0.35.0：孩子的任务覆盖，家长端任务生成用它，显示孩子的自定义任务名）
 
 旧版云函数不返回某个字段时保留已有缓存；解绑或一键清空时一并清除。
 
@@ -139,7 +139,7 @@
 
 | 集合 | 文档结构 | 说明 |
 | --- | --- | --- |
-| `users` | `{ openid, joinFail?: { n, since }, profile, taskOverrides, shop, practice: { drill[], quiz[], review[], goals }, wrongBook: { math[], quiz[], updatedAt }, remindEnabled, remindQuota, remindHour, createdAt }` | `login` 首次调用自动创建 |
+| `users` | `{ openid, joinFail?: { n, since }, profile, taskOverrides, shop, practice: { drill[], quiz[], review[], goals, cards }, wrongBook: { math[], quiz[], updatedAt }, remindEnabled, remindQuota, remindHour, createdAt }` | `login` 首次调用自动创建 |
 | `checkins` | 本地 record + `openid` | 推荐索引：`(openid+updatedAt)`、`(openid+date)` |
 | `badges` | `{ openid, id, earnedAt }` | 并集写入 |
 | `families` | `{ code, ownerOpenid, ownerProfile, members:[{openid, parentSubQuota, weeklyQuota, joinedAt}], createdAt }` | `code` 为 6 位邀请码（去除易混淆字符 0/O/1/I/L） |

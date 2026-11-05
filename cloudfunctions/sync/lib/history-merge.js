@@ -2,7 +2,7 @@
 // ⚠️ 云函数副本 cloudfunctions/sync/lib/history-merge.js 由 scripts/sync-cloud-libs.js 复制，勿直接改
 //
 // 口算会话 / 小卷历史都是只追加列表，每条带 at（完成时间戳）；错题复习日志按日期合并（见 mergeReviewLog）；
-// 每周小目标按周合并（见 mergeGoals）。
+// 每周小目标按周合并（见 mergeGoals）；记忆卡进度按卡取最近练过的（见 mergeFlashcards）。
 // 合并规则：按 at 取并集（同 at 保留第一方），最新在前，按上限截断。
 // 与"整体新者胜"不同，并集不会因两台设备各自新增而丢记录。
 const DRILL_CAP = 100; // 口算会话上限（utils/arithmetic.js 引用此值）
@@ -52,6 +52,26 @@ function mergeGoals(a, b) {
   return capped;
 }
 
+// 记忆卡进度：{ [牌组 id]: { [卡片正面]: { knownCount, lastAt } } }，每张卡取最近练过（lastAt 大）的一方；
+// 两台设备各自练的卡都保留。坏数据（非对象）丢弃
+function mergeFlashcards(a, b) {
+  const out = {};
+  [a, b].forEach(m => {
+    if (!m || typeof m !== 'object') return;
+    Object.keys(m).forEach(deck => {
+      const cards = m[deck];
+      if (!cards || typeof cards !== 'object' || Array.isArray(cards)) return;
+      const dst = out[deck] || (out[deck] = {});
+      Object.keys(cards).forEach(front => {
+        const c = cards[front];
+        if (!c || typeof c !== 'object') return;
+        if (!dst[front] || (c.lastAt || 0) > (dst[front].lastAt || 0)) dst[front] = { knownCount: Number(c.knownCount) || 0, lastAt: Number(c.lastAt) || 0 };
+      });
+    });
+  });
+  return out;
+}
+
 function mergePractice(a, b) {
   const pa = a || {};
   const pb = b || {};
@@ -60,7 +80,8 @@ function mergePractice(a, b) {
     quiz: mergeHistory(pa.quiz, pb.quiz, QUIZ_CAP),
     review: mergeReviewLog(pa.review, pb.review, REVIEW_CAP),
     goals: mergeGoals(pa.goals, pb.goals),
+    cards: mergeFlashcards(pa.cards, pb.cards),
   };
 }
 
-module.exports = { DRILL_CAP, QUIZ_CAP, REVIEW_CAP, GOAL_WEEKS_CAP, mergeHistory, mergeReviewLog, mergeGoals, mergePractice };
+module.exports = { DRILL_CAP, QUIZ_CAP, REVIEW_CAP, GOAL_WEEKS_CAP, mergeHistory, mergeReviewLog, mergeGoals, mergeFlashcards, mergePractice };
