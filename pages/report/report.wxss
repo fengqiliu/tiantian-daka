@@ -59,3 +59,4 @@
 .rp-mark.mastered { color: #2F9E44; }
 .rp-mark.practice { color: #E5484D; }
 .rp-wrong { font-size: 24rpx; color: #E5484D; }
+.rp-flash-left { font-size: 24rpx; margin-top: 4rpx; }

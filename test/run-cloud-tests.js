@@ -207,6 +207,25 @@ t('家长 summary 带上孩子的任务覆盖（自定义任务名、目标、�
   assert.deepStrictEqual(s.overrides.customs[0].name, '练钢琴');
   assert.strictEqual(s.overrides.sprintDays, 28);
 });
+t('同步用服务端时间戳：离线很久的设备后上传的"旧"记录，另一台设备照样拉得到', async () => {
+  reset();
+  CM.setOpenid('kid1'); await CM.load('login').main({});
+  const sync = CM.load('sync');
+  await sync.main({ action: 'push', records: [rec('2026-11-01#pe_rope', { updatedAt: 5000 })] });
+  // 设备 B 拉取，游标推进到服务器写入时间
+  const b1 = await sync.main({ action: 'pull', since: 0 });
+  assert.strictEqual(b1.records.length, 1);
+  const cursor = b1.records[0].serverAt;
+  assert(cursor > 0, '记录带服务器写入时间 serverAt');
+  // 设备 A 离线时（时钟较早）写的记录，现在才上传：updatedAt 比 B 的游标小得多
+  await sync.main({ action: 'push', records: [rec('2026-10-20#pe_rope', { updatedAt: 100 })] });
+  const b2 = await sync.main({ action: 'pull', since: cursor });
+  assert.deepStrictEqual(b2.records.map(x => x.id), ['2026-10-20#pe_rope'], '按服务器时间拉取，拉得到');
+  // 同一批写入的 serverAt 互不相同（游标在截断边界不会因并列跳过记录）
+  await sync.main({ action: 'push', records: [rec('2026-11-02#a'), rec('2026-11-02#b'), rec('2026-11-02#c')] });
+  const at = CM.db.checkins.filter(d => d.date === '2026-11-02').map(d => d.serverAt);
+  assert.strictEqual(new Set(at).size, 3);
+});
 t('回归：孩子记录超过 1000 条时，家长 summary 仍能拿到最新的（不能只返回最旧的 1000 条）', async () => {
   reset();
   const family = CM.load('family');
@@ -293,7 +312,9 @@ t('pull 支持 since 增量，墓碑一并回传', async () => {
   ] });
   const all = await sync.main({ action: 'pull', since: 0 });
   assert.strictEqual(all.records.length, 2);
-  const inc = await sync.main({ action: 'pull', since: 200 });
+  // since 是服务器写入时间（serverAt）：同一批按顺序递增
+  const firstAt = all.records.find(x => x.id === '2026-10-05#habit_sleep').serverAt;
+  const inc = await sync.main({ action: 'pull', since: firstAt });
   assert.strictEqual(inc.records.length, 1, 'since 应只返回更新的');
   assert.strictEqual(inc.records[0].deleted, true);
 });

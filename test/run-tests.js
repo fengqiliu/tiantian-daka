@@ -940,7 +940,7 @@ t('同步游标只看记录的时间戳：资料 / 勋章等整体同步的数�
   await SYNC.pull({ pullData: async () => res });
   assert.strictEqual(store.getSyncState().lastPullAt, 3000, '游标 = 本次拉到的最大记录时间戳，下次还能拉到 3001 以后的记录');
   // 没有记录时游标不动（资料每次都整体下发）
-  store.saveSyncState({ lastPullAt: 500, lastPushAt: 0 });
+  store.saveSyncState({ lastPullAt: 500, lastPushAt: 0, cursorVersion: 2 });
   await SYNC.pull({ pullData: async () => ({ ok: true, records: [], profile: res.profile, badges: res.badges, serverTime: 20000 }) });
   assert.strictEqual(store.getSyncState().lastPullAt, 500);
 });
@@ -1050,12 +1050,26 @@ t('今日一练加 3 张记忆卡：选当天科目里未掌握最多的牌组�
   assert.strictEqual(d.cards.slice(-3).every(c => c.source === 'flash'), true, '记忆卡放在最后');
   d = DAILY.build({ grade: 1, date: '2026-11-06', rng: seededRng(2), quizHistory: [] }); // 周五 → 英语
   assert(d.cards.filter(c => c.source === 'flash').every(c => c.deckId.startsWith('en-')));
+  d = DAILY.build({ grade: 1, date: '2026-11-04', rng: seededRng(2), quizHistory: [] }); // 周三 → 数学
+  assert(d.cards.filter(c => c.source === 'flash').every(c => c.deckId.startsWith('ma-')), '数学日出数学卡');
   // 全部掌握 → 不加
   const all = {};
   FC.DECKS.forEach(dk => { all[dk.id] = {}; dk.cards.forEach(c => { all[dk.id][c.front] = { knownCount: FC.MASTER_AT, lastAt: 1 }; }); });
   store.saveFlashcards(all);
   d = DAILY.build({ grade: 1, date: '2026-11-05', rng: seededRng(2), quizHistory: [] });
   assert.strictEqual(d.cards.filter(c => c.source === 'flash').length, 0);
+});
+t('拉取游标用记录的服务器时间 serverAt；升级后旧的（客户端时间）游标作废一次，从头拉', async () => {
+  reset();
+  const SYNC = require('../utils/sync');
+  store.saveSyncState({ lastPullAt: 9e12, lastPushAt: 0 }); // 旧版本留下的客户端时间游标
+  let asked = null;
+  const res = { ok: true, records: [{ id: '2026-10-01#pe_rope', date: '2026-10-01', taskId: 'pe_rope', value: { type: 'done', n: 1 }, stars: 2, note: '', updatedAt: 100, serverAt: 7000 }], serverTime: 8000 };
+  await SYNC.pull({ pullData: async q => { asked = q.since; return res; } });
+  assert.strictEqual(asked, 0, '旧游标作废，从头拉（合并幂等）');
+  assert.strictEqual(store.getSyncState().lastPullAt, 7000, '游标 = 记录的 serverAt，而不是客户端写的 updatedAt');
+  await SYNC.pull({ pullData: async q => { asked = q.since; return { ok: true, records: [], serverTime: 9000 }; } });
+  assert.strictEqual(asked, 7000, '之后按新游标增量拉');
 });
 t('学科常量只有一份：题库、报告、推送摘要用同一个单元标签与学科名', () => {
   const SUBJ = require('../utils/subjects');
@@ -1810,7 +1824,7 @@ t('勋章「错题克星」：累计复习 7 天获得，+10⭐ 计入总星', (
   assert(B.evaluate([], profile).find(b => b.id === 'review_7'), '7 天获得');
   assert.strictEqual(C.BADGE_BONUS.review_7, 10);
   assert.strictEqual(C.totalStars([], 1, store.getBadges()), 10);
-  assert.strictEqual(B.BADGE_DEFS.length, 19);
+  assert.strictEqual(B.BADGE_DEFS.length, 20);
 });
 t('勋章「单元点灯人」：任意一科全册单元都达到 2 颗星', () => {
   reset();
@@ -2765,8 +2779,9 @@ t('一键清空：分片与年索引一并删除', () => {
 console.log('— 记忆卡 —');
 const FC = require('../utils/flashcards');
 
-t('牌库完整：10 个牌库（语文 5 + 英语 5），卡面不重复、释义非空', () => {
-  assert.strictEqual(FC.DECKS.length, 10);
+t('牌库完整：12 个牌库（语文 5 + 英语 5 + 数学 2），卡面不重复、释义非空', () => {
+  assert.strictEqual(FC.DECKS.length, 12);
+  assert.strictEqual(FC.DECKS.filter(d => d.subject === 'math').length, 2);
   assert.strictEqual(FC.DECKS.filter(d => d.subject === 'chinese').length, 5);
   assert.strictEqual(FC.DECKS.filter(d => d.subject === 'english').length, 5);
   FC.DECKS.forEach(deck => {
@@ -2777,6 +2792,41 @@ t('牌库完整：10 个牌库（语文 5 + 英语 5），卡面不重复、释�
   });
 });
 
+t('数学记忆卡：凑十搭档（9 张）与 20 以内数的组成（10 张），答案都和算式一致', () => {
+  const ten = FC.getDeck('ma-ten');
+  const comp = FC.getDeck('ma-u5');
+  assert(ten && comp, '两个数学牌组');
+  assert.deepStrictEqual([ten.subject, ten.cards.length, comp.subject, comp.cards.length], ['math', 9, 'math', 10]);
+  ten.cards.forEach(c => { const a = Number(/^(\d+) /.exec(c.front)[1]); assert.strictEqual(a + Number(c.back), 10, c.front); });
+  comp.cards.forEach(c => {
+    const m = /^(\d+) 个十(?:和 (\d+) 个一)?/.exec(c.front);
+    assert.strictEqual(Number(m[1]) * 10 + Number(m[2] || 0), Number(c.back), c.front);
+  });
+});
+t('记忆卡汇总（纯函数，可传入孩子的进度）：每个牌组已掌握 / 总数 / 还没记住的卡', () => {
+  const st = { 'en-u5': { eye: { knownCount: 2, lastAt: 1 }, ear: { knownCount: 1, lastAt: 1 } }, 'ma-ten': {} };
+  const sum = FC.summary(st);
+  assert.strictEqual(sum.decks.length, FC.DECKS.length);
+  const u5 = sum.decks.find(d => d.id === 'en-u5');
+  assert.deepStrictEqual([u5.mastered, u5.total], [1, 5]);
+  assert.deepStrictEqual(u5.left, ['ear', 'nose', 'mouth', 'face'], '没记住的按牌组顺序列出');
+  assert.strictEqual(sum.mastered, 1);
+  assert.strictEqual(sum.total, FC.DECKS.reduce((s, d) => s + d.cards.length, 0));
+  assert.strictEqual(sum.fullDecks, 0);
+  const full = {}; full['en-u2'] = {}; FC.getDeck('en-u2').cards.forEach(c => { full['en-u2'][c.front] = { knownCount: 2, lastAt: 1 }; });
+  assert.strictEqual(FC.summary(full).fullDecks, 1);
+  assert.deepStrictEqual(FC.summary(null).mastered, 0);
+});
+t('勋章「小小字典」：任意一个记忆卡牌组全部掌握', () => {
+  reset();
+  const deck = FC.getDeck('en-u2');
+  deck.cards.slice(0, -1).forEach(c => { FC.markCard('en-u2', c.front, true, 1); FC.markCard('en-u2', c.front, true, 2); });
+  assert(!B.evaluate([], { grade: 1 }).find(b => b.id === 'deck_master'), '还差一张');
+  const last = deck.cards[deck.cards.length - 1].front;
+  FC.markCard('en-u2', last, true, 3); FC.markCard('en-u2', last, true, 4);
+  assert(B.evaluate([], { grade: 1 }).find(b => b.id === 'deck_master'));
+  assert.strictEqual(C.BADGE_BONUS.deck_master, 10);
+});
 t('组会话：未掌握优先入选，已掌握仅兜底补齐，确定性', () => {
   reset();
   const deckId = 'en-u5'; // 5 张卡：eye/ear/nose/mouth/face

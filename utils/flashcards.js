@@ -1,4 +1,4 @@
-// 记忆卡：语文生字 + 英语单词闪卡（自节奏"认识/再练练"练习）
+// 记忆卡：语文生字 + 英语单词 + 数学（凑十 / 数的组成）闪卡（自节奏"认识/再练练"练习）
 // 卡片内容全部取自试卷知识库答案页实际考到的字/词（content/exams/data/*.json），
 // 组词/释义为教材常用义。牌库按单元划分，与每周一卷的单元筛选同构。
 const store = require('./store');
@@ -16,6 +16,12 @@ const EN_U3 = ['schoolbag:书包', 'pencil:铅笔', 'ruler:尺子', 'book:书', 
 const EN_U4 = ['desk:课桌', 'chair:椅子', 'door:门', 'blackboard:黑板', 'floor:地面', 'classroom:教室'];
 const EN_U5 = ['eye:眼睛', 'ear:耳朵', 'nose:鼻子', 'mouth:嘴巴', 'face:脸'];
 const EN_U6 = ['mum:妈妈', 'dad:爸爸', 'sister:姐妹', 'brother:兄弟', 'family:家庭'];
+
+// ── 数学牌库（由算式生成，答案不会写错）──
+// 凑十搭档：对应第三、四单元"10 的分与合"，也是第六单元凑十法的基础
+const MA_TEN = Array.from({ length: 9 }, (_, i) => (i + 1) + ' 和几凑成 10？:' + (10 - (i + 1)));
+// 20 以内数的组成：对应第五单元"1 个十和几个一"
+const MA_U5 = Array.from({ length: 9 }, (_, i) => '1 个十和 ' + (i + 1) + ' 个一是几？:' + (11 + i)).concat(['2 个十是几？:20']);
 
 function toCards(pairs) {
   return pairs.map(pair => {
@@ -38,6 +44,8 @@ const DECKS = [
   { id: 'en-u4', subject: 'english', unit: 4, name: '英语 · U4 我的教室', cards: toCards(EN_U4) },
   { id: 'en-u5', subject: 'english', unit: 5, name: '英语 · U5 可爱的脸', cards: toCards(EN_U5) },
   { id: 'en-u6', subject: 'english', unit: 6, name: '英语 · U6 我的家庭', cards: toCards(EN_U6) },
+  { id: 'ma-ten', subject: 'math', unit: 3, name: '数学 · 凑十搭档', cards: toCards(MA_TEN) },
+  { id: 'ma-u5', subject: 'math', unit: 5, name: '数学 · 20 以内数的组成', cards: toCards(MA_U5) },
 ];
 
 function getDeck(id) { return DECKS.find(d => d.id === id) || null; }
@@ -112,4 +120,21 @@ function deckStats(deckId) {
   return { total: deck.cards.length, mastered, unseen };
 }
 
-module.exports = { DECKS, getDeck, markCard, buildSession, deckStats, MASTER_AT };
+// 全部牌组的掌握汇总（纯函数）：state 传入进度对象（孩子端本机 / 家长端孩子缓存），缺省读本机
+// 返回 { decks: [{ id, name, subject, total, mastered, left: [没记住的卡面] }], total, mastered, fullDecks }
+function summary(state) {
+  const all = state === undefined ? store.getFlashcards() : (state || {});
+  let total = 0, mastered = 0, fullDecks = 0;
+  const decks = DECKS.map(d => {
+    const st = all[d.id] || {};
+    const left = d.cards.filter(c => !(st[c.front] && (st[c.front].knownCount || 0) >= MASTER_AT)).map(c => c.front);
+    const m = d.cards.length - left.length;
+    total += d.cards.length;
+    mastered += m;
+    if (!left.length) fullDecks++;
+    return { id: d.id, name: d.name, subject: d.subject, total: d.cards.length, mastered: m, left };
+  });
+  return { decks, total, mastered, fullDecks };
+}
+
+module.exports = { DECKS, getDeck, markCard, buildSession, deckStats, summary, MASTER_AT };

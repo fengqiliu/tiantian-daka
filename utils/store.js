@@ -31,6 +31,7 @@ const KEYS = {
   CHILD_MATH_WRONG: 'child_math_wrong', // 家长端缓存：孩子口算错题本
   CHILD_QUIZ_WRONG: 'child_quiz_wrong', // 家长端缓存：孩子小卷错题本
   CHILD_GOALS: 'child_goals',        // 家长端缓存：孩子每周小目标
+  CHILD_CARDS: 'child_cards',        // 家长端缓存：孩子的记忆卡进度
   CHILD_OVERRIDES: 'child_overrides', // 家长端缓存：孩子的任务覆盖（自定义任务名、目标、冲刺窗口）
   FLASHCARDS: 'flashcards',          // 记忆卡进度：{ [牌组]: { [卡片正面]: { knownCount, lastAt } } }
 };
@@ -297,6 +298,7 @@ function getChildMathWrong() { return _get(KEYS.CHILD_MATH_WRONG, []); }
 function getChildQuizWrong() { return _get(KEYS.CHILD_QUIZ_WRONG, []); }
 function getChildGoals() { return _get(KEYS.CHILD_GOALS, {}); }
 // practice / wrongBook 缺省（旧版云函数不返回）时保留已有缓存
+function getChildFlashcards() { return _get(KEYS.CHILD_CARDS, {}); }
 function getChildTaskOverrides() { return _get(KEYS.CHILD_OVERRIDES, { targets: {}, customs: [] }); }
 
 function saveChildData(profile, records, badges, practice, wrongBook, overrides) {
@@ -313,6 +315,7 @@ function saveChildData(profile, records, badges, practice, wrongBook, overrides)
     _set(KEYS.CHILD_QUIZ, practice.quiz || []);
     _set(KEYS.CHILD_REVIEW, practice.review || []);
     _set(KEYS.CHILD_GOALS, practice.goals || {});
+    _set(KEYS.CHILD_CARDS, practice.cards || {});
   }
 }
 
@@ -327,6 +330,7 @@ function clearChildData() {
   _remove(KEYS.CHILD_QUIZ_WRONG);
   _remove(KEYS.CHILD_GOALS);
   _remove(KEYS.CHILD_OVERRIDES);
+  _remove(KEYS.CHILD_CARDS);
 }
 
 function clearAll() {
@@ -358,7 +362,7 @@ module.exports = {
   getTimer, saveTimer,
   getSyncState, saveSyncState,
   getChildProfile, getChildRecords, getChildBadges, getChildDrillHistory, getChildQuizHistory, getChildReviewLog,
-  getChildMathWrong, getChildQuizWrong, getChildGoals, getChildTaskOverrides,
+  getChildMathWrong, getChildQuizWrong, getChildGoals, getChildTaskOverrides, getChildFlashcards,
   saveChildData, clearChildData,
   clearAll,
 };

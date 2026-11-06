@@ -127,4 +127,18 @@
     </block>
     <view wx:else class="muted rp-empty">做过小卷后，这里按单元显示掌握情况</view>
   </view>
+
+  <view class="card">
+    <view class="row rp-sec">
+      <view class="h2 flex1">🃏 记忆卡</view>
+      <view class="muted">{{flashLine}}</view>
+    </view>
+    <view class="wb-item" wx:for="{{flashRows}}" wx:key="id" wx:for-item="f">
+      <view class="row">
+        <view class="flex1 wb-text">{{f.name}}</view>
+        <view class="rp-mark {{f.done ? 'mastered' : ''}}">{{f.text}}</view>
+      </view>
+      <view class="muted rp-flash-left">{{f.left}}</view>
+    </view>
+  </view>
 </view>

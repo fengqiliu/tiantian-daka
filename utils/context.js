@@ -18,6 +18,7 @@ function scope() {
       mathWrong: store.getMathWrong(),
       quizWrong: store.getQuizWrong(),
       goals: store.getGoals(),
+      flashcards: store.getFlashcards(),
       readOnly: false,
       bound: true,
     };
@@ -36,6 +37,7 @@ function scope() {
     mathWrong: store.getChildMathWrong(),
     quizWrong: store.getChildQuizWrong(),
     goals: store.getChildGoals(),
+    flashcards: store.getChildFlashcards(),
     readOnly: true,
     bound: !!child,
   };

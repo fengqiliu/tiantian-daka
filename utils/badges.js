@@ -41,6 +41,7 @@ const BADGE_DEFS = [
   { id: 'poem_6', name: '背诗小能手', emoji: '📜', desc: '累计背诵 6 首古诗', check: c => c.poemCount >= 6 },
   { id: 'drill_perfect_3', name: '口算满分王', emoji: '🎯', desc: '口算挑战满分 3 次（每次 ≥10 题）', check: c => c.drillPerfectCount >= 3 },
   { id: 'review_7', name: '错题克星', emoji: '🛡️', desc: '累计 7 天完成错题复习', check: c => c.reviewDays >= 7 },
+  { id: 'deck_master', name: '小小字典', emoji: '📖', desc: '任意一个记忆卡牌组全部掌握', check: c => c.flashFullDecks() >= 1 },
   { id: 'units_lit', name: '单元点灯人', emoji: '🗺️', desc: '任意一科全册单元都点亮 2 颗星', check: c => c.starMap().some(s => s.units.every(u => u.stars >= 2)) },
 ].map(d => ({ ...d, bonus: C.BADGE_BONUS[d.id] || 0 }));
 
@@ -62,6 +63,7 @@ function evaluate(records, profile, today) {
     reviewDays: store.getReviewLog().length,
     // 单元星图按需计算（延迟 require：quiz 依赖题库，只有用到时才加载）
     starMap: () => require('./quiz').starMap(store.getQuizHistory()),
+    flashFullDecks: () => require('./flashcards').summary().fullDecks,
   };
   const earned = store.getBadges();
   const have = new Set(earned.map(b => b.id));

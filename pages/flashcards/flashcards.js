@@ -1,5 +1,8 @@
 const FC = require('../../utils/flashcards');
 const CTX = require('../../utils/context');
+const B = require('../../utils/badges');
+const store = require('../../utils/store');
+const cloud = require('../../utils/cloud');
 
 const SUBJECT_META = {
   chinese: { name: '语文', emoji: '📕' },
@@ -17,7 +20,9 @@ Page({
     idx: 0,
     flipped: false,
     sessionKnown: 0,
+    newBadge: '',
     isChinese: false,
+    cardClass: 'en', // cn：大字 / en：单词 / ma：数学题面
   },
 
   onLoad() {
@@ -35,6 +40,7 @@ Page({
     const groups = [
       { key: 'chinese', name: '语文生字', emoji: '📕' },
       { key: 'english', name: '英语单词', emoji: '🔤' },
+      { key: 'math', name: '数学小卡片', emoji: '🧮' },
     ].map(g => ({
       ...g,
       decks: FC.DECKS.filter(d => d.subject === g.key).map(d => {
@@ -59,6 +65,7 @@ Page({
       phase: 'play', deckId, deckName: deck.name,
       cards, total, idx: 0, flipped: false, sessionKnown: 0,
       isChinese: deck.subject === 'chinese',
+      cardClass: deck.subject === 'chinese' ? 'cn' : deck.subject === 'math' ? 'ma' : 'en',
     });
   },
 
@@ -74,7 +81,11 @@ Page({
     const sessionKnown = this.data.sessionKnown + (known ? 1 : 0);
     const idx = this.data.idx + 1;
     if (idx >= this.data.total) {
-      this.setData({ sessionKnown, phase: 'done' });
+      // 一组练完：检查勋章（「小小字典」：一个牌组全部掌握），并把进度同步上云
+      const fresh = B.evaluate(store.getRecords(), store.getProfile());
+      const b = fresh.length ? B.badgeById(fresh[0].id) : null;
+      this.setData({ sessionKnown, phase: 'done', newBadge: b ? b.emoji + ' ' + b.name : '' });
+      cloud.syncAll();
       this.refresh();
       return;
     }

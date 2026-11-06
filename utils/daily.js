@@ -51,11 +51,11 @@ function build(opts) {
   return { cards: mathCards.concat(quizCards, flashCards(opts.date, rng)), weak };
 }
 
-// 记忆卡：当天科目是语文 / 英语时从该科牌组里选，数学日从全部牌组里选；取"未掌握最多"的牌组出 FLASH_N 张。
+// 记忆卡：从当天科目（语文 / 英语 / 数学）的牌组里取"未掌握最多"的一组出 FLASH_N 张。
 // 全部掌握了就不加
 function flashCards(date, rng) {
   const subject = subjectOf(date);
-  const pool = FC.DECKS.filter(d => subject === 'math' || d.subject === subject);
+  const pool = FC.DECKS.filter(d => d.subject === subject);
   const best = pool
     .map(d => { const st = FC.deckStats(d.id); return { deck: d, left: st.total - st.mastered }; })
     .filter(x => x.left > 0)

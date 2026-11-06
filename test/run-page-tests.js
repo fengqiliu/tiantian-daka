@@ -273,6 +273,40 @@ t('家长端：孩子的自定义任务在日历里显示任务名（不是 cust
     T.setOverrideProvider(null);
   }
 });
+t('记忆卡：一组练完检查勋章——把一个牌组全部认识两遍拿到「小小字典」；成长页显示记忆卡掌握数', () => {
+  child(1);
+  const FC = require('../utils/flashcards');
+  const p = load('pages/flashcards/flashcards');
+  p.onLoad();
+  assert(p.data.groups.some(g => g.key === 'math' && g.decks.length === 2), '数学牌组出现在牌库列表');
+  for (let round = 0; round < 2; round++) {
+    p.onStart(tap({ id: 'en-u2' }));
+    while (p.data.phase === 'play') { p.onFlip(); p.onMark(tap({ known: '1' })); }
+  }
+  assert.strictEqual(FC.deckStats('en-u2').mastered, 4);
+  assert(store.getBadges().some(b => b.id === 'deck_master'), '拿到勋章');
+  assert.strictEqual(p.data.newBadge, '📖 小小字典');
+  const g = load('pages/growth/growth');
+  g.onShow();
+  const total = FC.DECKS.reduce((s, d) => s + d.cards.length, 0);
+  assert.strictEqual(g.data.flashLine, '记忆卡已掌握 4/' + total + ' 张 · 1 个牌组全部记住');
+});
+t('家长报告：记忆卡进度（读孩子同步过来的进度），列出各牌组还没记住的字词', () => {
+  child(1);
+  const FC = require('../utils/flashcards');
+  FC.markCard('en-u5', 'eye', true, 1); FC.markCard('en-u5', 'eye', true, 2);
+  const cards = store.getFlashcards();
+  store.clearAll();
+  store.saveProfile({ role: 'parent', grade: 0, nickname: '妈妈', onboarded: true });
+  store.saveChildData({ role: 'child', grade: 1, nickname: '小豆' }, [], [], { drill: [], quiz: [], review: [], goals: {}, cards }, null);
+  const rp = load('pages/report/report');
+  rp.onLoad();
+  const row = rp.data.flashRows.find(x => x.id === 'en-u5');
+  assert.deepStrictEqual([row.text, row.left], ['1/5', '还没记住：ear、nose、mouth、face']);
+  assert(/^记忆卡已掌握 1\/\d+ 张$/.test(rp.data.flashLine), rp.data.flashLine);
+  const untouched = rp.data.flashRows.find(x => x.id === 'cn-u1');
+  assert.strictEqual(untouched.left, '还没开始练', '一张都没练过的牌组不列一长串');
+});
 t('错题本筛选：按科目、只看今天到期的，两个条件可叠加；清空和导出仍针对全部', () => {
   child(1);
   const yest = D.addDays(today(), -1); // 昨天答错 → 今天到期

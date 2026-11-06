@@ -98,6 +98,7 @@
       </view>
     </view>
   </view>
+  <view class="muted sm-tip">🃏 {{flashLine}}</view>
   <view class="muted sm-tip">小卷答满 3 题点亮 1 颗星；正确率 80% 以上 2 颗、90% 以上 3 颗。一科全部单元 2 颗星得「单元点灯人」勋章</view>
 
   <view class="sec-header row" style="padding: 8rpx 32rpx 16rpx;">

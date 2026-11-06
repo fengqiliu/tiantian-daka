@@ -2,7 +2,7 @@
 //
 // 协议（与云函数 cloudfunctions/sync 对应）：
 // - 推送 pushData：本地 updatedAt > lastPushAt 的记录（含墓碑）+ 全量 profile / badges
-// - 拉取 pullData：云端 updatedAt > lastPullAt 的记录（含墓碑）+ profile + badges
+// - 拉取 pullData：云端 serverAt（服务器写入时间）> lastPullAt 的记录（含墓碑）+ profile + badges
 // - 冲突规则：记录/资料按 updatedAt 新者胜；勋章只增不删，取并集；练习历史按 at 取并集
 // - 删除：墓碑（deleted: true）双向传播
 // - 游标取本次传输的最大 updatedAt，避免测试/时钟回拨下的丢包
@@ -21,7 +21,7 @@ function mergePull({ records = [], profile = null, badges = [], overrides = null
     const index = {};
     raw.forEach((r, i) => { index[r.id] = i; });
     records.forEach(rm => {
-      maxPulled = Math.max(maxPulled, rm.updatedAt || 0);
+      maxPulled = Math.max(maxPulled, rm.serverAt || rm.updatedAt || 0); // 游标用服务器写入时间（0.36.0）
       const i = index[rm.id];
       if (i === undefined) { raw.push(rm); index[rm.id] = raw.length - 1; }
       else if ((rm.updatedAt || 0) > (raw[i].updatedAt || 0)) { raw[i] = rm; }
@@ -125,8 +125,15 @@ async function push(api) {
 }
 
 // 拉取云端变更并合并；api = { pullData({since}) -> {ok, records, profile, badges, overrides?} }
+// 游标是记录的服务器写入时间 serverAt（0.36.0 起）。之前的版本用客户端写的 updatedAt 当游标，
+// 两者不可比：升级后第一次拉取把旧游标作废、从头拉一次（按 id 合并，幂等）
+const CURSOR_VERSION = 2;
 async function pull(api) {
-  const st = store.getSyncState();
+  let st = store.getSyncState();
+  if (st.cursorVersion !== CURSOR_VERSION) {
+    st = { ...st, lastPullAt: 0, cursorVersion: CURSOR_VERSION };
+    store.saveSyncState(st);
+  }
   const res = await api.pullData({ since: st.lastPullAt || 0 });
   if (!res || res.ok === false) return false;
   const maxPulled = mergePull(res);

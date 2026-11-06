@@ -31,7 +31,7 @@
 
 由 `family.summary` 刷新，页面经 `utils/context.js` 的 `scope()` 读取：
 
-`ttdr_child_profile` · `ttdr_child_records` · `ttdr_child_badges` · `ttdr_child_drill` · `ttdr_child_quiz` · `ttdr_child_review` · `ttdr_child_goals` · `ttdr_child_math_wrong` · `ttdr_child_quiz_wrong` · `ttdr_child_overrides`（0.35.0：孩子的任务覆盖，家长端任务生成用它，显示孩子的自定义任务名）
+`ttdr_child_profile` · `ttdr_child_records` · `ttdr_child_badges` · `ttdr_child_drill` · `ttdr_child_quiz` · `ttdr_child_review` · `ttdr_child_goals` · `ttdr_child_math_wrong` · `ttdr_child_quiz_wrong` · `ttdr_child_cards`（0.36.0：孩子的记忆卡进度，家长报告用） · `ttdr_child_overrides`（0.35.0：孩子的任务覆盖，家长端任务生成用它，显示孩子的自定义任务名）
 
 旧版云函数不返回某个字段时保留已有缓存；解绑或一键清空时一并清除。
 
@@ -123,7 +123,7 @@
 
 | 数据 | 云端位置 | 合并规则 |
 | --- | --- | --- |
-| 打卡记录 | `checkins`（每条一文档） | 增量：只传 `updatedAt` 大于游标的记录（含墓碑）；按 `updatedAt` 新者胜。游标以云函数返回的服务器时间封顶，防设备时钟快导致漏传 |
+| 打卡记录 | `checkins`（每条一文档） | 推送：本机 `updatedAt` 大于推送游标的记录（含墓碑），按 `updatedAt` 新者胜；拉取：云端 `serverAt` 大于拉取游标的记录（0.36.0 起用服务器时间，离线设备晚上传的记录也拉得到；升级后第一次拉取从头拉）。游标以云函数返回的服务器时间封顶，防设备时钟快导致漏传 |
 | 资料 | `users.profile` | 按 `updatedAt` 新者胜 |
 | 勋章 | `badges` | 只增不删，取并集 |
 | 任务覆盖 / 奖励小铺 / 错题本 | `users.taskOverrides` / `users.shop` / `users.wrongBook` | 会被原地修改，整体按时间戳新者胜；写入时间戳严格递增（同毫秒连续写也生效）；本地从未写过（无时间戳）时不上传，避免空数据覆盖云端；例外是 0.16.0 之前已有题的错题本，以时间戳 1 上传一次 |
@@ -140,7 +140,7 @@
 | 集合 | 文档结构 | 说明 |
 | --- | --- | --- |
 | `users` | `{ openid, joinFail?: { n, since }, profile, taskOverrides, shop, practice: { drill[], quiz[], review[], goals, cards }, wrongBook: { math[], quiz[], updatedAt }, remindEnabled, remindQuota, remindHour, createdAt }` | `login` 首次调用自动创建 |
-| `checkins` | 本地 record + `openid` | 推荐索引：`(openid+updatedAt)`、`(openid+date)` |
+| `checkins` | 本地 record + `openid` + `serverAt`（云端写入时盖的服务器时间，0.36.0） | 推荐索引：`(openid+serverAt)`、`(openid+id)`、`(openid+date)` |
 | `badges` | `{ openid, id, earnedAt }` | 并集写入 |
 | `families` | `{ code, ownerOpenid, ownerProfile, members:[{openid, parentSubQuota, weeklyQuota, joinedAt}], createdAt }` | `code` 为 6 位邀请码（去除易混淆字符 0/O/1/I/L） |
 | `cheers` | `{ ownerOpenid, fromOpenid, from, text, recordId, recordLabel, createdAt, readAt, reaction, reactedAt }` | 家长鼓励留言与孩子的表情回复，只经 `family` 云函数读写；建议集合权限设为「所有用户不可读写」。推荐索引：`(ownerOpenid+createdAt)`、`(fromOpenid+createdAt)` |

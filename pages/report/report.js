@@ -10,6 +10,7 @@ const CTX = require('../../utils/context');
 const LEVEL_NAME = {};
 Object.keys(AR.LEVELS).forEach(k => { LEVEL_NAME[k] = AR.LEVELS[k].name; });
 const SUBJ = require('../../utils/subjects');
+const FC = require('../../utils/flashcards');
 
 Page({
   data: {
@@ -28,6 +29,8 @@ Page({
     quizRows: [],
     mastery: [],
     masteryLine: '',
+    flashRows: [],
+    flashLine: '',
   },
 
   onLoad() {
@@ -111,6 +114,17 @@ Page({
       : needCount ? needCount + ' 个单元需要再练'
         : '练过的单元都掌握得不错';
 
+    // 记忆卡进度（家长端读孩子同步过来的）：每个牌组已掌握 / 总数，没记住的字词最多列 6 个
+    const fsum = FC.summary(s.flashcards);
+    const flashRows = fsum.decks.map(d => {
+      const touched = Object.keys((s.flashcards || {})[d.id] || {}).length > 0;
+      const left = !touched ? '还没开始练'
+        : !d.left.length ? '全部记住了 🎉'
+          : '还没记住：' + d.left.slice(0, 6).join('、') + (d.left.length > 6 ? ' 等 ' + d.left.length + ' 个' : '');
+      return { id: d.id, name: d.name, text: d.mastered + '/' + d.total, left, done: !d.left.length };
+    });
+    const flashLine = '记忆卡已掌握 ' + fsum.mastered + '/' + fsum.total + ' 张';
+
     const thisMonday = D.mondayOf(today);
     const week = REPORT.weeklyDigest({ ...s, today }, this.data.weekMonday);
     week.title = this.data.weekMonday === thisMonday ? '本周（进行中）'
@@ -134,6 +148,8 @@ Page({
       quizRows,
       mastery,
       masteryLine,
+      flashRows,
+      flashLine,
     });
   },
 });

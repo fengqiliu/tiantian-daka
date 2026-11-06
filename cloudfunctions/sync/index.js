@@ -10,14 +10,18 @@ const SAN = require('./lib/sanitize.js');
 
 const PULL_PAGE = 1000; // 单次查询上限 1000：3000 条只需 3 次往返（原先每页 100 条要 30 次）
 const MAX_PULL = 3000; // 拉取上限（约一年记录量）
+// 本实例上一次分配的 serverAt：同一毫秒内的连续 push 也严格递增（否则游标用 _.gt 会跳过同一时刻写入的记录）
+let lastStamp = 0;
 
+// 拉取按服务器写入时间 serverAt 做游标（不用客户端写的 updatedAt）：
+// 离线很久的设备晚上传的"旧"记录，updatedAt 早于别的设备的游标，用 updatedAt 就永远拉不到
 async function pullRecords(openid, since) {
   const out = [];
   let offset = 0;
   while (out.length < MAX_PULL) {
     const page = await db.collection('checkins')
-      .where({ openid, updatedAt: _.gt(since) })
-      .orderBy('updatedAt', 'asc')
+      .where({ openid, serverAt: _.gt(since) })
+      .orderBy('serverAt', 'asc')
       .skip(offset)
       .limit(PULL_PAGE)
       .get();
@@ -33,7 +37,7 @@ function strip(doc) {
   return {
     id: doc.id, date: doc.date, taskId: doc.taskId,
     value: doc.value, stars: doc.stars, note: doc.note,
-    deleted: !!doc.deleted, updatedAt: doc.updatedAt,
+    deleted: !!doc.deleted, updatedAt: doc.updatedAt, serverAt: doc.serverAt || 0,
     makeup: !!doc.makeup, makeupAt: doc.makeupAt || 0, // 补打卡标记
   };
 }
@@ -62,12 +66,15 @@ exports.main = async (event) => {
       const found = await db.collection('checkins').where({ openid: OPENID, id: _.in(ids.slice(i, i + 100)) }).limit(1000).get();
       found.data.forEach(d => existing.set(d.id, d));
     }
+    // 每条写入盖服务器时间 serverAt（拉取游标用）；同一批逐条 +1，保证互不相同，截断边界不会因并列跳过
+    let stamp = Math.max(now, lastStamp + 1);
     const writes = [];
     cleaned.forEach(r => {
       const cur = existing.get(r.id);
-      if (!cur) writes.push(() => db.collection('checkins').add({ data: { ...r, openid: OPENID } }));
-      else if ((cur.updatedAt || 0) < r.updatedAt) writes.push(() => db.collection('checkins').doc(cur._id).update({ data: { ...r, openid: OPENID } }));
+      if (!cur) { const doc = { ...r, openid: OPENID, serverAt: stamp++ }; writes.push(() => db.collection('checkins').add({ data: doc })); }
+      else if ((cur.updatedAt || 0) < r.updatedAt) { const doc = { ...r, openid: OPENID, serverAt: stamp++ }; writes.push(() => db.collection('checkins').doc(cur._id).update({ data: doc })); }
     });
+    lastStamp = stamp - 1;
     for (let i = 0; i < writes.length; i += 20) await Promise.all(writes.slice(i, i + 20).map(w => w()));
     // 资料：云端较旧才覆盖
     if (SAN.withinBytes(event.profile, SAN.LIMITS.profile)) {

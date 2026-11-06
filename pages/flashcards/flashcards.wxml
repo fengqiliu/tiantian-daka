@@ -23,8 +23,8 @@
 
   <block wx:if="{{phase === 'play'}}">
     <view class="muted fc-progress">第 {{idx + 1}}/{{total}} 张 · 本组直接认识 {{sessionKnown}} 次</view>
-    <view class="card fc-card {{isChinese ? 'cn' : 'en'}}" bindtap="onFlip">
-      <view class="fc-front {{isChinese ? 'cn' : 'en'}}">{{cards[idx].front}}</view>
+    <view class="card fc-card {{cardClass}}" bindtap="onFlip">
+      <view class="fc-front {{cardClass}}">{{cards[idx].front}}</view>
       <view class="fc-back {{flipped ? 'show' : ''}}">{{cards[idx].back}}</view>
       <view class="muted fc-tap">{{flipped ? '读完点下方按钮自评' : '点卡片看答案'}}</view>
     </view>
@@ -40,6 +40,7 @@
       <view class="fc-done-emoji">🃏</view>
       <view class="h2">本组练完！</view>
       <view class="muted">{{total}} 张 · 直接认识 {{sessionKnown}} 次 · 明天再练巩固</view>
+      <view class="fc-badge" wx:if="{{newBadge}}">获得新勋章 {{newBadge}}</view>
       <view class="btn-primary" style="margin-top: 28rpx;" bindtap="onAgain">再来一组</view>
       <view class="btn-ghost" style="margin-top: 20rpx;" bindtap="onBack">返回</view>
     </view>
