@@ -57,7 +57,7 @@ function flashCards(date, rng) {
   const subject = subjectOf(date);
   const pool = FC.DECKS.filter(d => d.subject === subject);
   const best = pool
-    .map(d => { const st = FC.deckStats(d.id); return { deck: d, left: st.total - st.mastered }; })
+    .map(d => { const st = FC.deckStats(d.id); return { deck: d, left: st.total - st.mastered + FC.dueCount(d.id) }; }) // 未掌握 + 到期该巩固
     .filter(x => x.left > 0)
     .sort((a, b) => b.left - a.left)[0];
   if (!best) return [];
@@ -94,4 +94,14 @@ function record(results, date) {
 
 function doneOn(date, quizHistory) { return (quizHistory || []).some(h => h.daily && h.date === date); }
 
-module.exports = { MATH_N, QUIZ_N, WEAK_N, FLASH_N, subjectOf, weakUnit, build, record, doneOn };
+// 连续做今日一练的天数：从今天往前数；今天还没练从昨天数（今天还有机会，不算断）。
+// 数据来自小卷历史（上限 50 条，每天 1-2 条），能数到的最长约 25 天
+function streak(quizHistory, today) {
+  const days = new Set((quizHistory || []).filter(h => h && h.daily && h.date).map(h => h.date));
+  let d = days.has(today) ? today : D.addDays(today, -1);
+  let n = 0;
+  while (days.has(d)) { n++; d = D.addDays(d, -1); }
+  return n;
+}
+
+module.exports = { MATH_N, QUIZ_N, WEAK_N, FLASH_N, subjectOf, weakUnit, build, record, doneOn, streak };

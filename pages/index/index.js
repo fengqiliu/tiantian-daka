@@ -34,6 +34,7 @@ Page({
     exam: null, // 期末倒计时卡
     guide: null, // 首次使用引导卡片
     daily: null, // 今日一练卡片
+    childDaily: '', // 家长首页：孩子今日一练
     reviewDone: false,
     cheer: null, // { cheer, unread }：家长留言横幅
     reactions: CHEER.REACTIONS,
@@ -150,8 +151,13 @@ Page({
 
   // 今日一练卡片：一年级才显示（题库是一年级上册内容）
   dailyView() {
+    const today = D.todayStr();
+    const hist = store.getQuizHistory();
+    const done = DAILY.doneOn(today, hist);
+    const n = DAILY.streak(hist, today);
     return {
-      done: DAILY.doneOn(D.todayStr(), store.getQuizHistory()),
+      done,
+      streakText: !n ? '' : done ? '已连续 ' + n + ' 天' : '已连续 ' + n + ' 天，今天接着练',
       title: '今日一练',
       desc: '3 题口算 + 5 题小卷 + 3 张记忆卡，约 4 分钟',
     };
@@ -322,6 +328,7 @@ Page({
       weekStrip,
       weekly: this.buildWeekly(s, today),
       childGoal: this.goalView(s.goals, { records, grade, reviewLog: s.reviewLog }, today),
+      childDaily: grade === 1 ? this.childDailyLine(s.quizHistory, today) : '',
     });
 
     // 孩子最近一次回复（家长发出的留言列表；节流 1 分钟，失败保持原样）
@@ -343,6 +350,12 @@ Page({
         if (res && res.ok) this.refreshParent();
       }).catch(() => { this._refreshing = false; });
     }
+  },
+
+  // 家长首页：孩子今天做没做今日一练 + 连续天数（读孩子同步过来的小卷历史）
+  childDailyLine(quizHistory, today) {
+    const n = DAILY.streak(quizHistory, today);
+    return '🎯 今日一练：' + (DAILY.doneOn(today, quizHistory) ? '今天已练' : '今天还没练') + (n ? ' · 连续 ' + n + ' 天' : '');
   },
 
   // 上周周报摘要卡（家长端）：一句话 + 首条亮点/需关注

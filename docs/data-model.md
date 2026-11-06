@@ -14,7 +14,7 @@
 | `ttdr_records_YYYY` + `ttdr_records_years` | 打卡记录（按年分片，见 §1.4） | 每年一个数组 + 年份索引；删除为墓碑；旧版单一 `ttdr_records` 首次读取时自动迁移 | ✓ 增量 | ✓ |
 | `ttdr_badges` | 已获得勋章 | `[{ id, earnedAt }]` | ✓ 并集 | ✓ |
 | `ttdr_settings` | 设置 | `{ lastBackupAt, cheerFrom, ... }` | — | ✓ |
-| `ttdr_flashcards` | 记忆卡进度（0.32.0；0.35.0 前误存在键 `ttdr_undefined`，首次读取自动迁移） | `{ [牌库 id]: { [卡片正面]: { knownCount, lastAt } } }`，`knownCount` 连续认识次数（点"再练练"清零），≥2 即掌握；随 `users.practice.cards` 上云（每张卡取最近练过的一方），在备份里，「清空所有数据」会清掉 | ✓ 按卡取新 | ✓ |
+| `ttdr_flashcards` | 记忆卡进度（0.32.0；0.35.0 前误存在键 `ttdr_undefined`，首次读取自动迁移） | `{ [牌库 id]: { [卡片正面]: { knownCount, lastAt } } }`，`knownCount` 连续认识次数（点"再练练"清零），≥2 即掌握；掌握后按 `lastAt` 隔 3 天（2 次）/ 7 天（3 次）再出现巩固，≥4 次不再主动出现；随 `users.practice.cards` 上云（每张卡取最近练过的一方），在备份里，「清空所有数据」会清掉 | ✓ 按卡取新 | ✓ |
 | `ttdr_readings` | 跟读录音记录 | 音频文件只存本机，自动保留最近 7 天 | — | ✓ |
 | `ttdr_task_overrides` | 家长任务管理 | `{ targets: {taskId: n}, customs: [], sprintDays?, updatedAt }`；`sprintDays`：期末冲刺窗口（放假前 14 / 21 / 28 天，0 = 关闭，缺省 21；0.32.0 起家长在任务管理设置） | ✓ 新者胜 | ✓ |
 | `ttdr_rewards` / `ttdr_redemptions` / `ttdr_shop_stamp` | 奖励小铺 | 奖品架 / 兑换账本 / 整体时间戳 | ✓ 新者胜（整体） | ✓ |

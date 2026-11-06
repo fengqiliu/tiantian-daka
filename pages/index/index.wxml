@@ -45,6 +45,8 @@
         <view class="task-right"><text class="muted">›</text></view>
       </view>
 
+      <view class="card muted child-daily" wx:if="{{childDaily}}">{{childDaily}}</view>
+
       <view class="card goal-card" wx:if="{{childGoal}}">
         <view class="row">
           <view class="h2 flex1">🎯 孩子的本周目标 · {{childGoal.emoji}} {{childGoal.label}}</view>
@@ -173,6 +175,7 @@
       <view class="flex1 task-info">
         <view class="task-name">{{daily.title}}</view>
         <view class="muted">{{daily.done ? '今天练过啦，想再来一组也可以' : daily.desc}}</view>
+        <view class="daily-streak" wx:if="{{daily.streakText}}">🔥 {{daily.streakText}}</view>
       </view>
       <view class="task-right">
         <view wx:if="{{!daily.done}}" class="review-go">去练习</view>

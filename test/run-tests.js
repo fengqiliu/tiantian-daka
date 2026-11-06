@@ -412,6 +412,16 @@ t('期末冲刺任务：一年级在倒计时期间多一项自选「期末冲�
   assert(!T.generateDailyTasks(3, '2027-01-05').some(x => x.id === 'exam_sprint'), '题库是一年级内容，其他年级不出');
   assert(!T.generateDailyTasks(1, '2027-01-25').some(x => x.id === 'exam_sprint'), '假期里没有');
 });
+t('今日一练连续天数：按做过今日一练的日期往前数；今天还没练从昨天数；断一天清零', () => {
+  const DAILY = require('../utils/daily');
+  const h = dates => dates.map((date, i) => ({ subject: 'math', daily: true, date, at: i + 1 }));
+  assert.strictEqual(DAILY.streak(h(['2026-11-05', '2026-11-04', '2026-11-03']), '2026-11-05'), 3);
+  assert.strictEqual(DAILY.streak(h(['2026-11-04', '2026-11-03']), '2026-11-05'), 2, '今天还没练：从昨天数');
+  assert.strictEqual(DAILY.streak(h(['2026-11-03', '2026-11-02']), '2026-11-05'), 0, '昨天也没练：断了');
+  assert.strictEqual(DAILY.streak(h(['2026-11-05', '2026-11-05', '2026-11-04']), '2026-11-05'), 2, '同一天两条（两个科目）只算一天');
+  assert.strictEqual(DAILY.streak([{ subject: 'math', date: '2026-11-05', at: 1 }], '2026-11-05'), 0, '普通小卷不算');
+  assert.strictEqual(DAILY.streak(null, '2026-11-05'), 0);
+});
 t('冲刺窗口可由家长设置：14/21/28 天或关闭，非法值回到 21 天，设置变化后清单立即变化', () => {
   const withDays = d => { T.setOverrideProvider(() => ({ targets: {}, customs: [], ...(d === undefined ? {} : { sprintDays: d }), updatedAt: 5 })); };
   try {
@@ -1054,7 +1064,7 @@ t('今日一练加 3 张记忆卡：选当天科目里未掌握最多的牌组�
   assert(d.cards.filter(c => c.source === 'flash').every(c => c.deckId.startsWith('ma-')), '数学日出数学卡');
   // 全部掌握 → 不加
   const all = {};
-  FC.DECKS.forEach(dk => { all[dk.id] = {}; dk.cards.forEach(c => { all[dk.id][c.front] = { knownCount: FC.MASTER_AT, lastAt: 1 }; }); });
+  FC.DECKS.forEach(dk => { all[dk.id] = {}; dk.cards.forEach(c => { all[dk.id][c.front] = { knownCount: 4, lastAt: 1 }; }); }); // 已巩固两次：不再主动出现
   store.saveFlashcards(all);
   d = DAILY.build({ grade: 1, date: '2026-11-05', rng: seededRng(2), quizHistory: [] });
   assert.strictEqual(d.cards.filter(c => c.source === 'flash').length, 0);
@@ -1824,7 +1834,7 @@ t('勋章「错题克星」：累计复习 7 天获得，+10⭐ 计入总星', (
   assert(B.evaluate([], profile).find(b => b.id === 'review_7'), '7 天获得');
   assert.strictEqual(C.BADGE_BONUS.review_7, 10);
   assert.strictEqual(C.totalStars([], 1, store.getBadges()), 10);
-  assert.strictEqual(B.BADGE_DEFS.length, 20);
+  assert.strictEqual(B.BADGE_DEFS.length, 21);
 });
 t('勋章「单元点灯人」：任意一科全册单元都达到 2 颗星', () => {
   reset();
@@ -1903,6 +1913,21 @@ t('进行中的周：和上一周"同样天数"比，周二不会因为本周只
   // 周日（本周整周）仍按整周对比
   const full = REPORT.weeklyDigest({ records: store.getRecords(), grade: 1, today: '2026-10-26' }, W0);
   assert.deepStrictEqual([full.achievedDays, full.vsPrev], [2, -3]);
+});
+t('周报：今日一练天数与本周记住的记忆卡进练习概况；达到 5 天 / 5 张进亮点', () => {
+  reset();
+  weekDates(W0).forEach(d => seedDay(d, 1, mustIds(d)(1)));
+  const quizHistory = weekDates(W0).slice(0, 5).map((date, i) => ({ subject: 'math', total: 5, correct: 5, label: '优秀', daily: true, date, at: ts(date) + i }));
+  quizHistory.push({ subject: 'math', total: 5, correct: 5, label: '优秀', daily: true, date: '2026-10-12', at: ts('2026-10-12') }); // 上周，不算
+  const inWeek = ts(D.addDays(W0, 3));
+  const flashcards = { 'en-u5': { eye: { knownCount: 2, lastAt: inWeek }, ear: { knownCount: 3, lastAt: inWeek }, nose: { knownCount: 2, lastAt: inWeek }, mouth: { knownCount: 2, lastAt: inWeek }, face: { knownCount: 2, lastAt: inWeek } },
+    'en-u6': { mum: { knownCount: 2, lastAt: ts('2026-10-12') }, dad: { knownCount: 1, lastAt: inWeek } } };
+  const g = digestOf({ quizHistory, flashcards });
+  assert.deepStrictEqual([g.daily.days, g.cards.learned], [5, 5], '今日一练 5 天、本周记住 5 张（上周记住的、没掌握的不算）');
+  assert(g.highlights.some(x => x === '今日一练坚持了 5 天'), JSON.stringify(g.highlights));
+  assert(g.highlights.some(x => x === '本周记住了 5 张记忆卡') || g.highlights.length === 3, '亮点最多 3 条');
+  const none = digestOf({});
+  assert.deepStrictEqual([none.daily.days, none.cards.learned], [0, 0]);
 });
 t('周区间：上周一 / 区间标签', () => {
   assert.strictEqual(REPORT.lastWeekMonday('2026-10-26'), '2026-10-19', '周一看上周');
@@ -2779,10 +2804,10 @@ t('一键清空：分片与年索引一并删除', () => {
 console.log('— 记忆卡 —');
 const FC = require('../utils/flashcards');
 
-t('牌库完整：12 个牌库（语文 5 + 英语 5 + 数学 2），卡面不重复、释义非空', () => {
-  assert.strictEqual(FC.DECKS.length, 12);
+t('牌库完整：15 个牌库（语文 8 + 英语 5 + 数学 2），卡面不重复、释义非空', () => {
+  assert.strictEqual(FC.DECKS.length, 15);
   assert.strictEqual(FC.DECKS.filter(d => d.subject === 'math').length, 2);
-  assert.strictEqual(FC.DECKS.filter(d => d.subject === 'chinese').length, 5);
+  assert.strictEqual(FC.DECKS.filter(d => d.subject === 'chinese').length, 8);
   assert.strictEqual(FC.DECKS.filter(d => d.subject === 'english').length, 5);
   FC.DECKS.forEach(deck => {
     const fronts = deck.cards.map(c => c.front);
@@ -2792,6 +2817,19 @@ t('牌库完整：12 个牌库（语文 5 + 英语 5 + 数学 2），卡面不�
   });
 });
 
+t('拼音记忆卡：语文第 2/3/4 单元「音节 → 汉字」，每张都出自知识库试卷答案页；正面是拼音（不用大字号）', () => {
+  ['cn-u2', 'cn-u3', 'cn-u4'].forEach((id, i) => {
+    const deck = FC.getDeck(id);
+    assert(deck, id);
+    assert.deepStrictEqual([deck.subject, deck.unit, deck.kind], ['chinese', i + 2, 'pinyin']);
+    assert(deck.cards.length >= 6, id + ' 至少 6 张');
+    const kb = JSON.stringify(require('../content/exams/data/chinese-g1s1-u' + (i + 2) + '.json'));
+    deck.cards.forEach(c => {
+      assert(kb.includes(c.front), id + ' 拼音出自试卷：' + c.front);
+      assert(c.back.split('').every(ch => kb.includes(ch)), id + ' 汉字出自试卷：' + c.back);
+    });
+  });
+});
 t('数学记忆卡：凑十搭档（9 张）与 20 以内数的组成（10 张），答案都和算式一致', () => {
   const ten = FC.getDeck('ma-ten');
   const comp = FC.getDeck('ma-u5');
@@ -2817,6 +2855,15 @@ t('记忆卡汇总（纯函数，可传入孩子的进度）：每个牌组已�
   assert.strictEqual(FC.summary(full).fullDecks, 1);
   assert.deepStrictEqual(FC.summary(null).mastered, 0);
 });
+t('勋章「天天练」：今日一练连续 7 天', () => {
+  reset();
+  const days = n => Array.from({ length: n }, (_, i) => D.addDays('2026-11-07', -i));
+  days(6).forEach((date, i) => QZ.saveHistory({ subject: 'math', total: 5, correct: 5, label: '优秀', daily: true, date }));
+  assert(!B.evaluate([], { grade: 1 }, '2026-11-07').find(b => b.id === 'daily_7'), '6 天不够');
+  QZ.saveHistory({ subject: 'math', total: 5, correct: 5, label: '优秀', daily: true, date: '2026-11-01' });
+  assert(B.evaluate([], { grade: 1 }, '2026-11-07').find(b => b.id === 'daily_7'), '连续 7 天');
+  assert.strictEqual(C.BADGE_BONUS.daily_7, 10);
+});
 t('勋章「小小字典」：任意一个记忆卡牌组全部掌握', () => {
   reset();
   const deck = FC.getDeck('en-u2');
@@ -2826,6 +2873,29 @@ t('勋章「小小字典」：任意一个记忆卡牌组全部掌握', () => {
   FC.markCard('en-u2', last, true, 3); FC.markCard('en-u2', last, true, 4);
   assert(B.evaluate([], { grade: 1 }).find(b => b.id === 'deck_master'));
   assert.strictEqual(C.BADGE_BONUS.deck_master, 10);
+});
+t('记忆卡间隔巩固：掌握后 3 天 / 7 天再出现一次，答对延后、忘了回到未掌握；连认 4 次后不再主动出现', () => {
+  reset();
+  const DAY = 24 * 3600 * 1000;
+  const t0 = Date.UTC(2026, 10, 1);
+  assert.strictEqual(FC.isDue({ knownCount: 1, lastAt: t0 }, t0), false, '未掌握的卡不算"到期巩固"');
+  assert.strictEqual(FC.isDue({ knownCount: 2, lastAt: t0 }, t0 + 2 * DAY), false);
+  assert.strictEqual(FC.isDue({ knownCount: 2, lastAt: t0 }, t0 + 3 * DAY), true, '掌握 3 天后到期');
+  assert.strictEqual(FC.isDue({ knownCount: 3, lastAt: t0 }, t0 + 6 * DAY), false);
+  assert.strictEqual(FC.isDue({ knownCount: 3, lastAt: t0 }, t0 + 7 * DAY), true, '第二次巩固隔 7 天');
+  assert.strictEqual(FC.isDue({ knownCount: 4, lastAt: t0 }, t0 + 100 * DAY), false, '巩固两次后不再主动出现');
+  // 组会话：未掌握 → 到期巩固 → 其余；牌组全部掌握且有到期的卡时，会话里先出到期的
+  const deck = FC.getDeck('en-u5');
+  deck.cards.forEach((c, i) => FC.markCard('en-u5', c.front, true, t0), FC);
+  deck.cards.forEach(c => FC.markCard('en-u5', c.front, true, t0)); // 全部 knownCount = 2
+  FC.markCard('en-u5', 'nose', true, t0 + 5 * DAY); // nose 已巩固过一次（3，最近才练）
+  const s = FC.buildSession('en-u5', 2, seededRng(1), t0 + 4 * DAY);
+  assert.deepStrictEqual(s.cards.map(c => c.front).sort(), ['eye', 'ear'].sort(), '最久没练且到期的先出');
+  assert(s.cards.every(c => c.due), '标记为巩固卡');
+  assert.strictEqual(FC.dueCount('en-u5', t0 + 4 * DAY), 4, '除 nose 外 4 张到期');
+  // 巩固时忘了 → 回到未掌握
+  FC.markCard('en-u5', 'eye', false, t0 + 4 * DAY);
+  assert.strictEqual(FC.deckStats('en-u5').mastered, 4);
 });
 t('组会话：未掌握优先入选，已掌握仅兜底补齐，确定性', () => {
   reset();

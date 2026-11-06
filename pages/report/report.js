@@ -132,7 +132,8 @@ Page({
     week.vsPrevAbs = Math.abs(week.vsPrev);
     week.practiceLine = '🧮 口算 ' + week.drill.count + ' 次'
       + (week.drill.accuracy === null ? '' : ' · 正确率 ' + week.drill.accuracy + '%')
-      + '　📝 小卷 ' + week.quiz.count + ' 份　🧠 复习 ' + week.review.days + ' 天';
+      + '　📝 小卷 ' + week.quiz.count + ' 份　🧠 复习 ' + week.review.days + ' 天'
+      + '　🎯 今日一练 ' + week.daily.days + ' 天　🃏 记住 ' + week.cards.learned + ' 张';
 
     this.setData({
       week,

@@ -82,7 +82,7 @@ const BADGE_BONUS = {
   full_week: 7, reader_10h: 10, calc_1000: 10, rope_10k: 10,
   bookworm: 10, sunshine: 10, writer: 5,
   first_redeem: 0, quiz_fan: 5, quiz_perfect: 10, poem_6: 10, drill_perfect_3: 10,
-  review_7: 10, units_lit: 10, deck_master: 10,
+  review_7: 10, units_lit: 10, deck_master: 10, daily_7: 10,
 };
 // 每达成一个每周小目标的奖励星（utils/goals.js 单向读取）
 const GOAL_BONUS = 5;

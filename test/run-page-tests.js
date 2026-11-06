@@ -307,6 +307,42 @@ t('家长报告：记忆卡进度（读孩子同步过来的进度），列出�
   const untouched = rp.data.flashRows.find(x => x.id === 'cn-u1');
   assert.strictEqual(untouched.left, '还没开始练', '一张都没练过的牌组不列一长串');
 });
+t('今日一练连续天数：孩子首页卡片显示连续天数；家长首页显示孩子今天练没练；周报练习概况带上今日一练与记忆卡', () => {
+  child(1);
+  [1, 2].forEach(i => QZ.saveHistory({ subject: 'math', total: 5, correct: 5, label: '优秀', daily: true, date: D.addDays(today(), -i) }));
+  let home = load('pages/index/index');
+  home.onShow();
+  assert.strictEqual(home.data.daily.streakText, '已连续 2 天，今天接着练');
+  QZ.saveHistory({ subject: 'chinese', total: 5, correct: 5, label: '优秀', daily: true, date: today() });
+  home = load('pages/index/index');
+  home.onShow();
+  assert.strictEqual(home.data.daily.streakText, '已连续 3 天');
+  const hist = QZ.getHistory();
+  store.clearAll();
+  store.saveProfile({ role: 'parent', grade: 0, nickname: '妈妈', onboarded: true });
+  store.saveChildData({ role: 'child', grade: 1, nickname: '小豆' }, [], [], { drill: [], quiz: hist, review: [], goals: {}, cards: {} }, null);
+  cloud.init('test-env'); // 家长首页需要云（未开通时只显示开通提示）
+  CM.setOpenid('parent1');
+  home = load('pages/index/index');
+  home.onShow();
+  assert.strictEqual(home.data.childDaily, '🎯 今日一练：今天已练 · 连续 3 天');
+  const rp = load('pages/report/report');
+  rp.setData({ weekMonday: D.mondayOf(today()) });
+  rp.refresh();
+  assert(/🎯 今日一练 \d 天/.test(rp.data.week.practiceLine) && /🃏 记住 \d+ 张/.test(rp.data.week.practiceLine), rp.data.week.practiceLine);
+});
+t('记忆卡牌库列表显示「待巩固」张数；巩固卡在练习时标出来', () => {
+  child(1);
+  const FC = require('../utils/flashcards');
+  const long = Date.now() - 10 * 24 * 3600 * 1000;
+  FC.getDeck('en-u5').cards.forEach(c => { FC.markCard('en-u5', c.front, true, long); FC.markCard('en-u5', c.front, true, long); });
+  const p = load('pages/flashcards/flashcards');
+  p.onLoad();
+  const deck = p.data.groups.find(g => g.key === 'english').decks.find(d => d.id === 'en-u5');
+  assert.deepStrictEqual([deck.mastered, deck.due], [5, 5]);
+  p.onStart(tap({ id: 'en-u5' }));
+  assert(p.data.cards.every(c => c.due), '全部是巩固卡');
+});
 t('错题本筛选：按科目、只看今天到期的，两个条件可叠加；清空和导出仍针对全部', () => {
   child(1);
   const yest = D.addDays(today(), -1); // 昨天答错 → 今天到期
@@ -417,7 +453,7 @@ t('今日一练：首页卡片 → 11 题混合练习（含 3 张记忆卡）→
   child(1);
   let home = load('pages/index/index');
   home.onShow();
-  assert.deepStrictEqual(home.data.daily, { done: false, title: '今日一练', desc: '3 题口算 + 5 题小卷 + 3 张记忆卡，约 4 分钟' });
+  assert.deepStrictEqual(home.data.daily, { done: false, streakText: '', title: '今日一练', desc: '3 题口算 + 5 题小卷 + 3 张记忆卡，约 4 分钟' });
   home.goDaily();
   assert.strictEqual(ui.navs.pop(), '/pages/review/review?mode=today');
   const p = load('pages/review/review');

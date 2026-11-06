@@ -42,3 +42,4 @@
 .fc-done-emoji { font-size: 100rpx; margin-bottom: 8rpx; }
 .fc-front.ma { font-size: 52rpx; line-height: 1.4; }
 .fc-badge { margin-top: 16rpx; color: #FF8A00; font-weight: 600; }
+.fc-due { color: #FF8A00; }

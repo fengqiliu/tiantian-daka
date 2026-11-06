@@ -7,6 +7,7 @@ const GOALS = require('./goals');
 const QZ = require('./quiz');
 
 const SUBJ = require('./subjects');
+const FC = require('./flashcards');
 const STUBBORN_MIN = 3; // 错满 3 次算"反复错"
 
 // 近 days 天逐个任务的出现/完成次数与完成率（升序，最常被跳过的排最前）
@@ -165,6 +166,8 @@ function weeklyDigest(data, monday) {
   const drill = { count: ds.count, total: ds.total, correct: ds.correct, accuracy: ds.accuracy };
   const quizIn = (data.quizHistory || []).filter(q => inWeek(D.formatDate(new Date(q.at))));
   const quiz = { count: quizIn.length, labels: quizIn.map(q => q.label) };
+  // 今日一练：本周做过的天数（同一天两个科目只算一天）
+  const daily = { days: new Set((data.quizHistory || []).filter(q => q.daily && q.date && inWeek(q.date)).map(q => q.date)).size };
   const revIn = (data.reviewLog || []).filter(x => inWeek(x.date));
   const review = {
     days: revIn.length,
@@ -173,6 +176,12 @@ function weeklyDigest(data, monday) {
   };
   const startTs = new Date(monday + 'T00:00:00').getTime();
   const endTs = new Date(D.addDays(monday, 7) + 'T00:00:00').getTime();
+  // 记忆卡：本周练过且已掌握的卡（最近一次练习在本周、连续认识 ≥ 掌握门槛）
+  let learned = 0;
+  Object.values(data.flashcards || {}).forEach(deck => Object.values(deck || {}).forEach(c => {
+    if (c && (c.knownCount || 0) >= FC.MASTER_AT && c.lastAt >= startTs && c.lastAt < endTs) learned++;
+  }));
+  const cards = { learned };
   const badgesEarned = (data.badges || [])
     .filter(b => b.earnedAt >= startTs && b.earnedAt < endTs)
     .map(b => {
@@ -206,6 +215,8 @@ function weeklyDigest(data, monday) {
   if (drill.count >= 2 && drill.accuracy >= 90) highlights.push('口算正确率 ' + drill.accuracy + '%（' + drill.count + ' 次练习）');
   if (review.days >= 3) highlights.push('错题复习坚持了 ' + review.days + ' 天');
   if (quiz.labels.indexOf('优秀') > -1) highlights.push('小卷拿到「优秀」');
+  if (daily.days >= 5) highlights.push('今日一练坚持了 ' + daily.days + ' 天');
+  if (cards.learned >= 5) highlights.push('本周记住了 ' + cards.learned + ' 张记忆卡');
 
   const attention = [];
   if (!ov.checkinDays) {
@@ -235,7 +246,7 @@ function weeklyDigest(data, monday) {
     achievedDays: ov.achievedDays,
     stars: ov.stars,
     vsPrev,
-    drill, quiz, review, badgesEarned, goal,
+    drill, quiz, review, daily, cards, badgesEarned, goal,
     highlights: highlights.slice(0, 3),
     attention: attention.slice(0, 3),
   };

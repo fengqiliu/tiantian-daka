@@ -14,7 +14,7 @@
           <view class="fc-track">
             <view class="fc-track-in" style="width: {{deck.pct}}%;"></view>
           </view>
-          <view class="muted">已掌握 {{deck.mastered}}/{{deck.total}}</view>
+          <view class="muted">已掌握 {{deck.mastered}}/{{deck.total}}<text class="fc-due" wx:if="{{deck.due}}"> · {{deck.due}} 张待巩固</text></view>
         </view>
         <view class="fc-start" data-id="{{deck.id}}" bindtap="onStart">开始</view>
       </view>
@@ -22,7 +22,7 @@
   </block>
 
   <block wx:if="{{phase === 'play'}}">
-    <view class="muted fc-progress">第 {{idx + 1}}/{{total}} 张 · 本组直接认识 {{sessionKnown}} 次</view>
+    <view class="muted fc-progress">第 {{idx + 1}}/{{total}} 张 · 本组直接认识 {{sessionKnown}} 次{{cards[idx].due ? " · 巩固卡" : ""}}</view>
     <view class="card fc-card {{cardClass}}" bindtap="onFlip">
       <view class="fc-front {{cardClass}}">{{cards[idx].front}}</view>
       <view class="fc-back {{flipped ? 'show' : ''}}">{{cards[idx].back}}</view>

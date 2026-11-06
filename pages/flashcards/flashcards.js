@@ -38,14 +38,14 @@ Page({
 
   refresh() {
     const groups = [
-      { key: 'chinese', name: '语文生字', emoji: '📕' },
+      { key: 'chinese', name: '语文拼音与生字', emoji: '📕' },
       { key: 'english', name: '英语单词', emoji: '🔤' },
       { key: 'math', name: '数学小卡片', emoji: '🧮' },
     ].map(g => ({
       ...g,
       decks: FC.DECKS.filter(d => d.subject === g.key).map(d => {
         const st = FC.deckStats(d.id);
-        return { ...d, mastered: st.mastered, total: st.total, pct: st.total ? Math.round((st.mastered / st.total) * 100) : 0 };
+        return { ...d, mastered: st.mastered, total: st.total, due: FC.dueCount(d.id), pct: st.total ? Math.round((st.mastered / st.total) * 100) : 0 };
       }),
     }));
     this.setData({ groups });
@@ -65,7 +65,7 @@ Page({
       phase: 'play', deckId, deckName: deck.name,
       cards, total, idx: 0, flipped: false, sessionKnown: 0,
       isChinese: deck.subject === 'chinese',
-      cardClass: deck.subject === 'chinese' ? 'cn' : deck.subject === 'math' ? 'ma' : 'en',
+      cardClass: deck.kind === 'pinyin' ? 'en' : deck.subject === 'chinese' ? 'cn' : deck.subject === 'math' ? 'ma' : 'en', // 拼音卡正面是拉丁字母，不用汉字大字号
     });
   },
 

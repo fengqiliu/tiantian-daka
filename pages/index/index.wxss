@@ -138,3 +138,5 @@
 .guide-dot { width: 16rpx; height: 16rpx; border-radius: 50%; background: #E8E2D6; }
 .guide-dot.on { background: #FF8A00; }
 .guide-skip { margin-top: 20rpx; font-size: 26rpx; }
+.daily-streak { margin-top: 6rpx; font-size: 24rpx; color: #FF8A00; }
+.child-daily { font-size: 28rpx; }

@@ -7,7 +7,7 @@ const RESET = require('../../utils/reset');
 const GD = require('../../utils/guide');
 
 const AVATARS = ['🐱', '🦊', '🐰', '🐻', '🐸', '🦁', '🐼', '🐷'];
-const APP_VERSION = '0.36.0';
+const APP_VERSION = '0.37.0';
 
 Page({
   data: {
