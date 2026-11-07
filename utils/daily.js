@@ -8,6 +8,7 @@ const QZ = require('./quiz');
 const REPORT = require('./report');
 const SUBJ = require('./subjects');
 const FC = require('./flashcards');
+const HM = require('./history-merge');
 
 const MATH_N = 3;
 const QUIZ_N = 5;
@@ -90,14 +91,17 @@ function record(results, date) {
       daily: true, date,
     });
   });
+  // 今日一练日志（连续天数、学期报告用；不受小卷历史 50 条上限影响）
+  const log = store.getDailyLog();
+  if (log.indexOf(date) < 0) store.saveDailyLog(HM.mergeDates(log, [date]));
 }
 
 function doneOn(date, quizHistory) { return (quizHistory || []).some(h => h.daily && h.date === date); }
 
 // 连续做今日一练的天数：从今天往前数；今天还没练从昨天数（今天还有机会，不算断）。
-// 数据来自小卷历史（上限 50 条，每天 1-2 条），能数到的最长约 25 天
-function streak(quizHistory, today) {
-  const days = new Set((quizHistory || []).filter(h => h && h.daily && h.date).map(h => h.date));
+// 数据来自今日一练日志（0.38.0）与小卷历史里的今日一练条目的并集（兼容升级前的数据）
+function streak(quizHistory, today, log) {
+  const days = new Set((quizHistory || []).filter(h => h && h.daily && h.date).map(h => h.date).concat(log || []));
   let d = days.has(today) ? today : D.addDays(today, -1);
   let n = 0;
   while (days.has(d)) { n++; d = D.addDays(d, -1); }

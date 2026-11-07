@@ -1,4 +1,4 @@
-<view class="rv safe-bottom">
+<view class="rv safe-bottom {{big ? 'big' : ''}}">
   <view class="rv-head">
     <view class="h1">{{mode === 'today' ? '🎯 今日一练' : '🧠 错题复习'}}</view>
     <view class="muted" wx:if="{{mode === 'today'}}">3 题口算 + 5 题小卷 + 3 张记忆卡，最薄弱的单元会多出几题 · 答错的题进错题本</view>

@@ -5,6 +5,7 @@ const db = cloud.database();
 const _ = db.command;
 const { NOTIFY_TEMPLATE_ID, WEEKLY_TEMPLATE_ID } = require('./config.js');
 const CHEER = require('./lib/cheer.js');
+const SUBJ = require('./lib/subjects.js');
 
 const DAY_MS = 24 * 3600 * 1000;
 
@@ -30,6 +31,12 @@ async function contentOk(openid, text) {
 }
 
 const MAX_SUMMARY_RECORDS = 5000;
+const MAX_OPEN_ASSIGN = 10; // 同时没做完的布置练习上限
+
+// 布置练习对外字段（带显示用的单元名）
+function assignView(a) {
+  return { id: a.id, subject: a.subject, unit: a.unit, label: SUBJ.nameOf(a.subject) + SUBJ.unitLabel(a.unit), createdAt: a.createdAt, doneAt: a.doneAt || 0, total: a.total || 0, correct: a.correct || 0 };
+}
 const JOIN_MAX_FAILS = 5;
 // 订阅授权次数：客户端说一次授权几次，限制在 1-3（不信任负数 / 超大数）
 const grantCount = n => Math.max(1, Math.min(3, Math.floor(Number(n)) || 1));
@@ -79,6 +86,47 @@ exports.main = async (event) => {
       if (!fam) return { ok: false, error: '邀请码生成失败，请重试' };
     }
     return { ok: true, code: fam.code };
+  }
+
+  // ── 布置练习：家长给孩子布置某科某单元的小卷，孩子做完回报结果 ──
+  // 存在家庭文档上（assignments，最近 30 份）；不回传家长 openid
+  if (action === 'assign') {
+    const fam = await findMyFamily(OPENID, 'parent');
+    if (!fam || fam.ownerOpenid === OPENID) return { ok: false, error: '只有绑定的家长可以布置' };
+    const subject = String(event.subject || '');
+    const unit = Number(event.unit);
+    if (SUBJ.ORDER.indexOf(subject) < 0 || !(Number.isInteger(unit) && ((unit >= 1 && unit <= 9) || unit === SUBJ.FINAL_UNIT))) {
+      return { ok: false, error: '科目或单元不对' };
+    }
+    const list = fam.assignments || [];
+    const open = list.filter(a => !a.doneAt);
+    const same = open.find(a => a.subject === subject && a.unit === unit);
+    if (same) return { ok: true, id: same.id };
+    if (open.length >= MAX_OPEN_ASSIGN) return { ok: false, error: '没做完的练习已经有 10 份了，等孩子做完再布置吧' };
+    const item = { id: 'as' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), subject, unit, createdAt: Date.now(), doneAt: 0, total: 0, correct: 0 };
+    await db.collection('families').doc(fam._id).update({ data: { assignments: [item].concat(list).slice(0, 30) } });
+    return { ok: true, id: item.id };
+  }
+
+  // 孩子端 / 家长端：布置的练习列表（最新在前）
+  if (action === 'assignments') {
+    const fam = await findMyFamily(OPENID, event.as === 'parent' ? 'parent' : undefined);
+    if (!fam) return { ok: false, error: '尚未绑定' };
+    return { ok: true, assignments: (fam.assignments || []).map(assignView) };
+  }
+
+  // 孩子端：做完回报结果（只能回报自己家庭的）
+  if (action === 'assignDone') {
+    const fam = (await db.collection('families').where({ ownerOpenid: OPENID }).limit(1).get()).data[0];
+    if (!fam) return { ok: false, error: '只有孩子可以回报' };
+    const list = fam.assignments || [];
+    const i = list.findIndex(a => a.id === String(event.id || ''));
+    if (i < 0) return { ok: false, error: '练习不存在' };
+    const total = Math.max(0, Math.min(50, Math.floor(Number(event.total)) || 0));
+    const correct = Math.max(0, Math.min(total, Math.floor(Number(event.correct)) || 0));
+    list[i] = { ...list[i], doneAt: Date.now(), total, correct };
+    await db.collection('families').doc(fam._id).update({ data: { assignments: list } });
+    return { ok: true };
   }
 
   // 孩子端：更换邀请码并解除全部家长绑定（邀请码泄露、或想让某位家长不再看到数据时用）
@@ -155,6 +203,7 @@ exports.main = async (event) => {
       practice,
       wrongBook,
       overrides,
+      assignments: (fam.assignments || []).map(assignView),
       records: recDocs.data.map(d => ({
         id: d.id, date: d.date, taskId: d.taskId, value: d.value,
         stars: d.stars, note: d.note, deleted: !!d.deleted, updatedAt: d.updatedAt,

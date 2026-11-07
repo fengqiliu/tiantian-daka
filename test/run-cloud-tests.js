@@ -195,6 +195,45 @@ t('安全：孩子可以更换邀请码并解除全部家长绑定；旧码作�
   assert.strictEqual((await family.main({ action: 'join', code: old })).ok, false, '旧邀请码作废');
   assert.strictEqual((await family.main({ action: 'join', code: r.code })).ok, true, '新邀请码可用');
 });
+t('布置练习：家长给孩子布置某单元的小卷，孩子拉到列表，做完回报结果，家长 summary 看到结果', async () => {
+  reset();
+  const family = CM.load('family');
+  CM.setOpenid('kid1'); await CM.load('login').main({});
+  const code = (await family.main({ action: 'create' })).code;
+  CM.setOpenid('parent1'); await family.main({ action: 'join', code });
+  const a = await family.main({ action: 'assign', subject: 'math', unit: 6 });
+  assert.strictEqual(a.ok, true);
+  const again = await family.main({ action: 'assign', subject: 'math', unit: 6 });
+  assert.strictEqual(again.id, a.id, '同一单元还没做完时重复布置不新增');
+  for (const bad of [{ subject: 'art', unit: 1 }, { subject: 'math', unit: 77 }, { subject: 'math', unit: 'x' }]) {
+    assert.strictEqual((await family.main({ action: 'assign', ...bad })).ok, false, JSON.stringify(bad));
+  }
+  CM.setOpenid('kid1');
+  assert.strictEqual((await family.main({ action: 'assign', subject: 'math', unit: 5 })).ok, false, '孩子不能给自己布置');
+  const list = await family.main({ action: 'assignments' });
+  assert.deepStrictEqual(list.assignments.map(x => [x.subject, x.unit, x.label, x.doneAt]), [['math', 6, '数学第6单元', 0]]);
+  assert(!JSON.stringify(list).includes('parent1'), '不回传家长 openid');
+  const done = await family.main({ action: 'assignDone', id: a.id, total: 10, correct: 999 });
+  assert.strictEqual(done.ok, true);
+  CM.setOpenid('stranger');
+  assert.strictEqual((await family.main({ action: 'assignDone', id: a.id, total: 1, correct: 1 })).ok, false, '外人不能回报');
+  CM.setOpenid('parent1');
+  const s = await family.main({ action: 'summary', since: 0 });
+  const row = s.assignments.find(x => x.id === a.id);
+  assert(row.doneAt > 0);
+  assert.deepStrictEqual([row.total, row.correct], [10, 10], '答对数不超过题数');
+});
+t('布置练习：同时最多 10 份没做完的', async () => {
+  reset();
+  const family = CM.load('family');
+  CM.setOpenid('kid1'); await CM.load('login').main({});
+  const code = (await family.main({ action: 'create' })).code;
+  CM.setOpenid('parent1'); await family.main({ action: 'join', code });
+  for (let u = 1; u <= 8; u++) assert.strictEqual((await family.main({ action: 'assign', subject: 'chinese', unit: u })).ok, true);
+  for (let u = 1; u <= 2; u++) assert.strictEqual((await family.main({ action: 'assign', subject: 'english', unit: u })).ok, true);
+  const over = await family.main({ action: 'assign', subject: 'english', unit: 3 });
+  assert.deepStrictEqual([over.ok, over.error], [false, '没做完的练习已经有 10 份了，等孩子做完再布置吧']);
+});
 t('家长 summary 带上孩子的任务覆盖（自定义任务名、目标、冲刺窗口）', async () => {
   reset();
   const family = CM.load('family');

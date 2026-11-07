@@ -65,7 +65,7 @@ function evaluate(records, profile, today) {
     // 单元星图按需计算（延迟 require：quiz 依赖题库，只有用到时才加载）
     starMap: () => require('./quiz').starMap(store.getQuizHistory()),
     flashFullDecks: () => require('./flashcards').summary().fullDecks,
-    dailyStreak: () => require('./daily').streak(store.getQuizHistory(), today || require('./date').todayStr()),
+    dailyStreak: () => require('./daily').streak(store.getQuizHistory(), today || require('./date').todayStr(), store.getDailyLog()),
   };
   const earned = store.getBadges();
   const have = new Set(earned.map(b => b.id));

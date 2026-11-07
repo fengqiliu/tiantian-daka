@@ -9,6 +9,7 @@ const DRILL_CAP = 100; // 口算会话上限（utils/arithmetic.js 引用此值�
 const QUIZ_CAP = 50;   // 小卷历史上限（utils/quiz.js 引用此值）
 const REVIEW_CAP = 366; // 错题复习日志上限（每天一条，约一年）
 const GOAL_WEEKS_CAP = 60; // 每周小目标保留最近 60 周
+const DAILY_LOG_CAP = 400; // 今日一练日志：做过的日期（约一年多）
 
 function mergeHistory(a, b, cap) {
   const seen = {};
@@ -72,6 +73,13 @@ function mergeFlashcards(a, b) {
   return out;
 }
 
+// 日期列表（今日一练日志）：并集去重，丢弃非法项，最新在前，按上限截断
+function mergeDates(a, b, cap) {
+  const set = new Set();
+  (a || []).concat(b || []).forEach(d => { if (typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d)) set.add(d); });
+  return [...set].sort().reverse().slice(0, cap || DAILY_LOG_CAP);
+}
+
 function mergePractice(a, b) {
   const pa = a || {};
   const pb = b || {};
@@ -81,7 +89,8 @@ function mergePractice(a, b) {
     review: mergeReviewLog(pa.review, pb.review, REVIEW_CAP),
     goals: mergeGoals(pa.goals, pb.goals),
     cards: mergeFlashcards(pa.cards, pb.cards),
+    daily: mergeDates(pa.daily, pb.daily, DAILY_LOG_CAP),
   };
 }
 
-module.exports = { DRILL_CAP, QUIZ_CAP, REVIEW_CAP, GOAL_WEEKS_CAP, mergeHistory, mergeReviewLog, mergeGoals, mergeFlashcards, mergePractice };
+module.exports = { DRILL_CAP, QUIZ_CAP, REVIEW_CAP, GOAL_WEEKS_CAP, DAILY_LOG_CAP, mergeHistory, mergeReviewLog, mergeGoals, mergeFlashcards, mergeDates, mergePractice };

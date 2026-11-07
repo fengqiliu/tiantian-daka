@@ -5,9 +5,10 @@ const cloud = require('../../utils/cloud');
 const BACKUP = require('../../utils/backup');
 const RESET = require('../../utils/reset');
 const GD = require('../../utils/guide');
+const UI = require('../../utils/display');
 
 const AVATARS = ['🐱', '🦊', '🐰', '🐻', '🐸', '🦁', '🐼', '🐷'];
-const APP_VERSION = '0.37.0';
+const APP_VERSION = '0.38.0';
 
 Page({
   data: {
@@ -43,6 +44,7 @@ Page({
     const s = CTX.scope();
     const records = s.records;
     const grade = s.grade;
+    this.setData({ bigFont: UI.bigFont() });
     // 备份提醒：有数据且 7 天未备份时温和提示
     const lastBackupAt = (store.getSettings() || {}).lastBackupAt || 0;
     // 存储写入失败（手机存储空间不足等）优先提示：本次会话数据还在，但关掉小程序可能丢失
@@ -223,6 +225,12 @@ Page({
 
   goReport() {
     wx.navigateTo({ url: '/pages/report/report' });
+  },
+
+  onToggleBigFont() {
+    UI.setBigFont(!UI.bigFont());
+    this.setData({ bigFont: UI.bigFont() });
+    wx.showToast({ title: UI.bigFont() ? '已打开大字模式' : '已关闭大字模式', icon: 'none' });
   },
 
   // 重新看一遍首次使用引导：清除"已看过"，回首页后再弹

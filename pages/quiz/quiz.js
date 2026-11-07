@@ -9,6 +9,7 @@ const cloud = require('../../utils/cloud');
 const SPRINT_SIZE = 20;
 
 const SUBJ = require('../../utils/subjects');
+const UI = require('../../utils/display');
 const SUBJECT_META = {};
 SUBJ.SUBJECTS.forEach(s => { SUBJECT_META[s.key] = s; });
 
@@ -39,9 +40,11 @@ Page({
   // wrong=1 只练这个单元的错题（来自错题本）；mode=sprint 直接开期末冲刺（来自首页倒计时）
   onLoad(options) {
     const o = options || {};
+    this.setData({ big: UI.bigFont() });
     this.date = D.todayStr();
     const subject = SUBJECT_META[o.subject] ? o.subject : this.data.selected;
     const unit = Number(o.unit) || 0;
+    this.assignId = o.assign || ''; // 家长布置的练习：做完回报结果
     this.setData({
       subjects: QZ.subjects().map(s => ({
         key: s.key, name: SUBJECT_META[s.key].name, emoji: SUBJECT_META[s.key].emoji, count: s.count,
@@ -223,6 +226,11 @@ Page({
         ...(sprint ? { sprint: true } : {}),
       });
       const sprintStars = sprint ? this._checkinSprint() : 0;
+      if (this.assignId) {
+        cloud.assignDone(this.assignId, this.data.total, this.data.correctCount);
+        this.assignId = '';
+        wx.showToast({ title: '做完啦，家长能看到结果', icon: 'none' });
+      }
       cloud.syncAll(); // 小卷历史上云，家长报告可见（节流 1 分钟，静默失败）
       const rows = breakdown.map(row => ({ ...row, mark: SUBJ.MASTERY_MARK[row.mastered ? 'mastered' : 'practice'] }));
       this.setData({ phase: 'done', verdict: v, breakdown: sprint ? rows : [] });

@@ -67,3 +67,16 @@ page {
 .safe-bottom { padding-bottom: calc(env(safe-area-inset-bottom) + 160rpx); }
 
 .page-pad { padding-top: 24rpx; }
+
+/* ── 大字模式（「我的 → 大字模式」，utils/display.js）：页面根节点加 big 类 ── */
+.big .task-name { font-size: 36rpx; }
+.big .sec-name { font-size: 34rpx; }
+.big .muted { font-size: 28rpx; }
+.big .btn-primary, .big .btn-ghost { font-size: 34rpx; }
+.big .qz-prompt, .big .rv-prompt { font-size: 54rpx; line-height: 1.4; }
+.big .qz-opt, .big .rv-opt { font-size: 48rpx; }
+.big .qz-explain, .big .rv-explain, .big .md-hint { font-size: 32rpx; }
+.big .rv-math, .big .md-q { font-size: 88rpx; }
+.big .rv-flash-back { font-size: 44rpx; }
+.big .fc-front.en, .big .fc-front.ma { font-size: 76rpx; }
+.big .fc-deck-name { font-size: 34rpx; }

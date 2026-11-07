@@ -13,7 +13,9 @@
 | `ttdr_profile` | 资料 | 单对象，见 §1.3；保存时盖 `updatedAt` | ✓ 新者胜 | ✓ |
 | `ttdr_records_YYYY` + `ttdr_records_years` | 打卡记录（按年分片，见 §1.4） | 每年一个数组 + 年份索引；删除为墓碑；旧版单一 `ttdr_records` 首次读取时自动迁移 | ✓ 增量 | ✓ |
 | `ttdr_badges` | 已获得勋章 | `[{ id, earnedAt }]` | ✓ 并集 | ✓ |
-| `ttdr_settings` | 设置 | `{ lastBackupAt, cheerFrom, ... }` | — | ✓ |
+| `ttdr_settings` | 设置 | `{ lastBackupAt, cheerFrom, bigFont, ... }`（`bigFont`：大字模式，0.38.0） | — | ✓ |
+| `ttdr_daily_log` | 今日一练日志（0.38.0） | 做过今日一练的日期 `["2026-11-07", ...]`，最新在前、≤400；随 `users.practice.daily` 上云（并集），在备份里 | ✓ 并集 | ✓ |
+| `ttdr_assignments` | 家长布置的练习（孩子端缓存，0.38.0） | `[{ id, subject, unit, label, createdAt, doneAt, total, correct }]`，云端 `families.assignments` 为准 | — | — |
 | `ttdr_flashcards` | 记忆卡进度（0.32.0；0.35.0 前误存在键 `ttdr_undefined`，首次读取自动迁移） | `{ [牌库 id]: { [卡片正面]: { knownCount, lastAt } } }`，`knownCount` 连续认识次数（点"再练练"清零），≥2 即掌握；掌握后按 `lastAt` 隔 3 天（2 次）/ 7 天（3 次）再出现巩固，≥4 次不再主动出现；随 `users.practice.cards` 上云（每张卡取最近练过的一方），在备份里，「清空所有数据」会清掉 | ✓ 按卡取新 | ✓ |
 | `ttdr_readings` | 跟读录音记录 | 音频文件只存本机，自动保留最近 7 天 | — | ✓ |
 | `ttdr_task_overrides` | 家长任务管理 | `{ targets: {taskId: n}, customs: [], sprintDays?, updatedAt }`；`sprintDays`：期末冲刺窗口（放假前 14 / 21 / 28 天，0 = 关闭，缺省 21；0.32.0 起家长在任务管理设置） | ✓ 新者胜 | ✓ |
@@ -31,7 +33,7 @@
 
 由 `family.summary` 刷新，页面经 `utils/context.js` 的 `scope()` 读取：
 
-`ttdr_child_profile` · `ttdr_child_records` · `ttdr_child_badges` · `ttdr_child_drill` · `ttdr_child_quiz` · `ttdr_child_review` · `ttdr_child_goals` · `ttdr_child_math_wrong` · `ttdr_child_quiz_wrong` · `ttdr_child_cards`（0.36.0：孩子的记忆卡进度，家长报告用） · `ttdr_child_overrides`（0.35.0：孩子的任务覆盖，家长端任务生成用它，显示孩子的自定义任务名）
+`ttdr_child_profile` · `ttdr_child_records` · `ttdr_child_badges` · `ttdr_child_drill` · `ttdr_child_quiz` · `ttdr_child_review` · `ttdr_child_goals` · `ttdr_child_math_wrong` · `ttdr_child_quiz_wrong` · `ttdr_child_daily`（0.38.0：孩子的今日一练日志） · `ttdr_child_assign`（0.38.0：布置的练习与结果） · `ttdr_child_cards`（0.36.0：孩子的记忆卡进度，家长报告用） · `ttdr_child_overrides`（0.35.0：孩子的任务覆盖，家长端任务生成用它，显示孩子的自定义任务名）
 
 旧版云函数不返回某个字段时保留已有缓存；解绑或一键清空时一并清除。
 
@@ -139,10 +141,10 @@
 
 | 集合 | 文档结构 | 说明 |
 | --- | --- | --- |
-| `users` | `{ openid, joinFail?: { n, since }, profile, taskOverrides, shop, practice: { drill[], quiz[], review[], goals, cards }, wrongBook: { math[], quiz[], updatedAt }, remindEnabled, remindQuota, remindHour, createdAt }` | `login` 首次调用自动创建 |
+| `users` | `{ openid, joinFail?: { n, since }, profile, taskOverrides, shop, practice: { drill[], quiz[], review[], goals, cards, daily[] }, wrongBook: { math[], quiz[], updatedAt }, remindEnabled, remindQuota, remindHour, createdAt }` | `login` 首次调用自动创建 |
 | `checkins` | 本地 record + `openid` + `serverAt`（云端写入时盖的服务器时间，0.36.0） | 推荐索引：`(openid+serverAt)`、`(openid+id)`、`(openid+date)` |
 | `badges` | `{ openid, id, earnedAt }` | 并集写入 |
-| `families` | `{ code, ownerOpenid, ownerProfile, members:[{openid, parentSubQuota, weeklyQuota, joinedAt}], createdAt }` | `code` 为 6 位邀请码（去除易混淆字符 0/O/1/I/L） |
+| `families` | `{ code, ownerOpenid, ownerProfile, members:[{openid, parentSubQuota, weeklyQuota, joinedAt}], assignments:[{ id, subject, unit, createdAt, doneAt, total, correct }]（0.38.0，最近 30 份）, createdAt }` | `code` 为 6 位邀请码（去除易混淆字符 0/O/1/I/L） |
 | `cheers` | `{ ownerOpenid, fromOpenid, from, text, recordId, recordLabel, createdAt, readAt, reaction, reactedAt }` | 家长鼓励留言与孩子的表情回复，只经 `family` 云函数读写；建议集合权限设为「所有用户不可读写」。推荐索引：`(ownerOpenid+createdAt)`、`(fromOpenid+createdAt)` |
 
 ### 2.5 家人绑定与留言流程

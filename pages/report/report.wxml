@@ -10,6 +10,7 @@
       <view class="flex1 rp-week-title">
         <view class="h2">📬 {{week.title}}</view>
         <view class="muted">{{week.label}}</view>
+        <view class="rp-share" bindtap="onShareImage">🖼 生成分享图</view>
       </view>
       <view class="rp-week-nav {{canNextWeek ? '' : 'off'}}" bindtap="onNextWeek">›</view>
     </view>
@@ -122,10 +123,21 @@
         <view class="flex1 wb-text">{{m.name}}<text class="rp-wrong" wx:if="{{m.wrongOpen}}"> · 错题 {{m.wrongOpen}}</text></view>
         <view class="muted">{{m.text}}</view>
         <view class="rp-mark {{m.status}}">{{m.mark}}{{m.canPractice ? ' ›' : ''}}</view>
+        <view class="rp-assign" wx:if="{{m.canAssign}}" data-subject="{{m.subject}}" data-unit="{{m.unit}}" catchtap="onAssignUnit">布置</view>
       </view>
       <view class="muted rp-empty">按小卷和期末冲刺的全部作答累计；答满 3 题才判断，正确率 80% 以上算掌握</view>
     </block>
     <view wx:else class="muted rp-empty">做过小卷后，这里按单元显示掌握情况</view>
+  </view>
+
+  <view class="card" wx:if="{{assignRows.length}}">
+    <view class="row rp-sec">
+      <view class="h2 flex1">📌 布置的练习</view>
+    </view>
+    <view class="row wb-item" wx:for="{{assignRows}}" wx:key="id" wx:for-item="a">
+      <view class="flex1 wb-text">{{a.label}}</view>
+      <view class="rp-mark {{a.done ? 'mastered' : ''}}">{{a.status}}</view>
+    </view>
   </view>
 
   <view class="card">

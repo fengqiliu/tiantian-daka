@@ -3,6 +3,7 @@ const CTX = require('../../utils/context');
 const B = require('../../utils/badges');
 const store = require('../../utils/store');
 const cloud = require('../../utils/cloud');
+const UI = require('../../utils/display');
 
 const SUBJECT_META = {
   chinese: { name: '语文', emoji: '📕' },
@@ -31,6 +32,7 @@ Page({
       setTimeout(() => wx.navigateBack(), 800);
       return;
     }
+    this.setData({ big: UI.bigFont() });
     this.refresh();
   },
 

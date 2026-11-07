@@ -1,5 +1,6 @@
 const store = require('../../utils/store');
 const C = require('../../utils/checkin');
+const UI = require('../../utils/display');
 const B = require('../../utils/badges');
 const T = require('../../utils/tasks');
 const D = require('../../utils/date');
@@ -25,6 +26,7 @@ Page({
   },
 
   onLoad() {
+    this.setData({ big: UI.bigFont() });
     this.date = D.todayStr();
     const profile = store.getProfile();
     this.grade = Number(profile && profile.grade) || 1;

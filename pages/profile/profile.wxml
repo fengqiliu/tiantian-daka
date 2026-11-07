@@ -105,7 +105,14 @@
   </view>
 
   <view class="card">
-    <view class="btn-ghost" bindtap="onReplayGuide">🧭 重新看一遍使用引导</view>
+    <view class="row pf-bigfont" bindtap="onToggleBigFont">
+      <view class="flex1">
+        <view class="h2">🔠 大字模式</view>
+        <view class="muted">题目、记忆卡、任务名和按钮的字放大，适合刚认字的孩子</view>
+      </view>
+      <switch checked="{{bigFont}}" color="#FF8A00" catchtap="onToggleBigFont" />
+    </view>
+    <view class="btn-ghost" style="margin-top: 20rpx;" bindtap="onReplayGuide">🧭 重新看一遍使用引导</view>
   </view>
 
   <view class="card">

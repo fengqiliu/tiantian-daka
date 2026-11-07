@@ -54,6 +54,17 @@ global.wx = {
   setClipboardData(o) { ui.clipboard = o.data; if (o.success) o.success(); },
   getClipboardData(o) { if (o.success) o.success({ data: ui.clipboard || '' }); },
   openSetting() { ui.openedSetting = (ui.openedSetting || 0) + 1; },
+  // 画布（周报分享图）：记录绘制调用；导出临时文件后弹分享菜单
+  createOffscreenCanvas(o) {
+    const calls = [];
+    const ctx = new Proxy({ calls }, { get: (t, k) => (k in t ? t[k] : (...args) => { calls.push([k].concat(args)); }), set: (t, k, v) => { calls.push(['set:' + String(k), v]); return true; } });
+    const canvas = { width: o.width, height: o.height, getContext: () => ctx };
+    ui.canvas = canvas;
+    return canvas;
+  },
+  canvasToTempFilePath(o) { if (o.success) o.success({ tempFilePath: 'tmp://share.png' }); },
+  showShareImageMenu(o) { ui.shared = o.path; if (o.success) o.success(); },
+  saveImageToPhotosAlbum(o) { ui.savedImage = o.filePath; if (o.success) o.success(); },
   // 订阅消息：默认全部同意；ui.subscribeAnswer = 'reject' 模拟拒绝
   requestSubscribeMessage(o) {
     const res = {};

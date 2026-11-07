@@ -82,6 +82,27 @@ function resetCloud() { return call('sync', { action: 'reset' }); }
 function familyCreate() { return call('family', { action: 'create' }); }
 function familyJoin(code) { return call('family', { action: 'join', code: (code || '').trim().toUpperCase() }); }
 function familyLeave() { return call('family', { action: 'leave' }); }
+// ── 布置练习 ──
+// 家长端：给孩子布置某科某单元的小卷
+function assignUnit(subject, unit) { return call('family', { action: 'assign', subject, unit: Number(unit) }); }
+// 孩子端：拉取布置的练习，成功时写入缓存（首页离线也能显示）
+function assignmentList() {
+  return call('family', { action: 'assignments' }).then(res => {
+    if (res && res.ok && Array.isArray(res.assignments)) {
+      // 本机已做完、回报还在路上（或请求早于回报发出）时，保留本机的完成状态，避免首页又冒出来
+      const localDone = {};
+      store.getAssignments().forEach(a => { if (a.doneAt) localDone[a.id] = a; });
+      store.saveAssignments(res.assignments.map(a => (!a.doneAt && localDone[a.id] ? localDone[a.id] : a)));
+    }
+    return res;
+  });
+}
+// 孩子端：做完回报结果（先改本地缓存，首页立刻不再显示）
+function assignDone(id, total, correct) {
+  store.saveAssignments(store.getAssignments().map(a => (a.id === id ? { ...a, doneAt: Date.now(), total, correct } : a)));
+  return call('family', { action: 'assignDone', id, total, correct });
+}
+
 // 孩子端：更换邀请码并解除全部家长绑定
 function familyResetCode() { return call('family', { action: 'resetCode' }); }
 // 家长端拉孩子摘要（since 增量；写入 store 的孩子缓存）
@@ -89,6 +110,7 @@ function familyRefresh() {
   return call('family', { action: 'summary', since: 0 }).then(res => {
     if (res && res.ok) {
       store.saveChildData(res.profile, res.records, res.badges, res.practice, res.wrongBook, res.overrides);
+      if (Array.isArray(res.assignments)) store.saveChildAssignments(res.assignments);
     }
     return res;
   });
@@ -156,7 +178,7 @@ function subscribeAndGrant(kind) { // kind: 'remind' | 'parent' | 'weekly'
 module.exports = {
   CLOUD_ENV, init, isAvailable, call,
   syncAll, resetCloud, _setNow, _setScheduler,
-  familyCreate, familyJoin, familyLeave, familyResetCode, familyRefresh, notifyParents, grantParentSub, grantWeekly, familyConfig,
+  familyCreate, familyJoin, familyLeave, familyResetCode, assignUnit, assignmentList, assignDone, familyRefresh, notifyParents, grantParentSub, grantWeekly, familyConfig,
   cheerSend, cheerList, cheerRead, cheerReact,
   remindConfig, remindGrant, remindStatus, remindDisable, subscribeAndGrant,
   REMIND_PAGE,

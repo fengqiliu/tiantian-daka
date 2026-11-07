@@ -12,6 +12,7 @@ const GOALS = require('../../utils/goals');
 const TM = require('../../utils/timer');
 const GD = require('../../utils/guide');
 const DAILY = require('../../utils/daily');
+const UI = require('../../utils/display');
 
 Page({
   data: {
@@ -35,6 +36,7 @@ Page({
     guide: null, // 首次使用引导卡片
     daily: null, // 今日一练卡片
     childDaily: '', // 家长首页：孩子今日一练
+    assignment: null, // 家长布置的练习（孩子首页）
     reviewDone: false,
     cheer: null, // { cheer, unread }：家长留言横幅
     reactions: CHEER.REACTIONS,
@@ -69,7 +71,7 @@ Page({
       return;
     }
     this.guideStep = 0;
-    this.setData({ guide: GD.view(profile, 0) });
+    this.setData({ guide: GD.view(profile, 0), big: UI.bigFont() });
     const s = CTX.scope();
     if (s.role === 'parent') {
       this.setData({ isParent: true });
@@ -79,6 +81,7 @@ Page({
       this.refreshChild(s.profile);
       cloud.syncAll(); // 节流 1 分钟，静默失败
       this.refreshCheers();
+      this.refreshAssignments();
     }
   },
 
@@ -118,6 +121,7 @@ Page({
       timing: this.timingView(),
       exam: this.examView(tasks, records, today),
       daily: grade === 1 ? this.dailyView() : null,
+      assignment: this.assignmentView(),
     });
   },
 
@@ -154,13 +158,34 @@ Page({
     const today = D.todayStr();
     const hist = store.getQuizHistory();
     const done = DAILY.doneOn(today, hist);
-    const n = DAILY.streak(hist, today);
+    const n = DAILY.streak(hist, today, store.getDailyLog());
     return {
       done,
       streakText: !n ? '' : done ? '已连续 ' + n + ' 天' : '已连续 ' + n + ' 天，今天接着练',
       title: '今日一练',
       desc: '3 题口算 + 5 题小卷 + 3 张记忆卡，约 4 分钟',
     };
+  },
+
+  // 家长布置的练习：首页显示最早一份还没做的（缓存，云端拉到后刷新）
+  assignmentView() {
+    const open = store.getAssignments().filter(a => !a.doneAt);
+    if (!open.length) return null;
+    const a = open[open.length - 1];
+    return { id: a.id, subject: a.subject, unit: a.unit, label: a.label, more: open.length - 1 };
+  },
+
+  refreshAssignments() {
+    if (!cloud.isAvailable()) return;
+    cloud.assignmentList().then(res => {
+      if (res && res.ok) this.setData({ assignment: this.assignmentView() });
+    });
+  },
+
+  goAssignment() {
+    const a = this.data.assignment;
+    if (!a) return;
+    wx.navigateTo({ url: '/pages/quiz/quiz?subject=' + a.subject + '&unit=' + a.unit + '&assign=' + a.id });
   },
 
   goDaily() {
@@ -328,7 +353,7 @@ Page({
       weekStrip,
       weekly: this.buildWeekly(s, today),
       childGoal: this.goalView(s.goals, { records, grade, reviewLog: s.reviewLog }, today),
-      childDaily: grade === 1 ? this.childDailyLine(s.quizHistory, today) : '',
+      childDaily: grade === 1 ? this.childDailyLine(s.quizHistory, today, s.dailyLog) : '',
     });
 
     // 孩子最近一次回复（家长发出的留言列表；节流 1 分钟，失败保持原样）
@@ -353,9 +378,9 @@ Page({
   },
 
   // 家长首页：孩子今天做没做今日一练 + 连续天数（读孩子同步过来的小卷历史）
-  childDailyLine(quizHistory, today) {
-    const n = DAILY.streak(quizHistory, today);
-    return '🎯 今日一练：' + (DAILY.doneOn(today, quizHistory) ? '今天已练' : '今天还没练') + (n ? ' · 连续 ' + n + ' 天' : '');
+  childDailyLine(quizHistory, today, log) {
+    const n = DAILY.streak(quizHistory, today, log);
+    return '🎯 今日一练：' + (DAILY.doneOn(today, quizHistory) || (log || []).indexOf(today) > -1 ? '今天已练' : '今天还没练') + (n ? ' · 连续 ' + n + ' 天' : '');
   },
 
   // 上周周报摘要卡（家长端）：一句话 + 首条亮点/需关注

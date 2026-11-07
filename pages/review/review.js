@@ -7,6 +7,7 @@ const B = require('../../utils/badges');
 const RV = require('../../utils/review');
 const DAILY = require('../../utils/daily');
 const FC = require('../../utils/flashcards');
+const UI = require('../../utils/display');
 const cloud = require('../../utils/cloud');
 
 const SUBJ = require('../../utils/subjects');
@@ -36,7 +37,7 @@ Page({
   onLoad(options) {
     this.today = D.todayStr();
     this.mode = options && options.mode === 'today' ? 'today' : 'review';
-    this.setData({ mode: this.mode });
+    this.setData({ mode: this.mode, big: UI.bigFont() });
     this.start();
   },
 

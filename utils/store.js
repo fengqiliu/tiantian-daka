@@ -33,7 +33,11 @@ const KEYS = {
   CHILD_GOALS: 'child_goals',        // 家长端缓存：孩子每周小目标
   CHILD_CARDS: 'child_cards',        // 家长端缓存：孩子的记忆卡进度
   CHILD_OVERRIDES: 'child_overrides', // 家长端缓存：孩子的任务覆盖（自定义任务名、目标、冲刺窗口）
-  FLASHCARDS: 'flashcards',          // 记忆卡进度：{ [牌组]: { [卡片正面]: { knownCount, lastAt } } }
+  FLASHCARDS: 'flashcards',
+  ASSIGNMENTS: 'assignments',        // 孩子端：家长布置的练习（云端为准，缓存给首页离线显示）
+  CHILD_ASSIGN: 'child_assign',      // 家长端缓存：布置给孩子的练习与结果
+  DAILY_LOG: 'daily_log',            // 今日一练日志：做过的日期（最新在前，≤400）
+  CHILD_DAILY: 'child_daily',        // 家长端缓存：孩子的今日一练日志          // 记忆卡进度：{ [牌组]: { [卡片正面]: { knownCount, lastAt } } }
 };
 
 let memory = {};
@@ -298,6 +302,13 @@ function getChildMathWrong() { return _get(KEYS.CHILD_MATH_WRONG, []); }
 function getChildQuizWrong() { return _get(KEYS.CHILD_QUIZ_WRONG, []); }
 function getChildGoals() { return _get(KEYS.CHILD_GOALS, {}); }
 // practice / wrongBook 缺省（旧版云函数不返回）时保留已有缓存
+function getAssignments() { return _get(KEYS.ASSIGNMENTS, []); }
+function saveAssignments(list) { _set(KEYS.ASSIGNMENTS, list); }
+function getChildAssignments() { return _get(KEYS.CHILD_ASSIGN, []); }
+function saveChildAssignments(list) { _set(KEYS.CHILD_ASSIGN, list); }
+function getDailyLog() { return _get(KEYS.DAILY_LOG, []); }
+function saveDailyLog(list) { _set(KEYS.DAILY_LOG, list); }
+function getChildDailyLog() { return _get(KEYS.CHILD_DAILY, []); }
 function getChildFlashcards() { return _get(KEYS.CHILD_CARDS, {}); }
 function getChildTaskOverrides() { return _get(KEYS.CHILD_OVERRIDES, { targets: {}, customs: [] }); }
 
@@ -316,6 +327,7 @@ function saveChildData(profile, records, badges, practice, wrongBook, overrides)
     _set(KEYS.CHILD_REVIEW, practice.review || []);
     _set(KEYS.CHILD_GOALS, practice.goals || {});
     _set(KEYS.CHILD_CARDS, practice.cards || {});
+    _set(KEYS.CHILD_DAILY, practice.daily || []);
   }
 }
 
@@ -331,6 +343,8 @@ function clearChildData() {
   _remove(KEYS.CHILD_GOALS);
   _remove(KEYS.CHILD_OVERRIDES);
   _remove(KEYS.CHILD_CARDS);
+  _remove(KEYS.CHILD_DAILY);
+  _remove(KEYS.CHILD_ASSIGN);
 }
 
 function clearAll() {
@@ -362,7 +376,7 @@ module.exports = {
   getTimer, saveTimer,
   getSyncState, saveSyncState,
   getChildProfile, getChildRecords, getChildBadges, getChildDrillHistory, getChildQuizHistory, getChildReviewLog,
-  getChildMathWrong, getChildQuizWrong, getChildGoals, getChildTaskOverrides, getChildFlashcards,
+  getChildMathWrong, getChildQuizWrong, getChildGoals, getChildTaskOverrides, getChildFlashcards, getChildDailyLog, getDailyLog, saveDailyLog, getAssignments, saveAssignments, getChildAssignments, saveChildAssignments,
   saveChildData, clearChildData,
   clearAll,
 };

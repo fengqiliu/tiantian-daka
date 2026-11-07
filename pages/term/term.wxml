@@ -52,6 +52,7 @@
     <view class="card">
       <view class="h2 tm-sec">✏️ 练习</view>
       <view class="tm-line">🧮 口算挑战 {{s.drill.count}} 次{{drillTrend}}</view>
+      <view class="tm-line" wx:if="{{s.dailyDays}}">🎯 今日一练 {{s.dailyDays}} 天</view>
       <view class="tm-line">📝 每周一卷 {{s.quizCount}} 份{{s.sprintCount ? '（期末冲刺 ' + s.sprintCount + ' 份）' : ''}} · 🧠 错题复习 {{s.reviewDays}} 天</view>
     </view>
 

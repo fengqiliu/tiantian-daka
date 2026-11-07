@@ -11,6 +11,8 @@ const LEVEL_NAME = {};
 Object.keys(AR.LEVELS).forEach(k => { LEVEL_NAME[k] = AR.LEVELS[k].name; });
 const SUBJ = require('../../utils/subjects');
 const FC = require('../../utils/flashcards');
+const cloud = require('../../utils/cloud');
+const SHARE = require('../../utils/share-image');
 
 Page({
   data: {
@@ -31,6 +33,7 @@ Page({
     masteryLine: '',
     flashRows: [],
     flashLine: '',
+    assignRows: [],
   },
 
   onLoad() {
@@ -55,6 +58,39 @@ Page({
     const { subject, unit, can } = e.currentTarget.dataset;
     if (this.data.role === 'parent' || can === false) return;
     wx.navigateTo({ url: '/pages/quiz/quiz?subject=' + subject + '&unit=' + unit });
+  },
+
+  // 周报分享图：按 utils/share-image 的排版画到离屏画布，导出图片后弹出系统分享菜单（可保存相册 / 发给家人）
+  onShareImage() {
+    const s = CTX.scope();
+    const who = s.role === 'parent' ? s.child : s.profile;
+    const { width, height, ops } = SHARE.layout(this.data.week, who && who.nickname);
+    const canvas = wx.createOffscreenCanvas({ type: '2d', width, height });
+    const ctx = canvas.getContext('2d');
+    ops.forEach(op => {
+      ctx.fillStyle = op.color;
+      if (op.type === 'rect') ctx.fillRect(op.x, op.y, op.w, op.h);
+      else { ctx.font = (op.bold ? 'bold ' : '') + op.size + 'px sans-serif'; ctx.fillText(op.text, op.x, op.y); }
+    });
+    wx.canvasToTempFilePath({
+      canvas,
+      success: res => wx.showShareImageMenu({
+        path: res.tempFilePath,
+        // 低版本微信没有分享菜单：直接存相册
+        fail: () => wx.saveImageToPhotosAlbum({ filePath: res.tempFilePath, success: () => wx.showToast({ title: '已保存到相册', icon: 'none' }) }),
+      }),
+      fail: () => wx.showToast({ title: '生成图片失败，稍后再试', icon: 'none' }),
+    });
+  },
+
+  // 家长端：把「再练练」的单元布置给孩子（孩子首页会出现这份练习）
+  onAssignUnit(e) {
+    if (this.data.role !== 'parent') return;
+    const { subject, unit } = e.currentTarget.dataset;
+    cloud.assignUnit(subject, unit).then(res => {
+      wx.showToast({ title: res && res.ok ? '已布置，孩子首页会看到' : (res && res.error) || '布置失败，稍后再试', icon: 'none' });
+      if (res && res.ok) cloud.familyRefresh().then(() => this.refresh());
+    });
   },
 
   onRange(e) {
@@ -107,6 +143,7 @@ Page({
         text: row.total ? row.correct + '/' + row.total + ' · ' + row.rate + '%' : '还没有作答记录',
         mark: SUBJ.MASTERY_MARK[row.status],
         canPractice: s.role !== 'parent' && row.status === 'practice', // 孩子端点「再练练」直接开这个单元的小卷
+        canAssign: s.role === 'parent' && row.status === 'practice',   // 家长端：布置给孩子
       }))
       .sort((a, b) => (a.status === 'practice' ? 0 : 1) - (b.status === 'practice' ? 0 : 1));
     const needCount = mastery.filter(row => row.status === 'practice').length;
@@ -124,6 +161,13 @@ Page({
       return { id: d.id, name: d.name, text: d.mastered + '/' + d.total, left, done: !d.left.length };
     });
     const flashLine = '记忆卡已掌握 ' + fsum.mastered + '/' + fsum.total + ' 张';
+
+    // 布置的练习（家长端，读孩子同步过来的）
+    const assignRows = s.role === 'parent' ? store.getChildAssignments().slice(0, 10).map(a => ({
+      id: a.id, label: a.label,
+      status: a.doneAt ? '已完成 · 答对 ' + a.correct + '/' + a.total : '还没做',
+      done: !!a.doneAt,
+    })) : [];
 
     const thisMonday = D.mondayOf(today);
     const week = REPORT.weeklyDigest({ ...s, today }, this.data.weekMonday);
@@ -151,6 +195,7 @@ Page({
       masteryLine,
       flashRows,
       flashLine,
+      assignRows,
     });
   },
 });

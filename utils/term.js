@@ -87,7 +87,7 @@ function termSummary(data, period, today) {
   if (today < period.start) {
     return { ...base, notStarted: true, inProgress: false, to: period.start, checkinDays: 0, achievedDays: 0, stars: 0, bestStreak: 0,
       totals: { rope: 0, readingMinutes: 0, outdoorMinutes: 0, poems: 0, calc: 0 }, badges: [], goalsAchieved: 0,
-      drill: { count: 0, firstAccuracy: null, lastAccuracy: null }, quizCount: 0, sprintCount: 0, units: [], masteredUnits: 0, reviewDays: 0, highlights: [] };
+      drill: { count: 0, firstAccuracy: null, lastAccuracy: null }, quizCount: 0, sprintCount: 0, dailyDays: 0, units: [], masteredUnits: 0, reviewDays: 0, highlights: [] };
   }
   const to = today < period.end ? today : period.end;
   const inRange = d => d >= period.start && d <= to;
@@ -125,6 +125,9 @@ function termSummary(data, period, today) {
   const quizIn = (data.quizHistory || []).filter(q => inTs(q.at));
   const units = REPORT.unitMastery(quizIn, []);
   const masteredUnits = units.filter(u => u.status === 'mastered').length;
+  // 今日一练天数：日志（0.38.0）与小卷历史里的今日一练条目取并集
+  const dailyDays = new Set((data.dailyLog || []).concat((data.quizHistory || []).filter(q => q.daily && q.date).map(q => q.date))
+    .filter(d => inRange(d))).size;
 
   const bestStreak = _longestRun(records.map(r => r.date));
   const highlights = [];
@@ -153,6 +156,7 @@ function termSummary(data, period, today) {
     drill,
     quizCount: quizIn.length,
     sprintCount: quizIn.filter(q => q.sprint).length,
+    dailyDays,
     units,
     masteredUnits,
     reviewDays: (data.reviewLog || []).filter(x => inRange(x.date)).length,

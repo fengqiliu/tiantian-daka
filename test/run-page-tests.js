@@ -343,6 +343,27 @@ t('记忆卡牌库列表显示「待巩固」张数；巩固卡在练习时标�
   p.onStart(tap({ id: 'en-u5' }));
   assert(p.data.cards.every(c => c.due), '全部是巩固卡');
 });
+t('大字模式：「我的」里打开后，首页、小卷、复习、记忆卡、口算页都带上 big 样式；关掉恢复', () => {
+  child(1);
+  const me = load('pages/profile/profile');
+  me.onShow();
+  assert.strictEqual(me.data.bigFont, false);
+  me.onToggleBigFont();
+  assert.strictEqual(me.data.bigFont, true);
+  const pages = {
+    index: p => p.onShow(), quiz: p => p.onLoad({}), review: p => p.onLoad({}),
+    flashcards: p => p.onLoad(), 'math-drill': p => p.onLoad(),
+  };
+  Object.keys(pages).forEach(name => {
+    const p = load('pages/' + name + '/' + name);
+    pages[name](p);
+    assert.strictEqual(p.data.big, true, name + ' 应为大字');
+  });
+  me.onToggleBigFont();
+  const q = load('pages/quiz/quiz');
+  q.onLoad({});
+  assert.strictEqual(q.data.big, false);
+});
 t('错题本筛选：按科目、只看今天到期的，两个条件可叠加；清空和导出仍针对全部', () => {
   child(1);
   const yest = D.addDays(today(), -1); // 昨天答错 → 今天到期
@@ -819,6 +840,76 @@ t('更换邀请码：确认后换新码并解除全部家长；取消则什么�
       assert(/已更换/.test(ui.toasts.pop()));
     });
   });
+});
+t('布置练习全流程：家长在报告里给薄弱单元点「布置」→ 孩子首页出现 → 孩子做完回报 → 家长报告看到结果', () => {
+  cloud.init('test-env');
+  const family = CM.load('family');
+  CM.setOpenid('kid1');
+  return CM.load('login').main({}).then(() => family.main({ action: 'create' })).then(r0 => {
+    CM.setOpenid('parent1');
+    return family.main({ action: 'join', code: r0.code });
+  }).then(() => {
+    // 家长端：报告里布置
+    store.saveProfile({ role: 'parent', grade: 0, nickname: '妈妈', onboarded: true });
+    store.saveChildData({ role: 'child', grade: 1, nickname: '小豆' }, [], [], { drill: [], quiz: [{ subject: 'math', total: 5, correct: 1, label: '继续加油', at: 1, units: [{ unit: 6, total: 5, correct: 1 }] }], review: [], goals: {} }, null);
+    const rp = load('pages/report/report');
+    rp.onLoad();
+    const row = rp.data.mastery.find(x => x.name === '数学第6单元');
+    assert.strictEqual(row.canAssign, true, '家长端「再练练」的单元可以布置');
+    rp.onAssignUnit(tap({ subject: 'math', unit: 6 }));
+    return H.flush().then(() => {
+      assert.strictEqual(CM.db.families[0].assignments.length, 1);
+      assert(/已布置/.test(ui.toasts.pop()));
+    });
+  }).then(() => {
+    // 孩子端：首页出现布置的练习
+    store.clearAll();
+    CM.setOpenid('kid1');
+    child(1);
+    const home = load('pages/index/index');
+    home.onShow();
+    return H.flush().then(() => {
+      home.onShow();
+      assert.strictEqual(home.data.assignment.label, '数学第6单元');
+      home.goAssignment();
+      const url = ui.navs.pop();
+      assert(/^\/pages\/quiz\/quiz\?subject=math&unit=6&assign=as/.test(url), url);
+      const id = url.split('assign=')[1];
+      const p = load('pages/quiz/quiz');
+      p.onLoad({ subject: 'math', unit: '6', assign: id });
+      while (p.data.phase === 'play') {
+        const c = p.data.cards[p.data.idx];
+        if (c.type === 'multi') { c.answerSet.forEach(i => p.onOption(tap({ index: i }))); p.onMultiSubmit(); } else p.onOption(tap({ index: c.answerIndex }));
+      }
+      return H.flush().then(() => {
+        const a = CM.db.families[0].assignments[0];
+        assert(a.doneAt > 0 && a.correct === a.total && a.total > 0, JSON.stringify(a));
+        const home2 = load('pages/index/index');
+        home2.onShow();
+        assert.strictEqual(home2.data.assignment, null, '做完后首页不再显示');
+      });
+    });
+  }).then(() => {
+    // 家长端：报告看到结果
+    CM.setOpenid('parent1');
+    store.clearAll();
+    store.saveProfile({ role: 'parent', grade: 0, nickname: '妈妈', onboarded: true });
+    return cloud.familyRefresh().then(() => {
+      const rp = load('pages/report/report');
+      rp.onLoad();
+      assert.strictEqual(rp.data.assignRows[0].label, '数学第6单元');
+      assert(/^已完成 · 答对 \d+\/\d+$/.test(rp.data.assignRows[0].status), rp.data.assignRows[0].status);
+    });
+  });
+});
+t('周报分享图：画到画布上，导出图片后弹分享菜单（可保存相册 / 发给家人）', () => {
+  child(1);
+  const rp = load('pages/report/report');
+  rp.onLoad();
+  rp.onShareImage();
+  const texts = ui.canvas.getContext('2d').calls.filter(c => c[0] === 'fillText').map(c => c[1]);
+  assert(texts[0] === '小豆的周报', JSON.stringify(texts.slice(0, 3)));
+  assert.strictEqual(ui.shared, 'tmp://share.png');
 });
 t('开通云：云端先清；云端失败时本机不动', () => {
   cloud.init('test-env');

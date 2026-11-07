@@ -1081,6 +1081,70 @@ t('拉取游标用记录的服务器时间 serverAt；升级后旧的（客户�
   await SYNC.pull({ pullData: async q => { asked = q.since; return { ok: true, records: [], serverTime: 9000 }; } });
   assert.strictEqual(asked, 7000, '之后按新游标增量拉');
 });
+t('每日练习日志：做完今日一练记下日期；连续天数不再受小卷历史 50 条上限限制；合并取并集', () => {
+  reset();
+  const DAILY = require('../utils/daily');
+  const HM = require('../utils/history-merge');
+  DAILY.record([{ source: 'quiz', subject: 'math', unit: 6, ok: true }], '2026-11-07');
+  DAILY.record([{ source: 'quiz', subject: 'math', unit: 6, ok: true }], '2026-11-07');
+  assert.deepStrictEqual(store.getDailyLog(), ['2026-11-07'], '同一天只记一次');
+  // 40 天连续：小卷历史只留得下 50 条（每天 2 条 → 25 天），日志不受影响
+  const log = Array.from({ length: 40 }, (_, i) => D.addDays('2026-11-07', -i));
+  assert.strictEqual(DAILY.streak([], '2026-11-07', log), 40);
+  assert.strictEqual(DAILY.streak([{ daily: true, date: '2026-11-07' }], '2026-11-07', ['2026-11-06']), 2, '日志与小卷历史取并集（兼容升级前的数据）');
+  assert.deepStrictEqual(HM.mergeDates(['2026-11-07', '2026-11-05'], ['2026-11-06', '2026-11-05', 'bad', null]), ['2026-11-07', '2026-11-06', '2026-11-05']);
+  const many = Array.from({ length: 450 }, (_, i) => D.addDays('2026-11-07', -i));
+  const capped = HM.mergeDates(many, []);
+  assert.deepStrictEqual([capped.length, capped[0]], [HM.DAILY_LOG_CAP, '2026-11-07'], '按上限截断，保留最新');
+  assert.deepStrictEqual(HM.mergePractice(null, { daily: ['2026-11-07'] }).daily, ['2026-11-07']);
+});
+t('每日练习日志进备份、随同步上云；学期报告统计今日一练天数', async () => {
+  reset();
+  store.saveDailyLog(['2026-11-07', '2026-11-06']);
+  const text = JSON.stringify(BACKUP.serialize());
+  store.clearAll();
+  BACKUP.restoreFromText(text);
+  assert.deepStrictEqual(store.getDailyLog(), ['2026-11-07', '2026-11-06']);
+  const SYNC = require('../utils/sync');
+  let sent = null;
+  await SYNC.push({ pushData: async p => { if (!sent) sent = p; return { ok: true, serverTime: 1e15 }; } });
+  assert.deepStrictEqual(sent.practice.daily, ['2026-11-07', '2026-11-06']);
+  await SYNC.pull({ pullData: async () => ({ ok: true, records: [], practice: { daily: ['2026-11-05'] }, serverTime: 1e15 }) });
+  assert.deepStrictEqual(store.getDailyLog(), ['2026-11-07', '2026-11-06', '2026-11-05']);
+  const TM_ = require('../utils/term');
+  const s = TM_.termSummary({ records: [], grade: 1, dailyLog: store.getDailyLog() }, TM_.periodAt('2026-11-07'), '2026-11-07');
+  assert.strictEqual(s.dailyDays, 3);
+});
+t('周报分享图排版（纯函数）：标题 / 关键数字 / 亮点 / 需关注逐行排开，长句按宽度换行，画布高度随内容', () => {
+  const SI = require('../utils/share-image');
+  const digest = { label: '10月19日–10月25日', checkinDays: 6, achievedDays: 5, stars: 38, vsPrev: 2,
+    practiceLine: '🧮 口算 3 次 · 正确率 92%　📝 小卷 2 份',
+    highlights: ['有 5 天完成了全部必做任务', '本周记住了 6 张记忆卡'], attention: ['「数学第6单元」小卷正确率 40%，可以按单元再练一组，这句话很长很长需要换行显示才放得下'] };
+  const out = SI.layout(digest, '小豆');
+  const texts = out.ops.filter(o => o.type === 'text').map(o => o.text);
+  assert.strictEqual(texts[0], '小豆的周报');
+  assert(texts.includes('10月19日–10月25日'));
+  assert(texts.some(t => t.includes('打卡 6/7 天')) && texts.some(t => t.includes('达成 5 天')) && texts.some(t => t.includes('⭐ 38')));
+  assert(texts.includes('✨ 有 5 天完成了全部必做任务'));
+  const warnLines = texts.filter(t => t.startsWith('💡') || out.ops.find(o => o.text === t && o.indent));
+  assert(warnLines.length >= 2, '长句换行：' + JSON.stringify(warnLines));
+  texts.forEach(t => assert(SI.textWidth(t, 30) <= out.width - 2 * SI.PAD + 1, '每行不超出画布：' + t));
+  assert.strictEqual(out.width, 750);
+  const short = SI.layout({ ...digest, highlights: [], attention: [] }, '小豆');
+  assert(short.height < out.height, '内容少画布更短');
+  assert(texts[texts.length - 1].includes('天天小达人'), '落款');
+});
+t('大字模式：默认关；开关存在设置里，不影响其他设置', () => {
+  reset();
+  const UI = require('../utils/display');
+  assert.strictEqual(UI.bigFont(), false);
+  store.saveSettings({ cheerFrom: '妈妈' });
+  UI.setBigFont(true);
+  assert.strictEqual(UI.bigFont(), true);
+  assert.strictEqual(store.getSettings().cheerFrom, '妈妈', '其他设置保留');
+  UI.setBigFont(false);
+  assert.strictEqual(UI.bigFont(), false);
+});
 t('学科常量只有一份：题库、报告、推送摘要用同一个单元标签与学科名', () => {
   const SUBJ = require('../utils/subjects');
   assert.deepStrictEqual(SUBJ.ORDER, ['math', 'chinese', 'english']);
@@ -1700,7 +1764,7 @@ t('mergePractice：口算 100 / 小卷 50 分别截断', () => {
   assert.strictEqual(m.drill.length, HM.DRILL_CAP);
   assert.strictEqual(m.quiz.length, HM.QUIZ_CAP);
   assert.strictEqual(m.drill[0].at, 120, '保留最新');
-  assert.deepStrictEqual(HM.mergePractice(null, null), { drill: [], quiz: [], review: [], goals: {}, cards: {} });
+  assert.deepStrictEqual(HM.mergePractice(null, null), { drill: [], quiz: [], review: [], goals: {}, cards: {}, daily: [] });
 });
 t('练习记录同步往返：推送全量，拉取按并集合并（两台设备各自的练习都保留）', async () => {
   reset();
