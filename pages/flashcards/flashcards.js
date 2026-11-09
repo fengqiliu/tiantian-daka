@@ -26,7 +26,9 @@ Page({
     cardClass: 'en', // cn：大字 / en：单词 / ma：数学题面
   },
 
-  onLoad() {
+  // options.deck：直接进某个牌组（家长布置的记忆卡）；options.assign：做完回报结果
+  onLoad(options) {
+    const o = options || {};
     if (CTX.scope().role === 'parent') {
       wx.showToast({ title: '记忆卡在孩子设备上练习', icon: 'none' });
       setTimeout(() => wx.navigateBack(), 800);
@@ -34,6 +36,8 @@ Page({
     }
     this.setData({ big: UI.bigFont() });
     this.refresh();
+    this.assignId = o.assign || '';
+    if (o.deck && FC.getDeck(o.deck)) this.onStart({ currentTarget: { dataset: { id: o.deck } } });
   },
 
   onShow() { if (this.data.phase === 'decks') this.refresh(); },
@@ -88,6 +92,10 @@ Page({
       const b = fresh.length ? B.badgeById(fresh[0].id) : null;
       this.setData({ sessionKnown, phase: 'done', newBadge: b ? b.emoji + ' ' + b.name : '' });
       cloud.syncAll();
+      if (this.assignId) {
+        cloud.assignDone(this.assignId, this.data.total, sessionKnown);
+        this.assignId = '';
+      }
       this.refresh();
       return;
     }

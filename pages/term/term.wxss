@@ -19,3 +19,4 @@
 .tm-mark { margin-left: 16rpx; font-size: 24rpx; color: #A39E93; min-width: 120rpx; text-align: right; }
 .tm-mark.mastered { color: #2F9E44; }
 .tm-mark.practice { color: #E5484D; }
+.tm-cert { margin: 8rpx 32rpx 24rpx; }

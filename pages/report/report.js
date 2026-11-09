@@ -66,12 +66,7 @@ Page({
     const who = s.role === 'parent' ? s.child : s.profile;
     const { width, height, ops } = SHARE.layout(this.data.week, who && who.nickname);
     const canvas = wx.createOffscreenCanvas({ type: '2d', width, height });
-    const ctx = canvas.getContext('2d');
-    ops.forEach(op => {
-      ctx.fillStyle = op.color;
-      if (op.type === 'rect') ctx.fillRect(op.x, op.y, op.w, op.h);
-      else { ctx.font = (op.bold ? 'bold ' : '') + op.size + 'px sans-serif'; ctx.fillText(op.text, op.x, op.y); }
-    });
+    SHARE.paint(canvas.getContext('2d'), ops);
     wx.canvasToTempFilePath({
       canvas,
       success: res => wx.showShareImageMenu({
@@ -88,6 +83,15 @@ Page({
     if (this.data.role !== 'parent') return;
     const { subject, unit } = e.currentTarget.dataset;
     cloud.assignUnit(subject, unit).then(res => {
+      wx.showToast({ title: res && res.ok ? '已布置，孩子首页会看到' : (res && res.error) || '布置失败，稍后再试', icon: 'none' });
+      if (res && res.ok) cloud.familyRefresh().then(() => this.refresh());
+    });
+  },
+
+  // 家长端：把一个记忆卡牌组布置给孩子
+  onAssignDeck(e) {
+    if (this.data.role !== 'parent') return;
+    cloud.assignDeck(e.currentTarget.dataset.id).then(res => {
       wx.showToast({ title: res && res.ok ? '已布置，孩子首页会看到' : (res && res.error) || '布置失败，稍后再试', icon: 'none' });
       if (res && res.ok) cloud.familyRefresh().then(() => this.refresh());
     });
@@ -158,14 +162,14 @@ Page({
       const left = !touched ? '还没开始练'
         : !d.left.length ? '全部记住了 🎉'
           : '还没记住：' + d.left.slice(0, 6).join('、') + (d.left.length > 6 ? ' 等 ' + d.left.length + ' 个' : '');
-      return { id: d.id, name: d.name, text: d.mastered + '/' + d.total, left, done: !d.left.length };
+      return { id: d.id, name: d.name, text: d.mastered + '/' + d.total, left, done: !d.left.length, canAssign: s.role === 'parent' && d.left.length > 0 };
     });
     const flashLine = '记忆卡已掌握 ' + fsum.mastered + '/' + fsum.total + ' 张';
 
     // 布置的练习（家长端，读孩子同步过来的）
     const assignRows = s.role === 'parent' ? store.getChildAssignments().slice(0, 10).map(a => ({
       id: a.id, label: a.label,
-      status: a.doneAt ? '已完成 · 答对 ' + a.correct + '/' + a.total : '还没做',
+      status: a.doneAt ? '已完成 · ' + (a.kind === 'deck' ? '认识 ' : '答对 ') + a.correct + '/' + a.total : '还没做',
       done: !!a.doneAt,
     })) : [];
 

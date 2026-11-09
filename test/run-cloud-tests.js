@@ -223,6 +223,41 @@ t('布置练习：家长给孩子布置某单元的小卷，孩子拉到列表�
   assert(row.doneAt > 0);
   assert.deepStrictEqual([row.total, row.correct], [10, 10], '答对数不超过题数');
 });
+t('布置练习做完：给有订阅配额的家长发通知（扣配额），内容是谁做完了哪个单元、答对几题', async () => {
+  reset();
+  CM.setConfig('family', { NOTIFY_TEMPLATE_ID: 'tmpl-notify-test' });
+  const family = CM.load('family');
+  CM.setOpenid('kid1'); await CM.load('login').main({});
+  await CM.load('sync').main({ action: 'push', profile: { nickname: '小豆', grade: 1, updatedAt: 1 } });
+  const code = (await family.main({ action: 'create' })).code;
+  CM.setOpenid('parent1'); await family.main({ action: 'join', code });
+  await family.main({ action: 'grantParentSub', n: 2 });
+  const a = await family.main({ action: 'assign', subject: 'math', unit: 6 });
+  CM.setOpenid('kid1');
+  const r = await family.main({ action: 'assignDone', id: a.id, total: 10, correct: 8 });
+  assert.strictEqual(r.notified, 1);
+  const msg = CM.sent[0];
+  assert.deepStrictEqual([msg.touser, msg.data.thing1.value, msg.data.thing2.value], ['parent1', '小豆做完了布置的练习', '数学第6单元 · 答对 8/10']);
+  assert.strictEqual(msg.page, 'pages/report/report', '点开直接看报告');
+  assert.strictEqual(CM.db.families[0].members[0].parentSubQuota, 1, '扣 1 次配额');
+  // 重复回报同一份不再通知
+  const again = await family.main({ action: 'assignDone', id: a.id, total: 10, correct: 9 });
+  assert.strictEqual(again.notified, 0);
+});
+t('布置记忆卡牌组：牌组 id 必须存在；显示牌组名；同一牌组没练完不重复布置', async () => {
+  reset();
+  const family = CM.load('family');
+  CM.setOpenid('kid1'); await CM.load('login').main({});
+  const code = (await family.main({ action: 'create' })).code;
+  CM.setOpenid('parent1'); await family.main({ action: 'join', code });
+  const a = await family.main({ action: 'assign', kind: 'deck', deckId: 'en-u5' });
+  assert.strictEqual(a.ok, true);
+  assert.strictEqual((await family.main({ action: 'assign', kind: 'deck', deckId: 'en-u5' })).id, a.id);
+  assert.strictEqual((await family.main({ action: 'assign', kind: 'deck', deckId: 'xx-u9' })).ok, false, '不存在的牌组');
+  CM.setOpenid('kid1');
+  const list = (await family.main({ action: 'assignments' })).assignments;
+  assert.deepStrictEqual([list[0].kind, list[0].deckId, list[0].label], ['deck', 'en-u5', '英语 · U5 可爱的脸']);
+});
 t('布置练习：同时最多 10 份没做完的', async () => {
   reset();
   const family = CM.load('family');

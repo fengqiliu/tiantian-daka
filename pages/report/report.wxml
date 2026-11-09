@@ -149,6 +149,7 @@
       <view class="row">
         <view class="flex1 wb-text">{{f.name}}</view>
         <view class="rp-mark {{f.done ? 'mastered' : ''}}">{{f.text}}</view>
+        <view class="rp-assign" wx:if="{{f.canAssign}}" data-id="{{f.id}}" catchtap="onAssignDeck">布置</view>
       </view>
       <view class="muted rp-flash-left">{{f.left}}</view>
     </view>

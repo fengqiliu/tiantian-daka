@@ -1134,6 +1134,27 @@ t('周报分享图排版（纯函数）：标题 / 关键数字 / 亮点 / 需�
   assert(short.height < out.height, '内容少画布更短');
   assert(texts[texts.length - 1].includes('天天小达人'), '落款');
 });
+t('学期成长证书排版：时段、打卡 / 达成 / 最长连续、勋章与星星、掌握单元、今日一练、记住的记忆卡、亮点', () => {
+  const SI = require('../utils/share-image');
+  const summary = { label: '2026 学年第一学期', checkinDays: 62, achievedDays: 50, bestStreak: 21, stars: 480, badges: [{ id: 'a' }, { id: 'b' }],
+    masteredUnits: 7, dailyDays: 30, highlights: ['口算正确率从 70% 提高到 92%'] };
+  const out = SI.certificate(summary, '小豆', { cardsMastered: 64 });
+  const texts = out.ops.filter(o => o.type === 'text').map(o => o.text);
+  assert.strictEqual(texts[0], '🏅 成长证书');
+  assert(texts.includes('小豆'));
+  assert(texts.includes('2026 学年第一学期'));
+  ['坚持打卡 62 天', '达成 50 天', '最长连续 21 天', '获得 2 枚勋章', '⭐ 480', '小卷掌握 7 个单元', '今日一练 30 天', '记住 64 张记忆卡', '✨ 口算正确率从 70% 提高到 92%']
+    .forEach(k => assert(texts.some(t => t.includes(k)), '缺少：' + k + ' in ' + JSON.stringify(texts)));
+  const empty = SI.certificate({ label: 'x', checkinDays: 0, achievedDays: 0, bestStreak: 0, stars: 0, badges: [], masteredUnits: 0, dailyDays: 0, highlights: [] }, '小豆', { cardsMastered: 0 });
+  const t2 = empty.ops.filter(o => o.type === 'text').map(o => o.text);
+  assert(!t2.some(t => t.includes('小卷掌握') || t.includes('今日一练') || t.includes('记忆卡')), '为 0 的项不写');
+  // paint：按指令画到任意 2d 上下文
+  const calls = [];
+  const ctx = new Proxy({}, { get: (t, k) => (...a) => calls.push([k].concat(a)), set: (t, k, v) => { calls.push(['set:' + k, v]); return true; } });
+  SI.paint(ctx, out.ops);
+  assert.strictEqual(calls.filter(c => c[0] === 'fillText').length, texts.length);
+  assert.strictEqual(calls.filter(c => c[0] === 'fillRect').length >= 1, true);
+});
 t('大字模式：默认关；开关存在设置里，不影响其他设置', () => {
   reset();
   const UI = require('../utils/display');

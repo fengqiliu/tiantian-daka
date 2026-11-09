@@ -172,7 +172,7 @@ Page({
     const open = store.getAssignments().filter(a => !a.doneAt);
     if (!open.length) return null;
     const a = open[open.length - 1];
-    return { id: a.id, subject: a.subject, unit: a.unit, label: a.label, more: open.length - 1 };
+    return { id: a.id, kind: a.kind || 'unit', deckId: a.deckId || '', subject: a.subject, unit: a.unit, label: a.label, more: open.length - 1 };
   },
 
   refreshAssignments() {
@@ -185,7 +185,9 @@ Page({
   goAssignment() {
     const a = this.data.assignment;
     if (!a) return;
-    wx.navigateTo({ url: '/pages/quiz/quiz?subject=' + a.subject + '&unit=' + a.unit + '&assign=' + a.id });
+    wx.navigateTo({ url: a.kind === 'deck'
+      ? '/pages/flashcards/flashcards?deck=' + a.deckId + '&assign=' + a.id
+      : '/pages/quiz/quiz?subject=' + a.subject + '&unit=' + a.unit + '&assign=' + a.id });
   },
 
   goDaily() {

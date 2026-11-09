@@ -911,6 +911,56 @@ t('周报分享图：画到画布上，导出图片后弹分享菜单（可保�
   assert(texts[0] === '小豆的周报', JSON.stringify(texts.slice(0, 3)));
   assert.strictEqual(ui.shared, 'tmp://share.png');
 });
+t('布置记忆卡全流程：家长在报告记忆卡里点「布置」→ 孩子首页 → 直接进这个牌组练 → 练完回报认识几张', () => {
+  cloud.init('test-env');
+  const family = CM.load('family');
+  CM.setOpenid('kid1');
+  return CM.load('login').main({}).then(() => family.main({ action: 'create' })).then(r0 => {
+    CM.setOpenid('parent1');
+    return family.main({ action: 'join', code: r0.code });
+  }).then(() => {
+    store.saveProfile({ role: 'parent', grade: 0, nickname: '妈妈', onboarded: true });
+    store.saveChildData({ role: 'child', grade: 1, nickname: '小豆' }, [], [], { drill: [], quiz: [], review: [], goals: {}, cards: {} }, null);
+    const rp = load('pages/report/report');
+    rp.onLoad();
+    const row = rp.data.flashRows.find(x => x.id === 'en-u2');
+    assert.strictEqual(row.canAssign, true);
+    rp.onAssignDeck(tap({ id: 'en-u2' }));
+    return H.flush();
+  }).then(() => {
+    assert.strictEqual(CM.db.families[0].assignments[0].deckId, 'en-u2');
+    store.clearAll();
+    CM.setOpenid('kid1');
+    child(1);
+    const home = load('pages/index/index');
+    home.onShow();
+    return H.flush().then(() => {
+      home.onShow();
+      assert.strictEqual(home.data.assignment.label, '英语 · U2 新朋友');
+      home.goAssignment();
+      const url = ui.navs.pop();
+      assert(/^\/pages\/flashcards\/flashcards\?deck=en-u2&assign=as/.test(url), url);
+      const p = load('pages/flashcards/flashcards');
+      p.onLoad({ deck: 'en-u2', assign: url.split('assign=')[1] });
+      assert.strictEqual(p.data.phase, 'play', '直接进牌组');
+      while (p.data.phase === 'play') { p.onFlip(); p.onMark(tap({ known: '1' })); }
+      return H.flush().then(() => {
+        const a = CM.db.families[0].assignments[0];
+        assert(a.doneAt > 0 && a.total === 4 && a.correct === 4, JSON.stringify(a));
+      });
+    });
+  });
+});
+t('学期成长证书：学期报告一键生成图片并弹分享菜单', () => {
+  child(1);
+  C.upsertRecord(today(), 'pe_rope', 100, 3, '');
+  const p = load('pages/term/term');
+  p.onLoad();
+  p.onCertificate();
+  const texts = ui.canvas.getContext('2d').calls.filter(c => c[0] === 'fillText').map(c => c[1]);
+  assert.deepStrictEqual(texts.slice(0, 2), ['🏅 成长证书', '小豆']);
+  assert.strictEqual(ui.shared, 'tmp://share.png');
+});
 t('开通云：云端先清；云端失败时本机不动', () => {
   cloud.init('test-env');
   CM.setOpenid('kid1');

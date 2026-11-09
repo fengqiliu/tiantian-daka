@@ -144,7 +144,7 @@
 | `users` | `{ openid, joinFail?: { n, since }, profile, taskOverrides, shop, practice: { drill[], quiz[], review[], goals, cards, daily[] }, wrongBook: { math[], quiz[], updatedAt }, remindEnabled, remindQuota, remindHour, createdAt }` | `login` 首次调用自动创建 |
 | `checkins` | 本地 record + `openid` + `serverAt`（云端写入时盖的服务器时间，0.36.0） | 推荐索引：`(openid+serverAt)`、`(openid+id)`、`(openid+date)` |
 | `badges` | `{ openid, id, earnedAt }` | 并集写入 |
-| `families` | `{ code, ownerOpenid, ownerProfile, members:[{openid, parentSubQuota, weeklyQuota, joinedAt}], assignments:[{ id, subject, unit, createdAt, doneAt, total, correct }]（0.38.0，最近 30 份）, createdAt }` | `code` 为 6 位邀请码（去除易混淆字符 0/O/1/I/L） |
+| `families` | `{ code, ownerOpenid, ownerProfile, members:[{openid, parentSubQuota, weeklyQuota, joinedAt}], assignments:[{ id, kind: unit|deck, subject?, unit?, deckId?, createdAt, doneAt, total, correct }]（0.38.0，最近 30 份；0.39.0 起可布置记忆卡牌组）, createdAt }` | `code` 为 6 位邀请码（去除易混淆字符 0/O/1/I/L） |
 | `cheers` | `{ ownerOpenid, fromOpenid, from, text, recordId, recordLabel, createdAt, readAt, reaction, reactedAt }` | 家长鼓励留言与孩子的表情回复，只经 `family` 云函数读写；建议集合权限设为「所有用户不可读写」。推荐索引：`(ownerOpenid+createdAt)`、`(fromOpenid+createdAt)` |
 
 ### 2.5 家人绑定与留言流程

@@ -174,7 +174,7 @@
       <view class="task-emoji" style="background: #FFEBEB;">📌</view>
       <view class="flex1 task-info">
         <view class="task-name">家长布置的练习：{{assignment.label}}</view>
-        <view class="muted">做一份这个单元的小卷，做完家长能看到结果{{assignment.more ? ' · 还有 ' + assignment.more + ' 份' : ''}}</view>
+        <view class="muted">{{assignment.kind === 'deck' ? '练一组这个牌组的记忆卡' : '做一份这个单元的小卷'}}，做完家长能看到结果{{assignment.more ? ' · 还有 ' + assignment.more + ' 份' : ''}}</view>
       </view>
       <view class="task-right"><view class="review-go">去做</view></view>
     </view>

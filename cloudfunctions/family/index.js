@@ -6,6 +6,7 @@ const _ = db.command;
 const { NOTIFY_TEMPLATE_ID, WEEKLY_TEMPLATE_ID } = require('./config.js');
 const CHEER = require('./lib/cheer.js');
 const SUBJ = require('./lib/subjects.js');
+const DECKS = require('./lib/flashcard-decks.js');
 
 const DAY_MS = 24 * 3600 * 1000;
 
@@ -33,9 +34,39 @@ async function contentOk(openid, text) {
 const MAX_SUMMARY_RECORDS = 5000;
 const MAX_OPEN_ASSIGN = 10; // 同时没做完的布置练习上限
 
+// 给有订阅配额的家长发一条订阅消息，成功扣 1 次配额，43101 清零；返回发送条数。
+// 回写基于最新的成员列表（循环里每位家长都改同一份文档，用读到的旧数组回写会覆盖前一位的扣减）
+async function notifyParentsOf(fam, title, body, page) {
+  if (!NOTIFY_TEMPLATE_ID || NOTIFY_TEMPLATE_ID.indexOf('REPLACE_') === 0) return 0;
+  let sent = 0;
+  for (const m of fam.members || []) {
+    if ((m.parentSubQuota || 0) <= 0) continue;
+    try {
+      await cloud.openapi.subscribeMessage.send({
+        touser: m.openid,
+        templateId: NOTIFY_TEMPLATE_ID,
+        page,
+        // ⚠️ 字段名（thing1/thing2…）需与你申请的模板字段一致，见 docs/data-model.md
+        data: { thing1: { value: title.slice(0, 20) }, thing2: { value: body.slice(0, 20) } },
+      });
+      sent++;
+      fam.members = fam.members.map(x => (x.openid === m.openid ? { ...x, parentSubQuota: x.parentSubQuota - 1 } : x));
+      await db.collection('families').doc(fam._id).update({ data: { members: fam.members } });
+    } catch (e) {
+      if (e.errCode === 43101) { // 用户未订阅/配额用尽
+        fam.members = fam.members.map(x => (x.openid === m.openid ? { ...x, parentSubQuota: 0 } : x));
+        await db.collection('families').doc(fam._id).update({ data: { members: fam.members } });
+      }
+    }
+  }
+  return sent;
+}
+
 // 布置练习对外字段（带显示用的单元名）
 function assignView(a) {
-  return { id: a.id, subject: a.subject, unit: a.unit, label: SUBJ.nameOf(a.subject) + SUBJ.unitLabel(a.unit), createdAt: a.createdAt, doneAt: a.doneAt || 0, total: a.total || 0, correct: a.correct || 0 };
+  const deck = a.kind === 'deck' ? DECKS.getDeck(a.deckId) : null;
+  return { id: a.id, kind: a.kind || 'unit', deckId: a.deckId || '', subject: a.subject || '', unit: a.unit || 0,
+    label: deck ? deck.name : SUBJ.nameOf(a.subject) + SUBJ.unitLabel(a.unit), createdAt: a.createdAt, doneAt: a.doneAt || 0, total: a.total || 0, correct: a.correct || 0 };
 }
 const JOIN_MAX_FAILS = 5;
 // 订阅授权次数：客户端说一次授权几次，限制在 1-3（不信任负数 / 超大数）
@@ -93,17 +124,21 @@ exports.main = async (event) => {
   if (action === 'assign') {
     const fam = await findMyFamily(OPENID, 'parent');
     if (!fam || fam.ownerOpenid === OPENID) return { ok: false, error: '只有绑定的家长可以布置' };
+    const isDeck = event.kind === 'deck';
     const subject = String(event.subject || '');
     const unit = Number(event.unit);
-    if (SUBJ.ORDER.indexOf(subject) < 0 || !(Number.isInteger(unit) && ((unit >= 1 && unit <= 9) || unit === SUBJ.FINAL_UNIT))) {
-      return { ok: false, error: '科目或单元不对' };
+    const deckId = String(event.deckId || '');
+    if (isDeck ? !DECKS.getDeck(deckId)
+      : SUBJ.ORDER.indexOf(subject) < 0 || !(Number.isInteger(unit) && ((unit >= 1 && unit <= 9) || unit === SUBJ.FINAL_UNIT))) {
+      return { ok: false, error: isDeck ? '记忆卡牌组不存在' : '科目或单元不对' };
     }
     const list = fam.assignments || [];
     const open = list.filter(a => !a.doneAt);
-    const same = open.find(a => a.subject === subject && a.unit === unit);
+    const same = open.find(a => (isDeck ? a.kind === 'deck' && a.deckId === deckId : a.kind !== 'deck' && a.subject === subject && a.unit === unit));
     if (same) return { ok: true, id: same.id };
     if (open.length >= MAX_OPEN_ASSIGN) return { ok: false, error: '没做完的练习已经有 10 份了，等孩子做完再布置吧' };
-    const item = { id: 'as' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), subject, unit, createdAt: Date.now(), doneAt: 0, total: 0, correct: 0 };
+    const base = { id: 'as' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), createdAt: Date.now(), doneAt: 0, total: 0, correct: 0 };
+    const item = isDeck ? { ...base, kind: 'deck', deckId } : { ...base, kind: 'unit', subject, unit };
     await db.collection('families').doc(fam._id).update({ data: { assignments: [item].concat(list).slice(0, 30) } });
     return { ok: true, id: item.id };
   }
@@ -124,9 +159,17 @@ exports.main = async (event) => {
     if (i < 0) return { ok: false, error: '练习不存在' };
     const total = Math.max(0, Math.min(50, Math.floor(Number(event.total)) || 0));
     const correct = Math.max(0, Math.min(total, Math.floor(Number(event.correct)) || 0));
+    const first = !list[i].doneAt;
     list[i] = { ...list[i], doneAt: Date.now(), total, correct };
     await db.collection('families').doc(fam._id).update({ data: { assignments: list } });
-    return { ok: true };
+    // 第一次做完时通知家长（用家长订阅配额；点开直接看报告）
+    let notified = 0;
+    if (first) {
+      const owner = (await db.collection('users').where({ openid: OPENID }).limit(1).get()).data[0];
+      const name = ((owner && owner.profile && owner.profile.nickname) || '孩子').slice(0, 8);
+      notified = await notifyParentsOf(fam, name + '做完了布置的练习', assignView(list[i]).label + (list[i].kind === 'deck' ? ' · 认识 ' : ' · 答对 ') + correct + '/' + total, 'pages/report/report');
+    }
+    return { ok: true, notified };
   }
 
   // 孩子端：更换邀请码并解除全部家长绑定（邀请码泄露、或想让某位家长不再看到数据时用）
@@ -249,32 +292,7 @@ exports.main = async (event) => {
     if (!NOTIFY_TEMPLATE_ID || NOTIFY_TEMPLATE_ID.indexOf('REPLACE_') === 0) {
       return { ok: true, sent: 0, hint: '模板 ID 未配置' };
     }
-    const members = fam.members || [];
-    let sent = 0;
-    for (const m of members) {
-      if ((m.parentSubQuota || 0) <= 0) continue;
-      try {
-        await cloud.openapi.subscribeMessage.send({
-          touser: m.openid,
-          templateId: NOTIFY_TEMPLATE_ID,
-          page: 'pages/index/index',
-          // ⚠️ 字段名（thing1/thing2…）需与你申请的模板字段一致，见 docs/data-model.md
-          data: {
-            thing1: { value: String(event.title || '打卡里程碑').slice(0, 20) },
-            thing2: { value: String(event.body || '').slice(0, 20) },
-          },
-        });
-        sent++;
-        // 回写要基于最新的成员列表：循环里每位家长都改同一份文档，用读到的旧数组回写会覆盖前一位的扣减
-        fam.members = fam.members.map(x => (x.openid === m.openid ? { ...x, parentSubQuota: x.parentSubQuota - 1 } : x));
-        await db.collection('families').doc(fam._id).update({ data: { members: fam.members } });
-      } catch (e) {
-        if (e.errCode === 43101) { // 用户未订阅/配额用尽
-          fam.members = fam.members.map(x => (x.openid === m.openid ? { ...x, parentSubQuota: 0 } : x));
-          await db.collection('families').doc(fam._id).update({ data: { members: fam.members } });
-        }
-      }
-    }
+    const sent = await notifyParentsOf(fam, String(event.title || '打卡里程碑'), String(event.body || ''), 'pages/index/index');
     return { ok: true, sent };
   }
 
