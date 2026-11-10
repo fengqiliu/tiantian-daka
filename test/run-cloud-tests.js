@@ -258,6 +258,24 @@ t('布置记忆卡牌组：牌组 id 必须存在；显示牌组名；同一牌�
   const list = (await family.main({ action: 'assignments' })).assignments;
   assert.deepStrictEqual([list[0].kind, list[0].deckId, list[0].label], ['deck', 'en-u5', '英语 · U5 可爱的脸']);
 });
+t('撤销布置：家长可撤销还没做完的练习；做完的不能撤；孩子 / 外人不能撤', async () => {
+  reset();
+  const family = CM.load('family');
+  CM.setOpenid('kid1'); await CM.load('login').main({});
+  const code = (await family.main({ action: 'create' })).code;
+  CM.setOpenid('parent1'); await family.main({ action: 'join', code });
+  const a = await family.main({ action: 'assign', subject: 'math', unit: 6 });
+  const b = await family.main({ action: 'assign', subject: 'math', unit: 5 });
+  CM.setOpenid('kid1');
+  assert.strictEqual((await family.main({ action: 'unassign', id: a.id })).ok, false, '孩子不能撤');
+  await family.main({ action: 'assignDone', id: b.id, total: 5, correct: 5 });
+  CM.setOpenid('stranger');
+  assert.strictEqual((await family.main({ action: 'unassign', id: a.id })).ok, false, '外人不能撤');
+  CM.setOpenid('parent1');
+  assert.strictEqual((await family.main({ action: 'unassign', id: b.id })).ok, false, '做完的不能撤');
+  assert.strictEqual((await family.main({ action: 'unassign', id: a.id })).ok, true);
+  assert.deepStrictEqual(CM.db.families[0].assignments.map(x => x.id), [b.id]);
+});
 t('布置练习：同时最多 10 份没做完的', async () => {
   reset();
   const family = CM.load('family');

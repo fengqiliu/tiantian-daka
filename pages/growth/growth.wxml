@@ -83,6 +83,22 @@
   <view wx:else class="card empty muted">本周还没有打卡记录，快去开始吧！</view>
 
   <view class="sec-header row" style="padding: 8rpx 32rpx 16rpx;">
+    <text class="h2 flex1">📈 我的进步</text>
+    <text class="muted">{{trendLine}}</text>
+  </view>
+  <view class="card tr-card">
+    <view class="tr-bars">
+      <view class="tr-col" wx:for="{{trend}}" wx:key="monday">
+        <view class="tr-acc">{{item.accuracy === null ? '' : item.accuracy + '%'}}</view>
+        <view class="tr-track"><view class="tr-bar" style="height: {{item.starPct}}%;"></view></view>
+        <view class="tr-num">{{item.stars}}</view>
+        <view class="muted tr-label">{{item.label}}</view>
+      </view>
+    </view>
+    <view class="muted tr-tip">柱子是每周的星星，上面的百分比是那周小卷的正确率</view>
+  </view>
+
+  <view class="sec-header row" style="padding: 8rpx 32rpx 16rpx;">
     <text class="h2">🗺️ 单元星图</text>
   </view>
   <view class="card" wx:for="{{starMap}}" wx:key="subject" wx:for-item="sub">

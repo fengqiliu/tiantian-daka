@@ -137,6 +137,7 @@
     <view class="row wb-item" wx:for="{{assignRows}}" wx:key="id" wx:for-item="a">
       <view class="flex1 wb-text">{{a.label}}</view>
       <view class="rp-mark {{a.done ? 'mastered' : ''}}">{{a.status}}</view>
+      <view class="rp-cancel" wx:if="{{a.canCancel}}" data-id="{{a.id}}" catchtap="onUnassign">撤销</view>
     </view>
   </view>
 

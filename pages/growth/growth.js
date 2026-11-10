@@ -9,6 +9,7 @@ const SHOP = require('../../utils/shop');
 const TERM = require('../../utils/term');
 const SUBJ = require('../../utils/subjects');
 const FC = require('../../utils/flashcards');
+const REPORT = require('../../utils/report');
 
 Page({
   data: {
@@ -82,6 +83,7 @@ Page({
       role: s.role,
       starMap: this.starMapView(s.quizHistory),
       flashLine: this.flashLine(s.flashcards),
+      ...this.trendView(records, s.quizHistory),
       shopHint,
     });
   },
@@ -93,6 +95,12 @@ Page({
       summary: '已点亮 ' + sub.lit + '/' + sub.units.length + ' 个单元',
       units: sub.units.map(u => ({ ...u, starText: '★'.repeat(u.stars) + '☆'.repeat(3 - u.stars) })),
     }));
+  },
+
+  // 近 8 周进步曲线：每周星星（柱高）与小卷正确率
+  trendView(records, quizHistory) {
+    const trend = REPORT.weeklyTrend(records, quizHistory, D.todayStr(), 8);
+    return { trend, trendLine: '近 8 周共 ' + trend.reduce((s, w) => s + w.stars, 0) + ' ⭐' };
   },
 
   flashLine(cards) {

@@ -88,6 +88,26 @@ Page({
     });
   },
 
+  // 家长端：撤销还没做的布置（确认后）
+  onUnassign(e) {
+    if (this.data.role !== 'parent') return;
+    const id = e.currentTarget.dataset.id;
+    wx.showModal({
+      title: '撤销这份练习',
+      content: '孩子首页将不再显示这份练习，确定撤销吗？',
+      success: res => {
+        if (!res.confirm) return;
+        cloud.unassign(id).then(r => {
+          if (r && r.ok) {
+            store.saveChildAssignments(store.getChildAssignments().filter(a => a.id !== id));
+            this.refresh();
+            wx.showToast({ title: '已撤销', icon: 'none' });
+          } else wx.showToast({ title: (r && r.error) || '撤销失败，稍后再试', icon: 'none' });
+        });
+      },
+    });
+  },
+
   // 家长端：把一个记忆卡牌组布置给孩子
   onAssignDeck(e) {
     if (this.data.role !== 'parent') return;
@@ -171,6 +191,7 @@ Page({
       id: a.id, label: a.label,
       status: a.doneAt ? '已完成 · ' + (a.kind === 'deck' ? '认识 ' : '答对 ') + a.correct + '/' + a.total : '还没做',
       done: !!a.doneAt,
+      canCancel: !a.doneAt,
     })) : [];
 
     const thisMonday = D.mondayOf(today);

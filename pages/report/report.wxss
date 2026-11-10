@@ -62,3 +62,4 @@
 .rp-flash-left { font-size: 24rpx; margin-top: 4rpx; }
 .rp-assign { margin-left: 12rpx; font-size: 24rpx; color: #fff; background: #FF8A00; border-radius: 999rpx; padding: 6rpx 18rpx; }
 .rp-share { margin-top: 8rpx; font-size: 24rpx; color: #FF8A00; }
+.rp-cancel { margin-left: 12rpx; font-size: 24rpx; color: #A39E93; }

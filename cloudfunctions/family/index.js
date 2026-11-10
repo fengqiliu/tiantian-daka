@@ -143,6 +143,18 @@ exports.main = async (event) => {
     return { ok: true, id: item.id };
   }
 
+  // 家长端：撤销还没做完的布置（做完的保留，作为记录）
+  if (action === 'unassign') {
+    const fam = await findMyFamily(OPENID, 'parent');
+    if (!fam || fam.ownerOpenid === OPENID) return { ok: false, error: '只有绑定的家长可以撤销' };
+    const list = fam.assignments || [];
+    const target = list.find(a => a.id === String(event.id || ''));
+    if (!target) return { ok: false, error: '练习不存在' };
+    if (target.doneAt) return { ok: false, error: '孩子已经做完了，不能撤销' };
+    await db.collection('families').doc(fam._id).update({ data: { assignments: list.filter(a => a !== target) } });
+    return { ok: true };
+  }
+
   // 孩子端 / 家长端：布置的练习列表（最新在前）
   if (action === 'assignments') {
     const fam = await findMyFamily(OPENID, event.as === 'parent' ? 'parent' : undefined);

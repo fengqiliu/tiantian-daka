@@ -85,6 +85,8 @@ function familyLeave() { return call('family', { action: 'leave' }); }
 // ── 布置练习 ──
 // 家长端：给孩子布置某科某单元的小卷
 function assignUnit(subject, unit) { return call('family', { action: 'assign', subject, unit: Number(unit) }); }
+// 家长端：撤销还没做完的布置
+function unassign(id) { return call('family', { action: 'unassign', id }); }
 // 家长端：给孩子布置一个记忆卡牌组
 function assignDeck(deckId) { return call('family', { action: 'assign', kind: 'deck', deckId }); }
 // 孩子端：拉取布置的练习，成功时写入缓存（首页离线也能显示）
@@ -180,7 +182,7 @@ function subscribeAndGrant(kind) { // kind: 'remind' | 'parent' | 'weekly'
 module.exports = {
   CLOUD_ENV, init, isAvailable, call,
   syncAll, resetCloud, _setNow, _setScheduler,
-  familyCreate, familyJoin, familyLeave, familyResetCode, assignUnit, assignDeck, assignmentList, assignDone, familyRefresh, notifyParents, grantParentSub, grantWeekly, familyConfig,
+  familyCreate, familyJoin, familyLeave, familyResetCode, assignUnit, assignDeck, unassign, assignmentList, assignDone, familyRefresh, notifyParents, grantParentSub, grantWeekly, familyConfig,
   cheerSend, cheerList, cheerRead, cheerReact,
   remindConfig, remindGrant, remindStatus, remindDisable, subscribeAndGrant,
   REMIND_PAGE,

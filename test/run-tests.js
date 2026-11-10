@@ -2014,6 +2014,26 @@ t('周报：今日一练天数与本周记住的记忆卡进练习概况；达�
   const none = digestOf({});
   assert.deepStrictEqual([none.daily.days, none.cards.learned], [0, 0]);
 });
+t('进步曲线：近 8 周每周星星数与小卷正确率（没做小卷的周为 null），柱高按最大值归一', () => {
+  reset();
+  seedDay('2026-11-02', 1, mustIds('2026-11-02')(1));   // 本周（11-02 周一）
+  seedDay('2026-10-26', 1, ['pe_rope']);               // 上周
+  const quiz = [
+    { subject: 'math', total: 10, correct: 8, at: ts('2026-11-03') },
+    { subject: 'math', total: 10, correct: 10, at: ts('2026-11-04') },
+    { subject: 'math', total: 5, correct: 1, at: ts('2026-09-01') }, // 8 周以外
+  ];
+  const t = REPORT.weeklyTrend(store.getRecords(), quiz, '2026-11-05', 8);
+  assert.strictEqual(t.length, 8);
+  assert.deepStrictEqual([t[7].monday, t[6].monday, t[0].monday], ['2026-11-02', '2026-10-26', '2026-09-14'], '旧 → 新');
+  assert(t[7].stars > t[6].stars && t[6].stars > 0);
+  assert.strictEqual(t[7].accuracy, 90);
+  assert.strictEqual(t[6].accuracy, null);
+  assert.strictEqual(t[7].starPct, 100, '最高的一周 100%');
+  assert(t[6].starPct > 0 && t[6].starPct < 100);
+  assert.strictEqual(t[0].starPct, 0);
+  assert.strictEqual(t[7].label, '11/2');
+});
 t('周区间：上周一 / 区间标签', () => {
   assert.strictEqual(REPORT.lastWeekMonday('2026-10-26'), '2026-10-19', '周一看上周');
   assert.strictEqual(REPORT.lastWeekMonday('2026-10-25'), '2026-10-12', '周日看的是前一个完整周');

@@ -364,6 +364,16 @@ t('大字模式：「我的」里打开后，首页、小卷、复习、记忆�
   q.onLoad({});
   assert.strictEqual(q.data.big, false);
 });
+t('成长页进步曲线：近 8 周柱状图（家长端读孩子的数据）', () => {
+  child(1);
+  C.upsertRecord(today(), 'pe_rope', 100, 3, '');
+  const g = load('pages/growth/growth');
+  g.onShow();
+  assert.strictEqual(g.data.trend.length, 8);
+  assert.strictEqual(g.data.trend[7].stars, 3);
+  assert.strictEqual(g.data.trend[7].starPct, 100);
+  assert.strictEqual(g.data.trendLine, '近 8 周共 3 ⭐');
+});
 t('错题本筛选：按科目、只看今天到期的，两个条件可叠加；清空和导出仍针对全部', () => {
   child(1);
   const yest = D.addDays(today(), -1); // 昨天答错 → 今天到期
@@ -960,6 +970,29 @@ t('学期成长证书：学期报告一键生成图片并弹分享菜单', () =>
   const texts = ui.canvas.getContext('2d').calls.filter(c => c[0] === 'fillText').map(c => c[1]);
   assert.deepStrictEqual(texts.slice(0, 2), ['🏅 成长证书', '小豆']);
   assert.strictEqual(ui.shared, 'tmp://share.png');
+});
+t('报告页撤销布置：还没做的练习可撤销（确认后），撤后列表刷新', () => {
+  cloud.init('test-env');
+  const family = CM.load('family');
+  CM.setOpenid('kid1');
+  return CM.load('login').main({}).then(() => family.main({ action: 'create' })).then(r0 => {
+    CM.setOpenid('parent1');
+    return family.main({ action: 'join', code: r0.code });
+  }).then(() => family.main({ action: 'assign', subject: 'math', unit: 6 })).then(() => {
+    store.saveProfile({ role: 'parent', grade: 0, nickname: '妈妈', onboarded: true });
+    return cloud.familyRefresh();
+  }).then(() => {
+    const rp = load('pages/report/report');
+    rp.onLoad();
+    const row = rp.data.assignRows[0];
+    assert.strictEqual(row.canCancel, true);
+    ui.modalAnswer = true;
+    rp.onUnassign(tap({ id: row.id }));
+    return H.flush().then(() => H.flush()).then(() => {
+      assert.strictEqual(CM.db.families[0].assignments.length, 0);
+      assert.strictEqual(rp.data.assignRows.length, 0);
+    });
+  });
 });
 t('开通云：云端先清；云端失败时本机不动', () => {
   cloud.init('test-env');

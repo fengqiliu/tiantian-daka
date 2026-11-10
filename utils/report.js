@@ -112,6 +112,28 @@ function stubbornGroup(mathWrong, quizWrong) {
   return best ? { name: best, count: groups[best] } : null;
 }
 
+// ── 进步曲线：近 n 周（旧 → 新）每周的星星数与小卷正确率 ──
+// 星星只算打卡记录的星级（不含勋章 / 周目标奖励）；没做小卷的周 accuracy 为 null；starPct 按 n 周里的最大值归一
+function weeklyTrend(records, quizHistory, today, n) {
+  const weeks = n || 8;
+  const thisMonday = D.mondayOf(today);
+  const rows = [];
+  for (let i = weeks - 1; i >= 0; i--) {
+    const monday = D.addDays(thisMonday, -7 * i);
+    const sunday = D.addDays(monday, 6);
+    const stars = (records || []).filter(r => !r.deleted && r.date >= monday && r.date <= sunday).reduce((s, r) => s + (r.stars || 0), 0);
+    const startTs = new Date(monday + 'T00:00:00').getTime();
+    const endTs = new Date(D.addDays(monday, 7) + 'T00:00:00').getTime();
+    const qs = (quizHistory || []).filter(q => q.at >= startTs && q.at < endTs);
+    const total = qs.reduce((s, q) => s + (q.total || 0), 0);
+    const correct = qs.reduce((s, q) => s + (q.correct || 0), 0);
+    const d = D.parseDate(monday);
+    rows.push({ monday, label: (d.getMonth() + 1) + '/' + d.getDate(), stars, accuracy: total ? Math.round((correct / total) * 100) : null });
+  }
+  const max = Math.max(1, ...rows.map(r => r.stars));
+  return rows.map(r => ({ ...r, starPct: Math.round((r.stars / max) * 100) }));
+}
+
 // ── 单元掌握：汇总小卷历史里每份卷的单元答题（0.27.0 起记录 units），附错题本未销账题数 ──
 // 答题少于 MASTERY_MIN 题不下结论（'few'）；正确率 ≥ MASTERY_PCT 为掌握，否则需要再练
 const MASTERY_MIN = 3;
@@ -252,4 +274,4 @@ function weeklyDigest(data, monday) {
   };
 }
 
-module.exports = { MASTERY_MIN, MASTERY_PCT, taskRates, overview, drillSummary, lastWeekMonday, weekLabel, stubbornGroup, unitMastery, weeklyDigest };
+module.exports = { MASTERY_MIN, MASTERY_PCT, taskRates, overview, drillSummary, lastWeekMonday, weekLabel, stubbornGroup, unitMastery, weeklyTrend, weeklyDigest };
