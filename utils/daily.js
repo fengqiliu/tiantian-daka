@@ -91,7 +91,7 @@ function record(results, date) {
       daily: true, date,
     });
   });
-  // 今日一练日志（连续天数、学期报告用；不受小卷历史 50 条上限影响）
+  // 今日一练日志（连续天数、学期报告用；不受小卷历史条数上限影响）
   const log = store.getDailyLog();
   if (log.indexOf(date) < 0) store.saveDailyLog(HM.mergeDates(log, [date]));
 }

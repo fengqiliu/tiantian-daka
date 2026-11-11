@@ -21,7 +21,7 @@
 | `ttdr_task_overrides` | 家长任务管理 | `{ targets: {taskId: n}, customs: [], sprintDays?, updatedAt }`；`sprintDays`：期末冲刺窗口（放假前 14 / 21 / 28 天，0 = 关闭，缺省 21；0.32.0 起家长在任务管理设置） | ✓ 新者胜 | ✓ |
 | `ttdr_rewards` / `ttdr_redemptions` / `ttdr_shop_stamp` | 奖励小铺 | 奖品架 / 兑换账本 / 整体时间戳 | ✓ 新者胜（整体） | ✓ |
 | `ttdr_drill_history` | 口算会话 | `[{ date, level, total, correct, at }]`，≤100 | ✓ 按 `at` 并集 | ✓ |
-| `ttdr_quiz_history` | 小卷历史 | `[{ subject, total, correct, label, at, units?, sprint?, daily?, date? }]`，≤50；`units: [{ unit, total, correct }]`（0.27.0 起，家长报告按单元汇总掌握情况；更早的记录没有此字段，汇总时跳过），`sprint: true` 为期末冲刺卷（0.26.0） | ✓ 按 `at` 并集 | ✓ |
+| `ttdr_quiz_history` | 小卷历史 | `[{ subject, total, correct, label, at, units?, sprint?, daily?, date? }]`，≤400（0.40.1 起，原 50；单元星图 / 单元掌握按它累计，需覆盖一个学期）；`units: [{ unit, total, correct }]`（0.27.0 起，家长报告按单元汇总掌握情况；更早的记录没有此字段，汇总时跳过），`sprint: true` 为期末冲刺卷（0.26.0） | ✓ 按 `at` 并集 | ✓ |
 | `ttdr_math_wrong` / `ttdr_quiz_wrong` / `ttdr_wrong_stamp` | 两本错题本 | `[{ key, ..., wrongCount, lastWrongAt, box, due }]` + 整体时间戳 | ✓ 新者胜（整体） | ✓ |
 | `ttdr_review_log` | 错题复习日志 | `[{ date, total, correct }]`，每天一条 | ✓ 按日期合并 | ✓ |
 | `ttdr_goals` | 每周小目标 | `{ [周一日期]: { id, type, taskId, target, label, emoji, setAt, achievedAt } }` | ✓ 按周合并 | ✓ |
@@ -129,7 +129,7 @@
 | 资料 | `users.profile` | 按 `updatedAt` 新者胜 |
 | 勋章 | `badges` | 只增不删，取并集 |
 | 任务覆盖 / 奖励小铺 / 错题本 | `users.taskOverrides` / `users.shop` / `users.wrongBook` | 会被原地修改，整体按时间戳新者胜；写入时间戳严格递增（同毫秒连续写也生效）；本地从未写过（无时间戳）时不上传，避免空数据覆盖云端；例外是 0.16.0 之前已有题的错题本，以时间戳 1 上传一次 |
-| 口算会话 / 小卷历史 | `users.practice.drill` / `.quiz` | 只追加列表，按完成时间 `at` 取并集（≤100 / ≤50），两台设备各自的练习都保留 |
+| 口算会话 / 小卷历史 | `users.practice.drill` / `.quiz` | 只追加列表，按完成时间 `at` 取并集（≤100 / ≤400），两台设备各自的练习都保留 |
 | 复习日志 | `users.practice.review` | 每天一条、各设备分别累计，按日期合并、同日取次数多的一份（≤366） |
 | 每周小目标 | `users.practice.goals` | 按周合并：已达成优先（都达成取更早的，奖励只算一次），否则后设置的胜（≤60 周） |
 

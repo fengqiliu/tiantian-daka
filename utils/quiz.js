@@ -253,7 +253,7 @@ function markResult(question, correct, today) {
   return result;
 }
 
-// 历史记录（最新在前，最多 50 条）
+// 历史记录（最新在前，上限见 history-merge.QUIZ_CAP）
 function saveHistory(entry) {
   const list = store.getQuizHistory();
   list.unshift({ ...entry, at: Date.now() });

@@ -1194,6 +1194,21 @@ t('错题解析：比大小先算再比，读音分平翘舌 / 前后鼻 / 声�
   QBANK.bank.filter(x => /○/.test(x.prompt) || /读：$|正确拼音是：$|声调标对了/.test(x.prompt))
     .forEach(x => assert(QZ.explainOf(x), '缺解析: ' + x.id));
 });
+t('回归：一学期内每天做今日一练，早先点亮的单元星星不会因为小卷历史滚动而消失', () => {
+  reset();
+  const DAILY = require('../utils/daily');
+  QZ.saveHistory({ subject: 'math', total: 10, correct: 10, label: '优秀', units: [{ unit: 5, total: 10, correct: 10 }] });
+  // 一个学期约 140 天，今日一练每天写 2 条小卷历史
+  for (let i = 1; i <= 140; i++) {
+    DAILY.record([{ source: 'quiz', subject: 'chinese', unit: 4, ok: true }, { source: 'quiz', subject: 'english', unit: 2, ok: true }], D.addDays('2026-09-01', i));
+  }
+  const u5 = QZ.starMap(store.getQuizHistory())[0].units.find(u => u.unit === 5);
+  assert.strictEqual(u5.stars, 3, '第 5 单元的 3 颗星还在');
+  const HM = require('../utils/history-merge');
+  const SAN = require('../utils/sanitize');
+  const full = Array.from({ length: HM.QUIZ_CAP }, (_, i) => ({ subject: 'chinese', total: 3, correct: 3, label: '优秀', units: [{ unit: 4, total: 2, correct: 2 }, { unit: 5, total: 1, correct: 1 }], daily: true, date: '2026-11-10', at: 1762700000000 + i }));
+  assert(Buffer.byteLength(JSON.stringify(full)) < SAN.LIMITS.practice / 2, '写满上限也远低于云端练习历史的字节上限');
+});
 t('单元星图：全册每个单元都列出，按答题量与正确率点亮 0-3 颗星', () => {
   const hist = [
     { subject: 'math', units: [{ unit: 2, total: 2, correct: 2 }, { unit: 5, total: 3, correct: 1 }] },
@@ -1375,12 +1390,13 @@ t('学科间错题互不混入', () => {
   assert(!cn.cards.find(c => c.id === q.id), '语文卷不应混入数学错题');
   assert.strictEqual(store.getQuizWrong()[0].subject, 'math');
 });
-t('历史：最新在前且最多保留 50 条', () => {
+t('历史：最新在前且按上限（history-merge.QUIZ_CAP）截断', () => {
   reset();
-  for (let i = 0; i < 55; i++) QZ.saveHistory({ subject: 'math', total: 10, correct: i, label: '良好' });
+  const CAP = require('../utils/history-merge').QUIZ_CAP;
+  for (let i = 0; i < CAP + 5; i++) QZ.saveHistory({ subject: 'math', total: 10, correct: i, label: '良好' });
   const h = QZ.getHistory();
-  assert.strictEqual(h.length, 50);
-  assert.strictEqual(h[0].correct, 54, '最新的在前');
+  assert.strictEqual(h.length, CAP);
+  assert.strictEqual(h[0].correct, CAP + 4, '最新的在前');
   assert(h[0].at >= h[49].at, '时间戳应递减');
 });
 
@@ -1778,9 +1794,9 @@ t('mergeHistory：按 at 并集去重、最新在前、按上限截断、丢弃�
   assert.deepStrictEqual(HM.mergeHistory(a, b, 2).map(x => x.at), [30, 20], '超上限丢最旧');
   assert.deepStrictEqual(HM.mergeHistory(null, undefined, 5), [], '空输入安全');
 });
-t('mergePractice：口算 100 / 小卷 50 分别截断', () => {
+t('mergePractice：口算 / 小卷分别按各自上限截断', () => {
   const drill = Array.from({ length: 120 }, (_, i) => ({ at: i + 1 }));
-  const quiz = Array.from({ length: 60 }, (_, i) => ({ at: i + 1 }));
+  const quiz = Array.from({ length: HM.QUIZ_CAP + 10 }, (_, i) => ({ at: i + 1 }));
   const m = HM.mergePractice({ drill, quiz: [] }, { drill: [], quiz });
   assert.strictEqual(m.drill.length, HM.DRILL_CAP);
   assert.strictEqual(m.quiz.length, HM.QUIZ_CAP);

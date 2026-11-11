@@ -6,7 +6,7 @@
 // 合并规则：按 at 取并集（同 at 保留第一方），最新在前，按上限截断。
 // 与"整体新者胜"不同，并集不会因两台设备各自新增而丢记录。
 const DRILL_CAP = 100; // 口算会话上限（utils/arithmetic.js 引用此值）
-const QUIZ_CAP = 50;   // 小卷历史上限（utils/quiz.js 引用此值）
+const QUIZ_CAP = 400;  // 小卷历史上限（utils/quiz.js 引用此值）。单元星图 / 各单元掌握按它累计：今日一练每天写 1-2 条，50 条约 25 天就把早先的作答挤掉、星星消失；400 条（约 62KB）覆盖一个学期
 const REVIEW_CAP = 366; // 错题复习日志上限（每天一条，约一年）
 const GOAL_WEEKS_CAP = 60; // 每周小目标保留最近 60 周
 const DAILY_LOG_CAP = 400; // 今日一练日志：做过的日期（约一年多）

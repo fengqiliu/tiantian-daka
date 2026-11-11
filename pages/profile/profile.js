@@ -8,7 +8,7 @@ const GD = require('../../utils/guide');
 const UI = require('../../utils/display');
 
 const AVATARS = ['🐱', '🦊', '🐰', '🐻', '🐸', '🦁', '🐼', '🐷'];
-const APP_VERSION = '0.40.0';
+const APP_VERSION = '0.40.1';
 
 Page({
   data: {
