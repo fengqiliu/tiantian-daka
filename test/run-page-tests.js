@@ -434,6 +434,23 @@ t('错题本导出：孩子端与家长端都能复制成文字，没有错题�
   wb.onExport();
   assert(/^小豆的错题本/.test(ui.clipboard), '家长端导出的是孩子的错题：' + ui.clipboard);
 });
+t('首次使用引导：看到第 2 步时切到后台再回来，接着第 2 步（不从头开始）', () => {
+  store.saveProfile({ role: 'child', grade: 1, nickname: '小豆', onboarded: true, createdAt: Date.now() });
+  const home = load('pages/index/index');
+  home.onShow();
+  home.onGuideNext();
+  assert.strictEqual(home.data.guide.step, 2);
+  home.onShow(); // 小程序切回前台
+  assert.strictEqual(home.data.guide.step, 2, '停留在第 2 步');
+});
+t('云端自检失败提示里的云函数数量与 cloudfunctions/ 目录一致', () => {
+  const fs = require('fs');
+  const n = fs.readdirSync('cloudfunctions', { withFileTypes: true }).filter(e => e.isDirectory()).length;
+  const src = fs.readFileSync('pages/profile/profile.js', 'utf8');
+  const m = /(\d+) 个云函数/.exec(src);
+  assert(m, '提示里写了云函数数量');
+  assert.strictEqual(Number(m[1]), n);
+});
 t('每周一卷：单元筛选显示「期末」，选中后只出期末卷的题', () => {
   child(1);
   const p = load('pages/quiz/quiz');

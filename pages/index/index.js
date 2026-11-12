@@ -70,8 +70,9 @@ Page({
       wx.reLaunch({ url: '/pages/onboarding/onboarding' });
       return;
     }
-    this.guideStep = 0;
-    this.setData({ guide: GD.view(profile, 0), big: UI.bigFont() });
+    // 引导停在第几步：切到后台再回来时接着看（页面实例还在），首次进入从第 1 步开始
+    this.guideStep = this.guideStep || 0;
+    this.setData({ guide: GD.view(profile, this.guideStep), big: UI.bigFont() });
     const s = CTX.scope();
     if (s.role === 'parent') {
       this.setData({ isParent: true });

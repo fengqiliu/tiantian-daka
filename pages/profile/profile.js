@@ -8,7 +8,7 @@ const GD = require('../../utils/guide');
 const UI = require('../../utils/display');
 
 const AVATARS = ['🐱', '🦊', '🐰', '🐻', '🐸', '🦁', '🐼', '🐷'];
-const APP_VERSION = '0.40.1';
+const APP_VERSION = '0.40.2';
 
 Page({
   data: {
@@ -98,7 +98,7 @@ Page({
       } else if (res && res.error) {
         wx.showModal({ title: '连接失败', content: 'login 云函数异常：' + res.error + '。请确认已在开发者工具中上传部署。', showCancel: false });
       } else {
-        wx.showModal({ title: '连接失败', content: '请检查 utils/cloud.js 的环境 ID，以及 5 个云函数是否已「上传并部署」。', showCancel: false });
+        wx.showModal({ title: '连接失败', content: '请检查 utils/cloud.js 的环境 ID，以及 6 个云函数是否已「上传并部署」。', showCancel: false });
       }
     });
   },
