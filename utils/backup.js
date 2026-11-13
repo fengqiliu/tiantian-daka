@@ -27,6 +27,7 @@ function serialize() {
       goals: store.getGoals(),
       flashcards: store.getFlashcards(), // 0.35.0 起导出
       dailyLog: store.getDailyLog(),     // 0.38.0 起导出
+      conquered: store.getConquered(),   // 0.41.0 起导出
       settings: store.getSettings(),
     },
   };
@@ -63,6 +64,9 @@ function validate(text) {
   if (d.reviewLog !== undefined && !Array.isArray(d.reviewLog)) return { ok: false, error: '字段 reviewLog 应为数组' };
   if (d.goals !== undefined && (!d.goals || typeof d.goals !== 'object' || Array.isArray(d.goals))) {
     return { ok: false, error: '字段 goals 应为对象' };
+  }
+  if (d.conquered !== undefined && (!Array.isArray(d.conquered) || d.conquered.some(x => !x || typeof x !== 'object'))) {
+    return { ok: false, error: '字段 conquered 应为数组' };
   }
   if (d.dailyLog !== undefined && (!Array.isArray(d.dailyLog) || d.dailyLog.some(x => !SAN.validDate(x)))) {
     return { ok: false, error: '字段 dailyLog 应为日期数组' };
@@ -105,6 +109,7 @@ function restore(parsed) {
   store.saveGoals(d.goals || {});         // 0.19.1 起导出（含达成戳，奖励星随之恢复）
   store.saveFlashcards(d.flashcards || {}); // 0.35.0 起导出；旧备份没有此字段
   store.saveDailyLog(d.dailyLog || []);     // 0.38.0 起导出
+  store.saveConquered(d.conquered || []);   // 0.41.0 起导出
   store.saveSettings(d.settings || {});
   return summarize(parsed);
 }

@@ -1166,6 +1166,32 @@ t('大字模式：默认关；开关存在设置里，不影响其他设置', ()
   UI.setBigFont(false);
   assert.strictEqual(UI.bigFont(), false);
 });
+t('已攻克的错题：口算 / 小卷错题连对 3 次移出错题本时记下来（最新在前，去重，≤200）；备份带上', () => {
+  reset();
+  const RV = require('../utils/review');
+  const p = { kind: 'result', a: 9, op: '+', b: 6, c: null, answer: 15, id: '9+6=' };
+  AR.markResult(p, false, 'add20carry', '2026-11-01');
+  ['2026-11-02', '2026-11-05', '2026-11-12'].forEach(d => AR.markResult(p, true, 'add20carry', d));
+  assert.strictEqual(store.getMathWrong().length, 0, '移出错题本');
+  const q = QZ.poolFor('math').find(x => x.id === 'math-u6-a3-1');
+  QZ.markResult(q, false, '2026-11-01');
+  ['2026-11-02', '2026-11-05', '2026-11-12'].forEach(d => QZ.markResult(q, true, d));
+  const list = RV.conquered();
+  assert.deepStrictEqual(list.map(x => [x.source, x.text, x.date]), [['quiz', '12 + 5 ○ 18', '2026-11-12'], ['math', '9 + 6 = ?', '2026-11-12']]);
+  assert.strictEqual(list[1].tag, '口算 · 20以内进位加（凑十）');
+  assert.strictEqual(list[0].tag, '数学 · 第6单元');
+  // 再错再攻克一次：不重复，只更新日期
+  AR.markResult(p, false, 'add20carry', '2026-11-13');
+  ['2026-11-14', '2026-11-17', '2026-11-24'].forEach(d => AR.markResult(p, true, 'add20carry', d));
+  assert.strictEqual(RV.conquered().length, 2);
+  assert.strictEqual(RV.conquered()[0].date, '2026-11-24');
+  const text = JSON.stringify(BACKUP.serialize());
+  store.clearAll();
+  BACKUP.restoreFromText(text);
+  assert.strictEqual(RV.conquered().length, 2, '备份恢复');
+  for (let i = 0; i < 230; i++) RV.addConquered({ source: 'math', key: 'k' + i, text: 't' + i, tag: 'x' }, '2026-11-13');
+  assert.strictEqual(RV.conquered().length, RV.CONQUERED_CAP);
+});
 t('学科常量只有一份：题库、报告、推送摘要用同一个单元标签与学科名', () => {
   const SUBJ = require('../utils/subjects');
   assert.deepStrictEqual(SUBJ.ORDER, ['math', 'chinese', 'english']);

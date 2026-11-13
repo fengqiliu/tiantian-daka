@@ -156,6 +156,9 @@ function markResult(problem, correct, level, today) {
   const { list, result } = REVIEW.apply(store.getMathWrong(), problem.id, correct, today || D.todayStr(),
     () => ({ level, problem }));
   if (result !== 'none' && result !== 'early') store.saveMathWrong(list);
+  if (result === 'mastered') {
+    REVIEW.addConquered({ source: 'math', key: problem.id, text: textOf(problem), tag: '口算 · ' + ((LEVELS[level] || {}).name || level) }, today || D.todayStr());
+  }
   return result;
 }
 

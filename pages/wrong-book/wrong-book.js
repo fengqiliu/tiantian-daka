@@ -21,6 +21,8 @@ Page({
     filters: { subject: '', dueOnly: false },
     subjectOptions: [{ key: '', name: '全部' }].concat(SUBJ.SUBJECTS.map(s => ({ key: s.key, name: s.name }))),
     shown: 0,
+    conqueredCount: 0,
+    conquered: [],
     emptyHint: '',
   },
 
@@ -87,6 +89,9 @@ Page({
       quizCount: s.quizWrong.length,
       shown,
       emptyHint: total && !shown ? '这个条件下没有错题' : '',
+      // 已攻克的错题（只存孩子本机，家长端不显示）
+      conqueredCount: s.readOnly ? 0 : RV.conquered().length,
+      conquered: s.readOnly ? [] : RV.conquered().slice(0, 10).map(x => ({ key: x.source + x.key, text: x.text, tag: x.tag, dateLabel: D.dateLabel(x.date) })),
       dueCount: s.readOnly ? 0 : RV.dueCount(today),
       readOnly: s.readOnly,
     });

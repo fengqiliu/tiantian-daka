@@ -71,7 +71,18 @@ function logSession(today, total, correct) {
 function reviewedToday(today) { return store.getReviewLog().some(x => x.date === (today || D.todayStr())); }
 function reviewDays() { return store.getReviewLog().length; }
 
+
+// ── 已攻克的错题：错题连对 3 次移出错题本时记一条，给孩子看"我攻克了哪些题"（只存本机，在备份里）──
+const CONQUERED_CAP = 200;
+function conquered() { return store.getConquered(); }
+// item = { source: 'math'|'quiz', key, text, tag }；同一道题再攻克只更新日期并挪到最前
+function addConquered(item, date) {
+  const rest = store.getConquered().filter(x => !(x.source === item.source && x.key === item.key));
+  store.saveConquered([{ ...item, date: date || D.todayStr() }].concat(rest).slice(0, CONQUERED_CAP));
+}
+
 module.exports = {
   INTERVALS, MASTER_BOX, DAILY_N,
   isDue, apply, dueCount, dailyQueue, logSession, reviewedToday, reviewDays,
+  CONQUERED_CAP, conquered, addConquered,
 };

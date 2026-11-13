@@ -36,6 +36,7 @@ const KEYS = {
   FLASHCARDS: 'flashcards',
   ASSIGNMENTS: 'assignments',        // 孩子端：家长布置的练习（云端为准，缓存给首页离线显示）
   CHILD_ASSIGN: 'child_assign',      // 家长端缓存：布置给孩子的练习与结果
+  CONQUERED: 'conquered',            // 已攻克的错题：连对 3 次移出错题本时记下（最新在前，≤200）
   DAILY_LOG: 'daily_log',            // 今日一练日志：做过的日期（最新在前，≤400）
   CHILD_DAILY: 'child_daily',        // 家长端缓存：孩子的今日一练日志          // 记忆卡进度：{ [牌组]: { [卡片正面]: { knownCount, lastAt } } }
 };
@@ -306,6 +307,8 @@ function getAssignments() { return _get(KEYS.ASSIGNMENTS, []); }
 function saveAssignments(list) { _set(KEYS.ASSIGNMENTS, list); }
 function getChildAssignments() { return _get(KEYS.CHILD_ASSIGN, []); }
 function saveChildAssignments(list) { _set(KEYS.CHILD_ASSIGN, list); }
+function getConquered() { return _get(KEYS.CONQUERED, []); }
+function saveConquered(list) { _set(KEYS.CONQUERED, list); }
 function getDailyLog() { return _get(KEYS.DAILY_LOG, []); }
 function saveDailyLog(list) { _set(KEYS.DAILY_LOG, list); }
 function getChildDailyLog() { return _get(KEYS.CHILD_DAILY, []); }
@@ -376,7 +379,7 @@ module.exports = {
   getTimer, saveTimer,
   getSyncState, saveSyncState,
   getChildProfile, getChildRecords, getChildBadges, getChildDrillHistory, getChildQuizHistory, getChildReviewLog,
-  getChildMathWrong, getChildQuizWrong, getChildGoals, getChildTaskOverrides, getChildFlashcards, getChildDailyLog, getDailyLog, saveDailyLog, getAssignments, saveAssignments, getChildAssignments, saveChildAssignments,
+  getChildMathWrong, getChildQuizWrong, getChildGoals, getChildTaskOverrides, getChildFlashcards, getChildDailyLog, getDailyLog, saveDailyLog, getConquered, saveConquered, getAssignments, saveAssignments, getChildAssignments, saveChildAssignments,
   saveChildData, clearChildData,
   clearAll,
 };

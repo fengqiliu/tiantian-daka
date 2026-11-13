@@ -412,6 +412,18 @@ t('错题本筛选：按科目、只看今天到期的，两个条件可叠加�
   wb.onFilterSubject(tap({ key: '' }));
   assert.strictEqual(wb.data.emptyHint, '');
 });
+t('错题本：显示「已攻克 N 题」和最近攻克的题；没有时不显示', () => {
+  child(1);
+  let wb = load('pages/wrong-book/wrong-book');
+  wb.onShow();
+  assert.deepStrictEqual([wb.data.conqueredCount, wb.data.conquered.length], [0, 0]);
+  const RV = require('../utils/review');
+  RV.addConquered({ source: 'math', key: '9+6=', text: '9 + 6 = ?', tag: '口算' }, today());
+  wb = load('pages/wrong-book/wrong-book');
+  wb.onShow();
+  assert.strictEqual(wb.data.conqueredCount, 1);
+  assert.strictEqual(wb.data.conquered[0].text, '9 + 6 = ?');
+});
 t('错题本导出：孩子端与家长端都能复制成文字，没有错题时提示', () => {
   child(1);
   let wb = load('pages/wrong-book/wrong-book');

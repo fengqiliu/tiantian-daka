@@ -59,4 +59,18 @@
     </block>
     <view wx:else class="muted wb-empty">{{emptyHint || "暂无错题，太棒了！🎉"}}</view>
   </view>
+
+  <view class="card" wx:if="{{conqueredCount}}">
+    <view class="row wb-sec">
+      <view class="h2 flex1">🏆 已攻克 {{conqueredCount}} 题</view>
+    </view>
+    <view class="muted wb-group">连对 3 次就算攻克，下面是最近攻克的</view>
+    <view class="row wb-item" wx:for="{{conquered}}" wx:key="key" wx:for-item="c">
+      <view class="flex1">
+        <view class="wb-text">{{c.text}}</view>
+        <view class="wb-due">{{c.tag}}</view>
+      </view>
+      <view class="wb-count">{{c.dateLabel}}</view>
+    </view>
+  </view>
 </view>

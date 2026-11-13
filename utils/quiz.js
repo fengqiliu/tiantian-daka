@@ -250,6 +250,9 @@ function markResult(question, correct, today) {
   const { list, result } = REVIEW.apply(store.getQuizWrong(), orig.id, correct, today || D.todayStr(),
     () => ({ subject: orig.subject, question: orig }));
   if (result !== 'none' && result !== 'early') store.saveQuizWrong(list);
+  if (result === 'mastered') {
+    REVIEW.addConquered({ source: 'quiz', key: orig.id, text: orig.prompt, tag: SUBJ.nameOf(orig.subject) + ' · ' + unitLabel(orig.unit) }, today || D.todayStr());
+  }
   return result;
 }
 

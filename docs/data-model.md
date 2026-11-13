@@ -14,6 +14,7 @@
 | `ttdr_records_YYYY` + `ttdr_records_years` | 打卡记录（按年分片，见 §1.4） | 每年一个数组 + 年份索引；删除为墓碑；旧版单一 `ttdr_records` 首次读取时自动迁移 | ✓ 增量 | ✓ |
 | `ttdr_badges` | 已获得勋章 | `[{ id, earnedAt }]` | ✓ 并集 | ✓ |
 | `ttdr_settings` | 设置 | `{ lastBackupAt, cheerFrom, bigFont, ... }`（`bigFont`：大字模式，0.38.0） | — | ✓ |
+| `ttdr_conquered` | 已攻克的错题（0.41.0） | `[{ source: math|quiz, key, text, tag, date }]`，连对 3 次移出错题本时记一条，同题去重、最新在前、≤200；只存本机，在备份里，不上云 | — | ✓ |
 | `ttdr_daily_log` | 今日一练日志（0.38.0） | 做过今日一练的日期 `["2026-11-07", ...]`，最新在前、≤400；随 `users.practice.daily` 上云（并集），在备份里 | ✓ 并集 | ✓ |
 | `ttdr_assignments` | 家长布置的练习（孩子端缓存，0.38.0） | `[{ id, subject, unit, label, createdAt, doneAt, total, correct }]`，云端 `families.assignments` 为准 | — | — |
 | `ttdr_flashcards` | 记忆卡进度（0.32.0；0.35.0 前误存在键 `ttdr_undefined`，首次读取自动迁移） | `{ [牌库 id]: { [卡片正面]: { knownCount, lastAt } } }`，`knownCount` 连续认识次数（点"再练练"清零），≥2 即掌握；掌握后按 `lastAt` 隔 3 天（2 次）/ 7 天（3 次）再出现巩固，≥4 次不再主动出现；随 `users.practice.cards` 上云（每张卡取最近练过的一方），在备份里，「清空所有数据」会清掉 | ✓ 按卡取新 | ✓ |
