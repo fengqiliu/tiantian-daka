@@ -18,3 +18,4 @@
   white-space: pre-line;
 }
 .pm-foot { text-align: center; padding: 8rpx 48rpx 32rpx; }
+.pm-term { padding: 20rpx 32rpx 8rpx; font-size: 28rpx; font-weight: 600; color: #6B655B; }

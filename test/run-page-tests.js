@@ -1261,6 +1261,14 @@ t('古诗：同一天背两首后重新进入页面，两首都显示已背，�
   assert.strictEqual(ui.toasts.pop(), '今天这首已经背过啦');
   assert.strictEqual(store.getRecords().find(r => r.taskId === 'chinese_poem').value.n, 2, '没有重复计数');
 });
+t('古诗页按学期分段：一上、一下各有分段标题', () => {
+  child(1);
+  const p = load('pages/poems/poems');
+  p.onLoad();
+  const heads = p.data.poems.filter(x => x.termHead).map(x => x.termHead);
+  assert.deepStrictEqual(heads, ['一年级上册', '一年级下册']);
+  assert.strictEqual(p.data.poems.length, 12);
+});
 t('跟读教室：录一句 → 保存录音 → 回放 → 完成打卡', () => {
   child(1);
   const p = load('pages/read-aloud/read-aloud');

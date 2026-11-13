@@ -5,6 +5,8 @@ const D = require('../../utils/date');
 const cloud = require('../../utils/cloud');
 const POEMS = require('../../utils/poems');
 
+const TERM_NAME = { '一上': '一年级上册', '一下': '一年级下册' };
+
 Page({
   data: {
     textbook: '',
@@ -22,8 +24,10 @@ Page({
     });
     this.setData({
       textbook: POEMS.textbook,
-      poems: POEMS.poems.map(p => ({
+      // 每个学期第一首带分段标题（termHead）
+      poems: POEMS.poems.map((p, i, all) => ({
         ...p,
+        termHead: i === 0 || all[i - 1].term !== p.term ? TERM_NAME[p.term] || p.term : '',
         text: p.lines.join('\n'),
         doneToday: !!done['会背《' + p.title + '》'],
       })),

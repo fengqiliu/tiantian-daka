@@ -1546,8 +1546,11 @@ t('小铺同步往返：盖章才上传，远端较新才覆盖', async () => {
 console.log('— 古诗库与单元筛选 —');
 const POEMS = require('../utils/poems');
 
-t('古诗库：统编版一上 6 首，内容完整', () => {
-  assert.strictEqual(POEMS.poems.length, 6);
+t('古诗库：统编版一上 6 首 + 一下 6 首，内容完整，按学期分组', () => {
+  assert.strictEqual(POEMS.poems.length, 12);
+  assert.deepStrictEqual(['一上', '一下'].map(t => POEMS.poems.filter(p => p.term === t).length), [6, 6]);
+  assert.deepStrictEqual(POEMS.poems.filter(p => p.term === '一下').map(p => p.title), ['春晓', '赠汪伦', '静夜思', '寻隐者不遇', '池上', '小池']);
+  assert.deepStrictEqual(POEMS.poems.find(p => p.title === '静夜思').lines, ['床前明月光，', '疑是地上霜。', '举头望明月，', '低头思故乡。']);
   const ids = POEMS.poems.map(p => p.id);
   assert.strictEqual(new Set(ids).size, ids.length);
   POEMS.poems.forEach(p => {

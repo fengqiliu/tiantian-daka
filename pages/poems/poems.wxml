@@ -4,7 +4,9 @@
     <view class="muted">{{textbook}} · 背一首得 3 ⭐</view>
   </view>
 
-  <view class="card pm-card" wx:for="{{poems}}" wx:key="id" wx:for-item="poem">
+  <block wx:for="{{poems}}" wx:key="id" wx:for-item="poem">
+  <view class="pm-term" wx:if="{{poem.termHead}}">{{poem.termHead}}</view>
+  <view class="card pm-card">
     <view class="row" data-id="{{poem.id}}" bindtap="onToggle">
       <view class="pm-emoji">{{poem.doneToday ? '✅' : '🌱'}}</view>
       <view class="flex1">
@@ -18,6 +20,7 @@
       <view class="btn-primary" bindtap="onRecite" data-id="{{poem.id}}">{{poem.doneToday ? '今天已打卡 ✓' : '✅ 我会背这首'}}</view>
     </view>
   </view>
+  </block>
 
   <view class="pm-foot muted">打完卡可以在「日历」里回看；古诗任务一般在一、三、五出现</view>
 </view>
