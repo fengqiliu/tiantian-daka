@@ -209,6 +209,23 @@ function generateDailyTasks(grade, dateStr) {
   return result;
 }
 
+// 某天必做任务的 id（累计星星要逐天判断"全部必做"，会扫遍全部历史：六年约 2000 天）
+// 单独一份轻量缓存（每天只存几个 id，上限 MUST_MEMO_MAX 天）；未命中时不经过 generateDailyTasks，
+// 避免把 800 条的清单缓存反复挤空——之前历史超过 800 天后，每次进首页都把每一天重新生成一遍
+const MUST_MEMO_MAX = 4000;
+const _mustMemo = new Map();
+function mustTaskIds(grade, dateStr) {
+  const key = (Number(grade) || 3) + '@' + dateStr + '@' + overridesFingerprint();
+  const cached = _mustMemo.get(key);
+  if (cached) return cached;
+  const hit = _memo.get(key);
+  const list = hit || _generateDailyTasksUncached(grade, dateStr).filter(t => !t.custom || !t.from || dateStr >= t.from);
+  const ids = list.filter(t => t.must).map(t => t.id);
+  if (_mustMemo.size >= MUST_MEMO_MAX) _mustMemo.clear();
+  _mustMemo.set(key, ids);
+  return ids;
+}
+
 function _generateDailyTasksUncached(grade, dateStr) {
   const band = bandOf(grade);
   const dow = D.dayOfWeek(dateStr);
@@ -352,6 +369,6 @@ function generateHolidayTasks(grade, dow, hol) {
 
 module.exports = {
   SECTIONS, SECTION_ORDER, DEFS,
-  bandOf, buildTask, generateDailyTasks, generateHolidayTasks, getTaskDef, targetLabel,
+  bandOf, buildTask, generateDailyTasks, mustTaskIds, generateHolidayTasks, getTaskDef, targetLabel,
   setOverrideProvider, applyOverrides, sprintDays, SPRINT_OPTIONS,
 };

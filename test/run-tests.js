@@ -2930,6 +2930,32 @@ t('一年真实规模：每个分片远小于微信 1MB 单键上限', () => {
     assert(Math.max(...sizes) < 700 * 1024, '最大分片 ' + Math.round(Math.max(...sizes) / 1024) + 'KB');
   });
 });
+t('回归：六年打卡历史下，累计星星第二次计算不再逐天重新生成任务清单（之前缓存 800 天，超过就每次全量重算）', () => {
+  const b = fakeWxBackend();
+  withBackend(b, () => {
+    store.saveProfile({ role: 'child', grade: 3, onboarded: true });
+    require('./perf-fixture').seedYear('2027-12-31', 6 * 365, 3);
+    const recs = store.getRecords();
+    const days = new Set(recs.map(r => r.date)).size;
+    assert(days > 1500, '历史远超 800 天：' + days);
+    // 与逐天生成清单、用 dayCompletion 判断的老算法结果一致
+    const byDate = {};
+    recs.forEach(r => { (byDate[r.date] = byDate[r.date] || []).push(r); });
+    let expect = 0;
+    Object.keys(byDate).forEach(d => {
+      byDate[d].forEach(r => { expect += r.stars || 0; });
+      if (C.dayCompletion(T.generateDailyTasks(3, d), byDate[d].filter(r => !r.makeup)).allMustDone) expect += 1;
+    });
+    assert.strictEqual(C.totalStars(recs, 3, [], {}), expect);
+    const orig = CAL.holidayAt;
+    let gen = 0;
+    CAL.holidayAt = function () { gen++; return orig.apply(this, arguments); };
+    try {
+      assert.strictEqual(C.totalStars(recs, 3, [], {}), expect);
+    } finally { CAL.holidayAt = orig; }
+    assert.strictEqual(gen, 0, '第二次全部命中缓存，重新生成了 ' + gen + ' 天');
+  });
+});
 t('写入失败（超限）不丢当前会话的数据，并记录错误供页面提示', () => {
   const b = fakeWxBackend(['records_2026']);
   withBackend(b, () => {

@@ -1261,6 +1261,19 @@ t('古诗：同一天背两首后重新进入页面，两首都显示已背，�
   assert.strictEqual(ui.toasts.pop(), '今天这首已经背过啦');
   assert.strictEqual(store.getRecords().find(r => r.taskId === 'chinese_poem').value.n, 2, '没有重复计数');
 });
+t('古诗页显示「已会背 N/12 首」：按历史打卡累计，同一首背多次只算一次；会背过的显示 📖', () => {
+  child(1);
+  C.upsertRecord(D.addDays(today(), -9), 'chinese_poem', 1, 3, '会背《咏鹅》');
+  C.upsertRecord(D.addDays(today(), -2), 'chinese_poem', 1, 3, '会背《咏鹅》、会背《静夜思》');
+  const p = load('pages/poems/poems');
+  p.onLoad();
+  assert.strictEqual(p.data.masteredCount, 2);
+  assert.strictEqual(p.data.poems.length, 12);
+  const by = t2 => p.data.poems.find(x => x.title === t2);
+  assert.deepStrictEqual([by('咏鹅').mastered, by('静夜思').mastered, by('春晓').mastered], [true, true, false]);
+  p.onRecite(tap({ id: by('春晓').id }));
+  assert.strictEqual(p.data.masteredCount, 3, '今天背完立即计入');
+});
 t('古诗页按学期分段：一上、一下各有分段标题', () => {
   child(1);
   const p = load('pages/poems/poems');

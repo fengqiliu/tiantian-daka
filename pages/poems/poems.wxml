@@ -2,13 +2,14 @@
   <view class="pm-head">
     <view class="h1">📜 古诗背诵库</view>
     <view class="muted">{{textbook}} · 背一首得 3 ⭐</view>
+    <view class="pm-mastered">📖 已会背 {{masteredCount}}/{{poems.length}} 首</view>
   </view>
 
   <block wx:for="{{poems}}" wx:key="id" wx:for-item="poem">
   <view class="pm-term" wx:if="{{poem.termHead}}">{{poem.termHead}}</view>
   <view class="card pm-card">
     <view class="row" data-id="{{poem.id}}" bindtap="onToggle">
-      <view class="pm-emoji">{{poem.doneToday ? '✅' : '🌱'}}</view>
+      <view class="pm-emoji">{{poem.doneToday ? '✅' : (poem.mastered ? '📖' : '🌱')}}</view>
       <view class="flex1">
         <view class="pm-title">{{poem.title}}</view>
         <view class="muted">{{poem.author}} · {{poem.tip}}</view>

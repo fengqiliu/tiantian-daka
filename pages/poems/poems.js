@@ -12,6 +12,7 @@ Page({
     textbook: '',
     poems: [],
     expandedId: '',
+    masteredCount: 0,
   },
 
   onLoad() {
@@ -22,6 +23,11 @@ Page({
     C.getDayRecords(this.date).forEach(r => {
       if (r.taskId === 'chinese_poem' && r.note) r.note.split('、').forEach(s => { done[s] = true; });
     });
+    // 历史上背过的（任意一天打过卡）：「已会背 N 首」
+    const ever = {};
+    store.getRecords().forEach(r => {
+      if (r.taskId === 'chinese_poem' && r.note) r.note.split('、').forEach(s => { ever[s] = true; });
+    });
     this.setData({
       textbook: POEMS.textbook,
       // 每个学期第一首带分段标题（termHead）
@@ -30,8 +36,10 @@ Page({
         termHead: i === 0 || all[i - 1].term !== p.term ? TERM_NAME[p.term] || p.term : '',
         text: p.lines.join('\n'),
         doneToday: !!done['会背《' + p.title + '》'],
+        mastered: !!ever['会背《' + p.title + '》'],
       })),
     });
+    this.setData({ masteredCount: this.data.poems.filter(p => p.mastered).length });
   },
 
   onToggle(e) {
@@ -58,9 +66,8 @@ Page({
       cloud.notifyParents((profile && profile.nickname ? profile.nickname : '孩子') + '达成新勋章', b ? '「' + b.name + '」' : '继续加油！');
     }
     cloud.syncAll();
-    this.setData({
-      poems: this.data.poems.map(p => (p.id === poem.id ? { ...p, doneToday: true } : p)),
-    });
+    const poems = this.data.poems.map(p => (p.id === poem.id ? { ...p, doneToday: true, mastered: true } : p));
+    this.setData({ poems, masteredCount: poems.filter(p => p.mastered).length });
     wx.showToast({ title: '真棒！+' + 3 + ' ⭐', icon: 'none' });
   },
 });
