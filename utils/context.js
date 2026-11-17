@@ -20,6 +20,7 @@ function scope() {
       goals: store.getGoals(),
       flashcards: store.getFlashcards(),
       dailyLog: store.getDailyLog(),
+      conquered: store.getConquered(), // 已攻克的错题（只存孩子本机，家长端没有）
       readOnly: false,
       bound: true,
     };

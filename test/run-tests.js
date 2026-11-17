@@ -2033,6 +2033,21 @@ t('周报需关注：本周练过、正确率不到 80% 的最薄弱单元', () 
   assert(g.attention.some(a => a === '「数学第6单元」小卷正确率 40%，可以按单元再练一组'), JSON.stringify(g.attention));
   assert(!g.attention.some(a => a.includes('英语')), '本周没练的单元不在周报里提示');
 });
+t('周报亮点：本周攻克了错题（连对 3 次移出错题本）就写进亮点，只算本周；孩子端的 scope 带上攻克列表', () => {
+  reset();
+  const conquered = [
+    { source: 'math', key: 'a', text: '9 + 6 = ?', tag: '口算', date: '2026-10-21' },
+    { source: 'quiz', key: 'b', text: 'x', tag: '数学', date: '2026-10-25' },
+    { source: 'quiz', key: 'c', text: 'y', tag: '数学', date: '2026-10-18' }, // 上周日，不算
+  ];
+  const g = digestOf({ conquered });
+  assert.strictEqual(g.conquered.count, 2);
+  assert(g.highlights.indexOf('攻克了 2 道错题（连对 3 次移出错题本）') > -1, JSON.stringify(g.highlights));
+  assert.strictEqual(digestOf({}).conquered.count, 0, '家长端没有攻克列表时为 0');
+  assert(!digestOf({ conquered: conquered.slice(2) }).highlights.some(h => /攻克/.test(h)));
+  require('../utils/review').addConquered({ source: 'math', key: 'k', text: 't', tag: 'x' }, '2026-10-21');
+  assert.strictEqual(require('../utils/context').scope().conquered.length, 1);
+});
 t('进行中的周：和上一周"同样天数"比，周二不会因为本周只有 2 天就提示"达成天数比前一周少"', () => {
   reset();
   weekDates('2026-10-12').slice(0, 5).forEach(d => seedDay(d, 1, mustIds(d)(1))); // 上周一至周五都达成

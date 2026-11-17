@@ -167,7 +167,7 @@ function unitMastery(quizHistory, quizWrong) {
     .map(_masteryRow);
 }
 
-// 周报：data = { records, grade, badges, drillSessions, quizHistory, reviewLog, mathWrong, quizWrong, goals, today? }（来自 CTX.scope()）
+// 周报：data = { records, grade, badges, drillSessions, quizHistory, reviewLog, mathWrong, quizWrong, goals, conquered?, today? }（来自 CTX.scope()）
 // today 落在本周内时（本周进行中），任务完成率只算到今天，未来的日子不算漏做
 // 亮点/需关注按固定规则挑选，各最多 3 条；只陈述事实并给温和建议，不和别人比
 function weeklyDigest(data, monday) {
@@ -204,6 +204,8 @@ function weeklyDigest(data, monday) {
     if (c && (c.knownCount || 0) >= FC.MASTER_AT && c.lastAt >= startTs && c.lastAt < endTs) learned++;
   }));
   const cards = { learned };
+  // 已攻克的错题（连对 3 次移出错题本）：只在孩子本机，家长端为 0
+  const conquered = { count: (data.conquered || []).filter(x => x && inWeek(x.date)).length };
   const badgesEarned = (data.badges || [])
     .filter(b => b.earnedAt >= startTs && b.earnedAt < endTs)
     .map(b => {
@@ -236,6 +238,7 @@ function weeklyDigest(data, monday) {
   if (badgesEarned.length) highlights.push('获得勋章' + badgesEarned.map(b => '「' + b.name + '」').join(''));
   if (drill.count >= 2 && drill.accuracy >= 90) highlights.push('口算正确率 ' + drill.accuracy + '%（' + drill.count + ' 次练习）');
   if (review.days >= 3) highlights.push('错题复习坚持了 ' + review.days + ' 天');
+  if (conquered.count) highlights.push('攻克了 ' + conquered.count + ' 道错题（连对 3 次移出错题本）');
   if (quiz.labels.indexOf('优秀') > -1) highlights.push('小卷拿到「优秀」');
   if (daily.days >= 5) highlights.push('今日一练坚持了 ' + daily.days + ' 天');
   if (cards.learned >= 5) highlights.push('本周记住了 ' + cards.learned + ' 张记忆卡');
@@ -268,7 +271,7 @@ function weeklyDigest(data, monday) {
     achievedDays: ov.achievedDays,
     stars: ov.stars,
     vsPrev,
-    drill, quiz, review, daily, cards, badgesEarned, goal,
+    drill, quiz, review, daily, cards, conquered, badgesEarned, goal,
     highlights: highlights.slice(0, 3),
     attention: attention.slice(0, 3),
   };
