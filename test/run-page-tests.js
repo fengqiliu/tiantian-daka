@@ -1274,6 +1274,25 @@ t('古诗页显示「已会背 N/12 首」：按历史打卡累计，同一首�
   p.onRecite(tap({ id: by('春晓').id }));
   assert.strictEqual(p.data.masteredCount, 3, '今天背完立即计入');
 });
+t('古诗页推荐「今天背这首」：当前学期里第一首还没会背的，默认展开；全会背了不推荐', () => {
+  child(1);
+  H.setToday('2026-11-18'); // 一上学期
+  C.upsertRecord('2026-11-10', 'chinese_poem', 1, 3, '会背《咏鹅》');
+  let p = load('pages/poems/poems');
+  p.onLoad();
+  assert.strictEqual(p.data.pickId, 'poem-jiang-nan', '一上第一首没会背的');
+  assert.strictEqual(p.data.expandedId, 'poem-jiang-nan');
+  H.setToday('2027-03-02'); // 一下学期
+  p = load('pages/poems/poems');
+  p.onLoad();
+  assert.strictEqual(p.data.pickId, 'poem-chun-xiao');
+  const POEMS = require('../utils/poems');
+  C.upsertRecord('2027-03-01', 'chinese_poem', POEMS.poems.length, 3, POEMS.poems.map(x => '会背《' + x.title + '》').join('、'));
+  p = load('pages/poems/poems');
+  p.onLoad();
+  assert.strictEqual(p.data.pickId, '');
+  assert.strictEqual(p.data.expandedId, '');
+});
 t('古诗页按学期分段：一上、一下各有分段标题', () => {
   child(1);
   const p = load('pages/poems/poems');

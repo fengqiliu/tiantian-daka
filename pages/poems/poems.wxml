@@ -11,7 +11,7 @@
     <view class="row" data-id="{{poem.id}}" bindtap="onToggle">
       <view class="pm-emoji">{{poem.doneToday ? '✅' : (poem.mastered ? '📖' : '🌱')}}</view>
       <view class="flex1">
-        <view class="pm-title">{{poem.title}}</view>
+        <view class="pm-title">{{poem.title}}<text class="pm-pick" wx:if="{{pickId === poem.id}}">⭐ 今天背这首</text></view>
         <view class="muted">{{poem.author}} · {{poem.tip}}</view>
       </view>
       <view class="pm-arrow">{{expandedId === poem.id ? '▾' : '▸'}}</view>
