@@ -2983,6 +2983,45 @@ t('回归：六年打卡历史下，累计星星第二次计算不再逐天重�
     assert.strictEqual(gen, 0, '第二次全部命中缓存，重新生成了 ' + gen + ' 天');
   });
 });
+t('备份转 SQLite（scripts/backup-to-sqlite.js）：各集合成表、记录带任务名、墓碑不进每日汇总；坏备份 / 已存在的文件报错', () => {
+  const B2S = require('../scripts/backup-to-sqlite');
+  let sqlite;
+  try { sqlite = B2S.loadSqlite(); } catch (e) { console.log('    （本机 Node 没有 node:sqlite，跳过）'); return; }
+  const fs = require('fs');
+  const os = require('os');
+  const path = require('path');
+  reset();
+  store.saveProfile({ role: 'child', grade: 1, nickname: '小豆', onboarded: true });
+  const lego = { id: 'custom_lego', section: 'fun', name: '搭乐高', emoji: '🧱', type: 'done', unit: '次', target: 1, desc: '' };
+  store.saveTaskOverrides({ targets: {}, customs: [lego] }); // 进备份
+  C.upsertRecord('2026-11-17', 'chinese_read', 20, 3, '读了两遍');
+  withOverrides({ targets: {}, customs: [lego] }, () => C.upsertRecord('2026-11-17', 'custom_lego', 1, 2, ''));
+  C.upsertRecord('2026-11-18', 'math_calc', 30, 2, '');
+  C.removeRecord('2026-11-18', 'math_calc'); // 墓碑
+  store.saveFlashcards({ 'cn-g1-u1': { '天': { knownCount: 2, lastAt: 5 } } });
+  const text = JSON.stringify(BACKUP.serialize());
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'b2s-'));
+  const out = path.join(dir, 'daka.sqlite');
+  const sum = B2S.convert(text, out);
+  assert.strictEqual(sum.tables.records, 3);
+  const db = new sqlite.DatabaseSync(out);
+  try {
+    const q = (sql, ...a) => db.prepare(sql).all(...a);
+    assert.strictEqual(q("SELECT value FROM meta WHERE key = 'nickname'")[0].value, '小豆');
+    const recs = q('SELECT date, task_id, task_name, value_type, value_n, stars, note, deleted FROM records ORDER BY date, task_id');
+    assert.deepStrictEqual(recs.map(r => [r.task_id, r.task_name, r.deleted]), [['chinese_read', '课文朗读', 0], ['custom_lego', '搭乐高', 0], ['math_calc', '口算天天练', 1]]);
+    assert.deepStrictEqual([recs[0].value_type, recs[0].value_n, recs[0].note], ['duration', 20, '读了两遍']);
+    const daily = q('SELECT date, tasks, stars FROM daily_summary ORDER BY date');
+    assert.deepStrictEqual(daily.map(d => [d.date, d.tasks, d.stars]), [['2026-11-17', 2, 5]], '墓碑不算');
+    assert.deepStrictEqual(q('SELECT deck, card, known_count FROM flashcards').map(r => [r.deck, r.card, r.known_count]), [['cn-g1-u1', '天', 2]]);
+    assert(JSON.parse(q("SELECT json FROM records WHERE task_id = 'chinese_read'")[0].json).value.n === 20, '每行保留原始 JSON');
+  } finally { db.close(); }
+  assert.throws(() => B2S.convert(text, out), /已存在/);
+  B2S.convert(text, out, { force: true });
+  assert.throws(() => B2S.convert('{"app":"x"}', path.join(dir, 'bad.sqlite')), /不是本项目的备份文件/);
+  assert(!fs.existsSync(path.join(dir, 'bad.sqlite')), '坏备份不留下空文件');
+  fs.rmSync(dir, { recursive: true, force: true });
+});
 t('写入失败（超限）不丢当前会话的数据，并记录错误供页面提示', () => {
   const b = fakeWxBackend(['records_2026']);
   withBackend(b, () => {
