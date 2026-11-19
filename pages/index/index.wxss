@@ -140,3 +140,4 @@
 .guide-skip { margin-top: 20rpx; font-size: 26rpx; }
 .daily-streak { margin-top: 6rpx; font-size: 24rpx; color: #FF8A00; }
 .child-daily { font-size: 28rpx; }
+.task-hint { margin-top: 4rpx; font-size: 24rpx; color: #B5651D; }

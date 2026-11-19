@@ -1,6 +1,6 @@
 // 古诗背诵库：统编版语文一年级上、下册必背古诗（课文 / 日积月累篇目），term 标明学期
 // 内容为公版古诗原文；按学期推进在此追加。
-module.exports = {
+const LIB = {
   textbook: '统编版语文（2024修订）一年级',
   poems: [
     {
@@ -99,5 +99,28 @@ module.exports = {
       author: '宋 · 杨万里',
       tip: '初夏的小池塘，蜻蜓立在荷叶尖上',
       lines: ['泉眼无声惜细流，', '树阴照水爱晴柔。', '小荷才露尖尖角，', '早有蜻蜓立上头。'],
-    },  ],
+    },
+  ],
 };
+
+// 背过的诗：古诗打卡的 note 为「会背《A》、会背《B》」（同日多首累计），拆开逐首算
+function masteredTitles(records) {
+  const out = {};
+  (records || []).forEach(r => {
+    if (!r || r.taskId !== 'chinese_poem' || !r.note) return;
+    r.note.split('、').forEach(s => { const m = /^会背《(.+)》$/.exec(s); if (m) out[m[1]] = true; });
+  });
+  return out;
+}
+
+// 当前学期：2-8 月为下册（春季学期 + 暑假），其余为上册
+function termOf(date) { const m = Number(String(date).slice(5, 7)); return m >= 2 && m <= 8 ? '一下' : '一上'; }
+
+// 推荐「今天背这首」：当前学期第一首没会背的，本学期都会了从头找；全会背返回 null
+function recommend(records, date) {
+  const done = masteredTitles(records);
+  const fresh = LIB.poems.filter(p => !done[p.title]);
+  return fresh.find(p => p.term === termOf(date)) || fresh[0] || null;
+}
+
+module.exports = { ...LIB, masteredTitles, termOf, recommend };

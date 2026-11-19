@@ -2,6 +2,7 @@ const store = require('../../utils/store');
 const T = require('../../utils/tasks');
 const C = require('../../utils/checkin');
 const D = require('../../utils/date');
+const POEMS = require('../../utils/poems');
 const CTX = require('../../utils/context');
 const cloud = require('../../utils/cloud');
 const CAL = require('../../utils/calendar-config');
@@ -108,7 +109,7 @@ Page({
       greeting: D.greeting(new Date().getHours()),
       nickname: profile.nickname,
       gradeLabel: '上海 · ' + grade + ' 年级',
-      sections: this.buildSections(tasks, records),
+      sections: this.buildSections(tasks, records, POEMS.recommend(all, today)),
       done: comp.done,
       total: comp.total,
       pct: comp.total ? Math.round((comp.done / comp.total) * 100) : 0,
@@ -272,7 +273,8 @@ Page({
     return D.isWeekend(today) ? '周末模式 🎈' : '上学日 🏫';
   },
 
-  buildSections(tasks, records) {
+  // poemPick：孩子端没打卡的古诗任务卡显示「推荐背《…》」（家长端不传）
+  buildSections(tasks, records, poemPick) {
     const map = {};
     records.forEach(r => { map[r.taskId] = r; });
     return T.SECTION_ORDER.map(key => {
@@ -287,6 +289,7 @@ Page({
           targetLabel: t.targetLabel + (t.parentConfirm ? ' · 需家长确认' : ''),
           done: !!r,
           stars: r ? r.stars : 0,
+          hint: !r && t.id === 'chinese_poem' && poemPick ? '推荐背《' + poemPick.title + '》' : '',
         };
       });
       return {

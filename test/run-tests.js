@@ -1562,6 +1562,18 @@ t('古诗库：统编版一上 6 首 + 一下 6 首，内容完整，按学期�
     assert(POEMS.poems.find(p => p.title === t2), '应包含 ' + t2));
 });
 
+t('古诗推荐：按历史打卡算会背的（拆开同日多首），推荐当前学期第一首没会背的', () => {
+  const recs = [
+    { taskId: 'chinese_poem', note: '会背《咏鹅》、会背《江南》' },
+    { taskId: 'chinese_poem', note: '会背《春晓》' },
+    { taskId: 'chinese_read', note: '会背《画》' }, // 别的任务不算
+  ];
+  assert.deepStrictEqual(Object.keys(POEMS.masteredTitles(recs)).sort(), ['春晓', '咏鹅', '江南'].sort());
+  assert.strictEqual(POEMS.recommend(recs, '2026-11-19').title, '画');
+  assert.strictEqual(POEMS.recommend(recs, '2027-03-01').title, '赠汪伦');
+  const all = [{ taskId: 'chinese_poem', note: POEMS.poems.map(p => '会背《' + p.title + '》').join('、') }];
+  assert.strictEqual(POEMS.recommend(all, '2026-11-19'), null);
+});
 t('每周一卷按单元筛选：只出该单元的题（不超单元容量）', () => {
   const quiz3 = QZ.buildQuiz('math', 5, seededRng(101), 3);   // 数学第三单元共 5 题
   assert.strictEqual(quiz3.total, 5);

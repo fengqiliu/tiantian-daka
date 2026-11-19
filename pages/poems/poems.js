@@ -6,8 +6,6 @@ const cloud = require('../../utils/cloud');
 const POEMS = require('../../utils/poems');
 
 const TERM_NAME = { '一上': '一年级上册', '一下': '一年级下册' };
-// 当前学期：2-8 月为下册（春季学期 + 暑假），其余为上册
-const termOf = date => { const m = Number(date.slice(5, 7)); return m >= 2 && m <= 8 ? '一下' : '一上'; };
 
 Page({
   data: {
@@ -27,10 +25,8 @@ Page({
       if (r.taskId === 'chinese_poem' && r.note) r.note.split('、').forEach(s => { done[s] = true; });
     });
     // 历史上背过的（任意一天打过卡）：「已会背 N 首」
-    const ever = {};
-    store.getRecords().forEach(r => {
-      if (r.taskId === 'chinese_poem' && r.note) r.note.split('、').forEach(s => { ever[s] = true; });
-    });
+    const all = store.getRecords();
+    const ever = POEMS.masteredTitles(all);
     this.setData({
       textbook: POEMS.textbook,
       // 每个学期第一首带分段标题（termHead）
@@ -39,14 +35,13 @@ Page({
         termHead: i === 0 || all[i - 1].term !== p.term ? TERM_NAME[p.term] || p.term : '',
         text: p.lines.join('\n'),
         doneToday: !!done['会背《' + p.title + '》'],
-        mastered: !!ever['会背《' + p.title + '》'],
+        mastered: !!ever[p.title],
       })),
     });
     // 推荐「今天背这首」：当前学期第一首还没会背的（本学期都会了就从头找），默认展开
-    const fresh = this.data.poems.filter(p => !p.mastered);
-    const pick = fresh.find(p => p.term === termOf(this.date)) || fresh[0];
+    const pick = POEMS.recommend(all, this.date);
     this.setData({
-      masteredCount: this.data.poems.length - fresh.length,
+      masteredCount: this.data.poems.filter(p => p.mastered).length,
       pickId: pick ? pick.id : '',
       expandedId: pick ? pick.id : '',
     });

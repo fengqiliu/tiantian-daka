@@ -234,6 +234,7 @@
         <view class="flex1 task-info">
           <view class="task-name">{{task.name}}<text wx:if="{{task.must}}" class="tag-must">必做</text></view>
           <view class="muted">{{task.targetLabel}}</view>
+          <view wx:if="{{task.hint}}" class="task-hint">{{task.hint}}</view>
         </view>
         <view class="task-right">
           <text wx:if="{{task.done}}" class="task-stars">⭐{{task.stars}}</text>

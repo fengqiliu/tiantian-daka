@@ -72,6 +72,18 @@ t('首页：清单含 4 项必做；选本周目标', () => {
   assert.strictEqual(ui.sheets[0].length, 4);
   assert.strictEqual(home.data.goal.label, '错题复习 3 天');
 });
+t('首页古诗任务卡：没打卡时显示「推荐背《…》」，打卡后不再显示', () => {
+  child(1); // TEST_TODAY 周三，有古诗任务
+  let home = load('pages/index/index');
+  home.onShow();
+  const poemCard = h => h.data.sections.reduce((a, s) => a.concat(s.tasks), []).find(x => x.id === 'chinese_poem');
+  assert(poemCard(home), '周三有古诗任务');
+  assert.strictEqual(poemCard(home).hint, '推荐背《咏鹅》');
+  C.upsertRecord(today(), 'chinese_poem', 1, 3, '会背《咏鹅》');
+  home = load('pages/index/index');
+  home.onShow();
+  assert.strictEqual(poemCard(home).hint, '');
+});
 t('任务打卡：保存记录、提示星星并返回', () => {
   child(2);
   const p = load('pages/task-detail/task-detail');
