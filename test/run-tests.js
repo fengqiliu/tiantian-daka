@@ -1572,7 +1572,24 @@ t('古诗推荐：按历史打卡算会背的（拆开同日多首），推荐�
   assert.strictEqual(POEMS.recommend(recs, '2026-11-19').title, '画');
   assert.strictEqual(POEMS.recommend(recs, '2027-03-01').title, '赠汪伦');
   const all = [{ taskId: 'chinese_poem', note: POEMS.poems.map(p => '会背《' + p.title + '》').join('、') }];
-  assert.strictEqual(POEMS.recommend(all, '2026-11-19'), null);
+  assert.strictEqual(POEMS.recommend(all, '2026-11-19'), null, '没有日期的记录不算温故');
+});
+
+t('古诗温故：全会背后推荐最久没背的（隔 7 天以上），同一首取最近一次', () => {
+  const titles = POEMS.poems.map(p => p.title);
+  const recs = [
+    { taskId: 'chinese_poem', date: '2026-11-01', note: titles.map(x => '会背《' + x + '》').join('、') },
+    { taskId: 'chinese_poem', date: '2026-11-15', note: titles.slice(1).map(x => '会背《' + x + '》').join('、') },
+    { taskId: 'chinese_poem', date: '2026-10-01', note: '会背《' + titles[1] + '》' }, // 更早的不覆盖
+  ];
+  assert.strictEqual(POEMS.lastRecited(recs)[titles[0]], '2026-11-01');
+  assert.strictEqual(POEMS.lastRecited(recs)[titles[1]], '2026-11-15');
+  assert.strictEqual(POEMS.recommend(recs, '2026-11-07'), null, '不到 7 天不温故');
+  const r = POEMS.recommend(recs, '2026-11-08');
+  assert.strictEqual(r.title, titles[0]);
+  assert.strictEqual(r.review, true);
+  assert(!POEMS.poems[0].review, '不改动诗库对象');
+  assert.strictEqual(POEMS.daysBetween('2026-10-25', '2026-11-01'), 7, '跨夏令时 / 月份按自然日算');
 });
 t('每周一卷按单元筛选：只出该单元的题（不超单元容量）', () => {
   const quiz3 = QZ.buildQuiz('math', 5, seededRng(101), 3);   // 数学第三单元共 5 题

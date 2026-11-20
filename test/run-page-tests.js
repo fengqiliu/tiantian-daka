@@ -6,6 +6,7 @@ const assert = require('assert');
 const H = require('./page-harness');
 const store = require('../utils/store');
 const D = require('../utils/date');
+const POEMS = require('../utils/poems');
 const T = require('../utils/tasks');
 const C = require('../utils/checkin');
 const QZ = require('../utils/quiz');
@@ -83,6 +84,24 @@ t('首页古诗任务卡：没打卡时显示「推荐背《…》」，打卡�
   home = load('pages/index/index');
   home.onShow();
   assert.strictEqual(poemCard(home).hint, '');
+});
+t('古诗温故：全都会背后，首页与古诗页推荐最久没背的一首', () => {
+  child(1);
+  const titles = POEMS.poems.map(p => p.title);
+  C.upsertRecord(D.addDays(today(), -10), 'chinese_poem', titles.length, 3, titles.map(x => '会背《' + x + '》').join('、'));
+  C.upsertRecord(D.addDays(today(), -2), 'chinese_poem', titles.length - 1, 3, titles.slice(1).map(x => '会背《' + x + '》').join('、'));
+  const home = load('pages/index/index');
+  home.onShow();
+  const card = home.data.sections.reduce((a, s) => a.concat(s.tasks), []).find(x => x.id === 'chinese_poem');
+  assert.strictEqual(card.hint, '温故《' + titles[0] + '》');
+  const p = load('pages/poems/poems');
+  p.onLoad();
+  assert.strictEqual(p.data.pickId, POEMS.poems[0].id);
+  assert.strictEqual(p.data.pickReview, true);
+  assert.strictEqual(p.data.poems[0].lastAgo, '10 天前背过');
+  assert.strictEqual(p.data.poems[1].lastAgo, '2 天前背过');
+  p.onRecite(tap({ id: POEMS.poems[0].id }));
+  assert.strictEqual(p.data.poems[0].lastAgo, '今天背过');
 });
 t('任务打卡：保存记录、提示星星并返回', () => {
   child(2);

@@ -116,11 +116,39 @@ function masteredTitles(records) {
 // 当前学期：2-8 月为下册（春季学期 + 暑假），其余为上册
 function termOf(date) { const m = Number(String(date).slice(5, 7)); return m >= 2 && m <= 8 ? '一下' : '一上'; }
 
-// 推荐「今天背这首」：当前学期第一首没会背的，本学期都会了从头找；全会背返回 null
+// 每首诗最近一次背的日期 { 标题: 'YYYY-MM-DD' }
+function lastRecited(records) {
+  const out = {};
+  (records || []).forEach(r => {
+    if (!r || r.taskId !== 'chinese_poem' || !r.note || !r.date) return;
+    r.note.split('、').forEach(s => {
+      const m = /^会背《(.+)》$/.exec(s);
+      if (m && !(out[m[1]] >= r.date)) out[m[1]] = r.date;
+    });
+  });
+  return out;
+}
+
+const dayNum = s => Date.UTC(+s.slice(0, 4), +s.slice(5, 7) - 1, +s.slice(8, 10)) / 86400000;
+function daysBetween(a, b) { return Math.round(dayNum(b) - dayNum(a)); }
+
+// 温故：会背的诗隔多少天没背就推荐再背一遍
+const REVIEW_GAP = 7;
+
+// 推荐「今天背这首」：当前学期第一首没会背的，本学期都会了从头找；
+// 全会背后推荐最久没背的那首（隔 REVIEW_GAP 天以上，带 review: true）；都背得很近返回 null
 function recommend(records, date) {
   const done = masteredTitles(records);
   const fresh = LIB.poems.filter(p => !done[p.title]);
-  return fresh.find(p => p.term === termOf(date)) || fresh[0] || null;
+  const pick = fresh.find(p => p.term === termOf(date)) || fresh[0];
+  if (pick) return pick;
+  const last = lastRecited(records);
+  let old = null;
+  LIB.poems.forEach(p => {
+    const d = last[p.title];
+    if (d && daysBetween(d, date) >= REVIEW_GAP && (!old || d < last[old.title])) old = p;
+  });
+  return old ? { ...old, review: true } : null;
 }
 
-module.exports = { ...LIB, masteredTitles, termOf, recommend };
+module.exports = { ...LIB, masteredTitles, lastRecited, daysBetween, termOf, recommend, REVIEW_GAP };

@@ -289,7 +289,7 @@ Page({
           targetLabel: t.targetLabel + (t.parentConfirm ? ' · 需家长确认' : ''),
           done: !!r,
           stars: r ? r.stars : 0,
-          hint: !r && t.id === 'chinese_poem' && poemPick ? '推荐背《' + poemPick.title + '》' : '',
+          hint: !r && t.id === 'chinese_poem' && poemPick ? (poemPick.review ? '温故《' : '推荐背《') + poemPick.title + '》' : '',
         };
       });
       return {

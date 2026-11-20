@@ -13,6 +13,7 @@ Page({
     poems: [],
     expandedId: '',
     pickId: '',
+    pickReview: false,
     masteredCount: 0,
   },
 
@@ -27,6 +28,8 @@ Page({
     // 历史上背过的（任意一天打过卡）：「已会背 N 首」
     const all = store.getRecords();
     const ever = POEMS.masteredTitles(all);
+    const last = POEMS.lastRecited(all);
+    const ago = d => { const n = POEMS.daysBetween(d, this.date); return n <= 0 ? '今天背过' : n === 1 ? '昨天背过' : n + ' 天前背过'; };
     this.setData({
       textbook: POEMS.textbook,
       // 每个学期第一首带分段标题（termHead）
@@ -36,13 +39,16 @@ Page({
         text: p.lines.join('\n'),
         doneToday: !!done['会背《' + p.title + '》'],
         mastered: !!ever[p.title],
+        lastAgo: last[p.title] ? ago(last[p.title]) : '',
       })),
     });
-    // 推荐「今天背这首」：当前学期第一首还没会背的（本学期都会了就从头找），默认展开
+    // 推荐「今天背这首」：当前学期第一首还没会背的（本学期都会了就从头找），默认展开；
+    // 全都会背了推荐最久没背的一首「温故」
     const pick = POEMS.recommend(all, this.date);
     this.setData({
       masteredCount: this.data.poems.filter(p => p.mastered).length,
       pickId: pick ? pick.id : '',
+      pickReview: !!(pick && pick.review),
       expandedId: pick ? pick.id : '',
     });
   },
@@ -71,7 +77,7 @@ Page({
       cloud.notifyParents((profile && profile.nickname ? profile.nickname : '孩子') + '达成新勋章', b ? '「' + b.name + '」' : '继续加油！');
     }
     cloud.syncAll();
-    const poems = this.data.poems.map(p => (p.id === poem.id ? { ...p, doneToday: true, mastered: true } : p));
+    const poems = this.data.poems.map(p => (p.id === poem.id ? { ...p, doneToday: true, mastered: true, lastAgo: '今天背过' } : p));
     this.setData({ poems, masteredCount: poems.filter(p => p.mastered).length });
     wx.showToast({ title: '真棒！+' + 3 + ' ⭐', icon: 'none' });
   },
